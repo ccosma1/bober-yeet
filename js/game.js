@@ -39,6 +39,7 @@
   const playBtn = document.getElementById("btn-play");
   const endTitle = document.getElementById("end-title");
   const endMsg = document.getElementById("end-msg");
+  const endQuote = document.getElementById("end-quote");
   const endRestart = document.getElementById("end-restart");
   const endNext = document.getElementById("end-next");
   const nameInput = document.getElementById("player-name");
@@ -518,8 +519,13 @@
     if (state !== "play") return;
     const bonus = shotsLeft;
     score += bonus;
+    if (levelIndex >= LEVEL_COUNT - 1) {
+      finishGame();
+      return;
+    }
     state = "win";
     BoberSfx.win();
+    if (endQuote) endQuote.classList.add("hidden");
     endTitle.textContent = "YEET!";
     endMsg.textContent =
       BoberLevels.get(levelIndex).name +
@@ -528,7 +534,7 @@
       (starGot ? " + charge" : "") +
       (bonus ? " +" + bonus + " leftover shot" + (bonus === 1 ? "" : "s") : "") +
       ".";
-    endNext.textContent = levelIndex >= LEVEL_COUNT - 1 ? "DONE" : "NEXT LEVEL";
+    endNext.textContent = "NEXT LEVEL";
     endcard.classList.remove("hidden");
     hud();
     submitRun();
@@ -538,6 +544,7 @@
     if (state !== "play") return;
     state = "fail";
     BoberSfx.fail();
+    if (endQuote) endQuote.classList.add("hidden");
     endTitle.textContent = timeLeft <= 0 ? "TIME'S UP" : "NO BOBER LEFT";
     endMsg.textContent = failWhy() + " Restart or skip.";
     endNext.textContent = levelIndex >= LEVEL_COUNT - 1 ? "DONE" : "NEXT LEVEL";
@@ -547,10 +554,26 @@
 
   function finishGame() {
     state = "done";
+    BoberSfx.win();
     endcard.classList.remove("hidden");
-    endTitle.textContent = "100 DAMS";
-    endMsg.textContent = playerName + " — fan score " + score + ". Holder energy: maximum.";
+    endTitle.textContent = "MARS IS FULL";
+    endMsg.textContent =
+      (playerName || "online player") +
+      " cleared all 100 dams. Score " +
+      score +
+      ".";
+    if (endQuote) {
+      endQuote.classList.remove("hidden");
+      endQuote.innerHTML =
+        "bober is now a multiplanetary species.\n" +
+        "100 dams. zero ads. the bird is freed.\n" +
+        "cybertruck could never.\n" +
+        "see you on uranus. then mars. then whatever’s next.\n" +
+        "let that sink in." +
+        "<cite>— a totally real memo from Elon, probably</cite>";
+    }
     endNext.textContent = "PLAY AGAIN";
+    hud();
     submitRun(LEVEL_COUNT);
   }
 

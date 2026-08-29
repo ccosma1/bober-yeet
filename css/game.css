@@ -299,6 +299,29 @@ h1 {
 
 #endcard p { margin: 6px 0 16px; font-size: 18px; font-weight: 700; }
 
+.end-quote {
+  max-width: 28em;
+  margin: 0 auto 16px;
+  padding: 12px 16px;
+  background: rgba(26, 16, 32, 0.72);
+  border: 3px solid #1a1020;
+  border-radius: 16px;
+  color: #e8d9ff;
+  font-size: clamp(14px, 2.6vw, 17px);
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: left;
+  white-space: pre-wrap;
+}
+.end-quote.hidden { display: none; }
+.end-quote cite {
+  display: block;
+  margin-top: 10px;
+  color: #ffe566;
+  font-style: normal;
+  font-size: 13px;
+}
+
 .end-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
 .hint {
