@@ -89,6 +89,8 @@
   let hitBlockThisShot = false;
   let uranusA = 0;
   let clouds = [];
+  let skyFx = [];
+  let pointerAim = { x: W * 0.5, y: H * 0.4 };
   let playerName = "";
   let boardOpen = false;
   const starChip = document.getElementById("star-chip");
@@ -192,6 +194,25 @@
       { x: 980, y: 80, s: 1.1 },
       { x: 1100, y: 180, s: 0.6 },
     ];
+  }
+
+  function makeSkyFx() {
+    const id = (currentTheme && currentTheme.id) || "uranus";
+    const n = 18 + Math.min(24, Math.floor(levelIndex / 8));
+    skyFx = [];
+    for (let i = 0; i < n; i++) {
+      skyFx.push({
+        kind: id,
+        x: Math.random() * W,
+        y: 40 + Math.random() * (GROUND_TOP - 80),
+        vx: (Math.random() - 0.5) * (0.4 + levelIndex * 0.01),
+        vy: (Math.random() - 0.7) * 0.35,
+        r: 2 + Math.random() * 5,
+        a: Math.random() * Math.PI * 2,
+        va: 0.02 + Math.random() * 0.04,
+        life: 1,
+      });
+    }
   }
 
   function clearWorld() {
@@ -322,6 +343,7 @@
       return b;
     });
     spawnBober();
+    makeSkyFx();
     hud();
     document.getElementById("hud").classList.add("live");
     endcard.classList.add("hidden");
@@ -488,6 +510,10 @@
     if (chargedYeet) toast(chargedYeet >= 2 ? "SUPER YEET!" : "CHARGED YEET!");
     BoberSfx.twang();
     hud();
+    for (const f of skyFx) {
+      f.vx += vx * 0.012;
+      f.vy += vy * 0.008;
+    }
   }
 
   function remainingBlocksOnscreen() {
@@ -698,8 +724,9 @@
   }
 
   function onMove(ev) {
+    pointerAim = worldFromEvent(ev);
     if (!dragging) return;
-    dragPos = clampPull(worldFromEvent(ev));
+    dragPos = clampPull(pointerAim);
     ev.preventDefault();
   }
 
@@ -717,10 +744,81 @@
     ev.preventDefault();
   }
 
+  function drawSkyFx(dt) {
+    const px = (pointerAim.x - W * 0.5) * 0.02;
+    const py = (pointerAim.y - H * 0.4) * 0.015;
+    for (const f of skyFx) {
+      f.x += f.vx + px * 0.15;
+      f.y += f.vy + py * 0.1;
+      f.a += f.va;
+      if (f.x < -30) f.x = W + 20;
+      if (f.x > W + 30) f.x = -20;
+      if (f.y < 10) f.y = GROUND_TOP - 40;
+      if (f.y > GROUND_TOP - 20) f.y = 30;
+      ctx.save();
+      ctx.translate(f.x, f.y);
+      ctx.rotate(f.a);
+      ctx.globalAlpha = 0.55 + Math.sin(f.a * 3) * 0.25;
+      if (f.kind === "mars" || f.kind === "colony") {
+        ctx.fillStyle = "#e07040";
+        ctx.fillRect(-f.r, -1.5, f.r * 2, 3);
+      } else if (f.kind === "xnight") {
+        ctx.strokeStyle = "#f2f2f2";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-f.r, -f.r);
+        ctx.lineTo(f.r, f.r);
+        ctx.moveTo(f.r, -f.r);
+        ctx.lineTo(-f.r, f.r);
+        ctx.stroke();
+      } else if (f.kind === "doge") {
+        ctx.fillStyle = "#f4d060";
+        ctx.beginPath();
+        ctx.arc(0, 0, f.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#1a1020";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      } else if (f.kind === "boca" || f.kind === "cyber") {
+        ctx.fillStyle = f.kind === "boca" ? "#fff6c4" : "#c8ff80";
+        ctx.fillRect(-1, -f.r * 2, 2, f.r * 4);
+      } else if (f.kind === "tunnel") {
+        ctx.strokeStyle = "#6a6a78";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, f.r + 4, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (f.kind === "sink") {
+        ctx.fillStyle = "#b8c4d8";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 2, f.r, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (f.kind === "finale") {
+        ctx.fillStyle = "#f5c400";
+        ctx.beginPath();
+        for (let k = 0; k < 5; k++) {
+          const ang = f.a + (k * Math.PI * 2) / 5;
+          ctx.lineTo(Math.cos(ang) * f.r, Math.sin(ang) * f.r);
+        }
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        ctx.fillStyle = "#fff6c4";
+        ctx.beginPath();
+        ctx.arc(0, 0, f.r * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function drawPlanet(kind) {
     uranusA += 0.003;
+    const ox = (pointerAim.x - W * 0.5) * 0.03;
+    const oy = (pointerAim.y - H * 0.4) * 0.02;
     ctx.save();
-    ctx.translate(1080, 128);
+    ctx.translate(1080 + ox, 128 + oy);
     ctx.rotate(kind === "uranus" ? uranusA : uranusA * 0.6);
     if (kind === "uranus" && img.uranus) {
       const uw = 210;
@@ -762,6 +860,7 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
     if (th.planet && th.planet !== "none") drawPlanet(th.planet);
+    drawSkyFx(0.016);
     ctx.fillStyle = th.cloud || "rgba(255,255,255,0.5)";
     for (const c of clouds) {
       c.x += 0.12 * c.s;

@@ -3,5 +3,6 @@ __pycache__/
 data/scores.json
 data/scores.tmp
 assets/ref/
+ending-preview.png
 .DS_Store
 Thumbs.db
