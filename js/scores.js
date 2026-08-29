@@ -56,21 +56,35 @@
     return sortRows(rows).slice(0, 50);
   }
 
+  async function fetchJson(url, opts, ms) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms || 9000);
+    try {
+      const r = await fetch(url, Object.assign({ cache: "no-store", signal: ctrl.signal }, opts || {}));
+      if (!r.ok) throw new Error("http " + r.status);
+      const text = await r.text();
+      return text ? JSON.parse(text) : {};
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
   async function cloudGet() {
-    const r = await fetch(CLOUD_URL, { cache: "no-store" });
-    if (!r.ok) throw new Error("cloud get");
-    const data = await r.json();
+    const data = await fetchJson(CLOUD_URL);
     const rows = Array.isArray(data) ? data : data.rows;
     return Array.isArray(rows) ? rows : [];
   }
 
   async function cloudPut(rows) {
-    const r = await fetch(CLOUD_URL, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rows: sortRows(rows).slice(0, 50) }),
-    });
-    if (!r.ok) throw new Error("cloud put");
+    await fetchJson(
+      CLOUD_URL,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: sortRows(rows).slice(0, 50) }),
+      },
+      9000
+    );
   }
 
   async function localApiGet() {
