@@ -2,8 +2,10 @@
   const KEY = "bober-yeet-board";
   const NAME_KEY = "bober-yeet-name";
   const LOCAL_API = "/api/scores";
-  const CLOUD_URL =
-    "https://crudcrud.com/api/e03e7485b9b14bc7ad4a2ee420c17036/board/6a92cb1392884803e8f672ba";
+  const CLOUD_COL =
+    "https://crudcrud.com/api/e03e7485b9b14bc7ad4a2ee420c17036/board";
+  const CLOUD_DOC = CLOUD_COL + "/6a92cb1392884803e8f672ba";
+  const DEFAULT_NAME = "online player";
 
   function cleanName(raw) {
     const s = String(raw || "")
@@ -69,22 +71,47 @@
     }
   }
 
-  async function cloudGet() {
-    const data = await fetchJson(CLOUD_URL);
-    const rows = Array.isArray(data) ? data : data.rows;
-    return Array.isArray(rows) ? rows : [];
+  function rowsFromCloud(data) {
+    const merged = [];
+    const pile = Array.isArray(data) ? data : data ? [data] : [];
+    for (const item of pile) {
+      if (!item || typeof item !== "object") continue;
+      if (Array.isArray(item.rows)) item.rows.forEach((row) => upsert(merged, row));
+      else if (item.name) upsert(merged, item);
+    }
+    return sortRows(merged);
   }
 
-  async function cloudPut(rows) {
-    await fetchJson(
-      CLOUD_URL,
-      {
+  async function cloudGet() {
+    try {
+      return rowsFromCloud(await fetchJson(CLOUD_COL));
+    } catch (_) {
+      return rowsFromCloud(await fetchJson(CLOUD_DOC));
+    }
+  }
+
+  async function cloudPost(entry) {
+    const payload = {
+      name: cleanName(entry.name) || DEFAULT_NAME,
+      score: Math.floor(Number(entry.score) || 0),
+      levels: Math.max(1, Math.min(6, Math.floor(Number(entry.levels) || 1))),
+      at: entry.at || Date.now(),
+    };
+    try {
+      await fetchJson(CLOUD_COL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch (_) {
+      const remote = await cloudGet();
+      const next = upsert(remote, payload);
+      await fetchJson(CLOUD_DOC, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: sortRows(rows).slice(0, 50) }),
-      },
-      9000
-    );
+        body: JSON.stringify({ rows: next }),
+      });
+    }
   }
 
   async function localApiGet() {
@@ -107,12 +134,13 @@
 
   const Scores = {
     cleanName,
+    defaultName: DEFAULT_NAME,
     getSavedName() {
-      return cleanName(localStorage.getItem(NAME_KEY) || "");
+      return cleanName(localStorage.getItem(NAME_KEY) || "") || DEFAULT_NAME;
     },
     setSavedName(name) {
-      const n = cleanName(name);
-      if (n) localStorage.setItem(NAME_KEY, n);
+      const n = cleanName(name) || DEFAULT_NAME;
+      localStorage.setItem(NAME_KEY, n);
       return n;
     },
 
@@ -134,9 +162,8 @@
         if (isLocalHost()) {
           rows = await localApiPost(entry);
         } else {
-          const remote = await cloudGet();
-          rows = upsert(remote, entry);
-          await cloudPut(rows);
+          await cloudPost(entry);
+          rows = await cloudGet();
         }
         localSave(sortRows(rows));
         return sortRows(rows);

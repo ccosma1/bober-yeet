@@ -17,12 +17,13 @@
     <canvas id="game"></canvas>
     <div id="hud">
       <div class="top">
-        <div class="chip" id="level">LV 1/6</div>
-        <div class="chip" id="player-chip">?</div>
-        <div class="chip" id="score">SCORE 0</div>
-        <div class="chip time" id="time">0:20</div>
-        <div class="chip star-chip hidden" id="star-chip">★</div>
-        <div class="spacer"></div>
+        <div class="top-stats">
+          <div class="chip" id="level">LV 1/6</div>
+          <div class="chip" id="player-chip">online player</div>
+          <div class="chip" id="score">SCORE 0</div>
+          <div class="chip time" id="time">0:20</div>
+          <div class="chip star-chip hidden" id="star-chip">★</div>
+        </div>
         <div class="btns">
           <button class="btn" id="btn-board" title="High scores" aria-label="High scores">🏆</button>
           <button class="btn" id="btn-mute" title="Mute" aria-label="Mute">🔊</button>
@@ -39,7 +40,7 @@
       <h1>BOBER YEET</h1>
       <p class="tagline">Fan game by a holder.</p>
       <label class="name-label" for="player-name">Your name</label>
-      <input id="player-name" class="name-input" type="text" maxlength="16" autocomplete="nickname" placeholder="Who's yeeting?" />
+      <input id="player-name" class="name-input" type="text" maxlength="16" autocomplete="nickname" value="online player" placeholder="online player" />
       <p class="name-err hidden" id="name-err">Type a name so we can tell players apart.</p>
       <div class="end-actions">
         <button class="play" id="btn-play" disabled>YEET</button>

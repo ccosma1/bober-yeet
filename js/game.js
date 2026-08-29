@@ -155,7 +155,7 @@
   function hud() {
     scoreEl.textContent = "SCORE " + score;
     levelEl.textContent = "LV " + (levelIndex + 1) + "/6";
-    playerChip.textContent = playerName || "?";
+    playerChip.textContent = playerName || BoberScores.defaultName;
     const s = Math.max(0, Math.ceil(timeLeft));
     timeEl.textContent = "0:" + String(s).padStart(2, "0");
     timeEl.classList.toggle("warn", s <= 5);
@@ -490,6 +490,7 @@
     endNext.textContent = levelIndex >= 5 ? "DONE" : "NEXT LEVEL";
     endcard.classList.remove("hidden");
     hud();
+    submitRun();
   }
 
   function failLevel() {
@@ -513,14 +514,17 @@
   }
 
   async function submitRun(levelsDone) {
-    if (!playerName || score <= 0) return;
+    const name = playerName || BoberScores.defaultName;
+    if (score <= 0) return;
     const levels = levelsDone || Math.max(1, levelIndex + 1);
-    await BoberScores.submit({
-      name: playerName,
-      score,
-      levels: Math.min(6, levels),
-      at: Date.now(),
-    });
+    try {
+      await BoberScores.submit({
+        name,
+        score,
+        levels: Math.min(6, levels),
+        at: Date.now(),
+      });
+    } catch (_) {}
   }
 
   function escapeHtml(s) {
@@ -572,9 +576,9 @@
   }
 
   function refreshNameGate() {
-    const n = BoberScores.cleanName(nameInput.value);
+    const n = BoberScores.cleanName(nameInput.value) || BoberScores.defaultName;
     playBtn.disabled = n.length < 2;
-    nameErr.classList.toggle("hidden", n.length >= 2 || !nameInput.value);
+    nameErr.classList.toggle("hidden", true);
   }
 
   function nextLevel() {
@@ -973,13 +977,8 @@
   });
   playBtn.addEventListener("click", () => {
     BoberSfx.ensure();
-    const n = BoberScores.setSavedName(nameInput.value);
-    if (n.length < 2) {
-      nameErr.classList.remove("hidden");
-      nameInput.focus();
-      return;
-    }
-    playerName = n;
+    const n = BoberScores.setSavedName(nameInput.value || BoberScores.defaultName);
+    playerName = n || BoberScores.defaultName;
     splash.classList.add("hidden");
     score = 0;
     loadLevel(0);
@@ -1041,8 +1040,12 @@
     makeClouds();
     updateMuteBtn();
     const saved = BoberScores.getSavedName();
-    if (saved) nameInput.value = saved;
+    nameInput.value = saved || BoberScores.defaultName;
     refreshNameGate();
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") submitRun();
+    });
+    window.addEventListener("pagehide", () => submitRun());
     requestAnimationFrame(frame);
   });
 })();

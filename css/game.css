@@ -39,34 +39,49 @@ html, body {
 
 #hud {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   pointer-events: none;
   display: none;
   flex-direction: column;
   width: min(100vw, calc(100vh * 16 / 9));
   height: min(100vh, calc(100vw * 9 / 16));
-  margin: auto;
+  margin: 0;
 }
 #hud.live { display: flex; }
 
 #hud .top {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) 6px max(6px, env(safe-area-inset-left));
   pointer-events: none;
+}
+
+.top-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
 }
 
 .chip {
   background: rgba(26, 16, 32, 0.72);
-  border: 3px solid #1a1020;
-  border-radius: 14px;
-  padding: 4px 10px;
+  border: 2px solid #1a1020;
+  border-radius: 12px;
+  padding: 3px 8px;
   font-weight: 800;
-  font-size: 15px;
-  letter-spacing: 0.3px;
+  font-size: 13px;
+  letter-spacing: 0.2px;
   color: var(--cream);
   text-shadow: 0 1px 0 #000;
+  max-width: 34vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chip.time.warn { color: #ff6b6b; }
@@ -74,28 +89,35 @@ html, body {
 .star-chip.got { color: #ffe566; }
 .star-chip.hidden { display: none; }
 
-.spacer { flex: 1; }
-
 .btns {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   pointer-events: auto;
+  flex-shrink: 0;
 }
 
 .btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  border: 3px solid #1a1020;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  border: 2px solid #1a1020;
   background: var(--yellow);
   color: var(--ink);
   font-weight: 900;
-  font-size: 20px;
+  font-size: 16px;
   cursor: pointer;
-  box-shadow: 0 3px 0 #8a6a00;
+  box-shadow: 0 2px 0 #8a6a00;
   display: grid;
   place-items: center;
   line-height: 1;
+  touch-action: manipulation;
+}
+
+@media (min-width: 900px) {
+  .chip { font-size: 15px; padding: 4px 10px; border-width: 3px; border-radius: 14px; max-width: none; }
+  .btn { width: 44px; height: 44px; min-width: 44px; border-radius: 14px; border-width: 3px; font-size: 20px; box-shadow: 0 3px 0 #8a6a00; }
+  .btns { gap: 6px; }
 }
 
 .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #8a6a00; }
@@ -119,10 +141,12 @@ html, body {
 
 .overlay {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   width: min(100vw, calc(100vh * 16 / 9));
   height: min(100vh, calc(100vw * 9 / 16));
-  margin: auto;
+  margin: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
