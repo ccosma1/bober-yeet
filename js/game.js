@@ -9,6 +9,15 @@
   const LEVEL_TIME = 20;
   const LEVEL_COUNT = BoberLevels.COUNT;
 
+  if (typeof Matter === "undefined") {
+    const b = document.getElementById("btn-play");
+    if (b) {
+      b.disabled = false;
+      b.textContent = "YEET";
+    }
+    console.error("Matter.js failed to load");
+    return;
+  }
   const { Engine, World, Bodies, Body, Events } = Matter;
 
   const canvas = document.getElementById("game");
@@ -610,9 +619,8 @@
   }
 
   function refreshNameGate() {
-    const n = BoberScores.cleanName(nameInput.value) || BoberScores.defaultName;
-    playBtn.disabled = n.length < 2;
-    nameErr.classList.toggle("hidden", true);
+    playBtn.disabled = false;
+    nameErr.classList.add("hidden");
   }
 
   function nextLevel() {
@@ -1096,18 +1104,32 @@
     if (levelIndex >= LEVEL_COUNT - 1 && (state === "win" || state === "done")) finishGame();
     else nextLevel();
   });
-  playBtn.addEventListener("click", () => {
-    BoberSfx.ensure();
+  let assetsReady = false;
+  let startWhenReady = false;
+
+  function beginRun() {
     const n = BoberScores.setSavedName(nameInput.value || BoberScores.defaultName);
     playerName = n || BoberScores.defaultName;
     splash.classList.add("hidden");
     score = 0;
     charge = 0;
     loadLevel(0);
+  }
+
+  playBtn.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    BoberSfx.ensure();
+    if (!assetsReady) {
+      playBtn.textContent = "LOADING...";
+      startWhenReady = true;
+      return;
+    }
+    beginRun();
   });
   nameInput.addEventListener("input", refreshNameGate);
+  nameInput.addEventListener("change", refreshNameGate);
   nameInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !playBtn.disabled) playBtn.click();
+    if (e.key === "Enter") playBtn.click();
   });
   btnBoard.addEventListener("click", () => {
     BoberSfx.ensure();
@@ -1152,7 +1174,11 @@
     { passive: false }
   );
 
-  Promise.all([
+  playBtn.disabled = false;
+  refreshNameGate();
+  if (!nameInput.value) nameInput.value = BoberScores.getSavedName() || BoberScores.defaultName;
+
+  Promise.allSettled([
     loadImage("assets/sprites/bober-idle.png").then((i) => (img.idle = i)),
     loadImage("assets/sprites/bober-fly.png").then((i) => (img.fly = i)),
     loadImage("assets/sprites/bober-splat.png").then((i) => (img.splat = i)),
@@ -1160,15 +1186,17 @@
     loadImage("assets/sprites/slingshot.png").then((i) => (img.sling = i)),
     loadImage("assets/sprites/star.png").then((i) => (img.star = i)),
   ]).then(() => {
+    assetsReady = true;
+    playBtn.textContent = "YEET";
     makeClouds();
     updateMuteBtn();
-    const saved = BoberScores.getSavedName();
-    nameInput.value = saved || BoberScores.defaultName;
+    if (!nameInput.value.trim()) nameInput.value = BoberScores.getSavedName() || BoberScores.defaultName;
     refreshNameGate();
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "hidden") submitRun();
     });
     window.addEventListener("pagehide", () => submitRun());
     requestAnimationFrame(frame);
+    if (startWhenReady) beginRun();
   });
 })();
