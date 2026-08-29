@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+data/scores.json
+data/scores.tmp
+assets/ref/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#3a2a6a" />
+  <title>Bober Yeet</title>
+  <link rel="icon" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="css/game.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="game"></canvas>
+    <div id="hud">
+      <div class="top">
+        <div class="chip" id="level">LV 1/6</div>
+        <div class="chip" id="player-chip">?</div>
+        <div class="chip" id="score">SCORE 0</div>
+        <div class="chip time" id="time">0:20</div>
+        <div class="chip star-chip hidden" id="star-chip">★</div>
+        <div class="spacer"></div>
+        <div class="btns">
+          <button class="btn" id="btn-board" title="High scores" aria-label="High scores">🏆</button>
+          <button class="btn" id="btn-mute" title="Mute" aria-label="Mute">🔊</button>
+          <button class="btn" id="btn-restart" title="Restart" aria-label="Restart">↻</button>
+          <button class="btn" id="btn-next" title="Next level" aria-label="Next level">➜</button>
+        </div>
+      </div>
+      <div id="ammo"></div>
+      <div id="hint" class="hint hidden">PULL BACK</div>
+    </div>
+    <div id="toast"></div>
+    <div id="splash" class="overlay">
+      <img class="hero" src="assets/sprites/bober-idle.png" alt="Bober" />
+      <h1>BOBER YEET</h1>
+      <p class="tagline">Fan game by a holder.</p>
+      <label class="name-label" for="player-name">Your name</label>
+      <input id="player-name" class="name-input" type="text" maxlength="16" autocomplete="nickname" placeholder="Who's yeeting?" />
+      <p class="name-err hidden" id="name-err">Type a name so we can tell players apart.</p>
+      <div class="end-actions">
+        <button class="play" id="btn-play" disabled>YEET</button>
+        <button class="play play-ghost" id="btn-splash-board">SCORES</button>
+      </div>
+      <p class="sub">Free in the browser. 3 shots. 20 seconds. Grey stone holds the dam — hit the supports, not the hat. Star is required later.</p>
+    </div>
+    <div id="endcard" class="overlay hidden">
+      <h2 id="end-title">YEET!</h2>
+      <p id="end-msg"></p>
+      <div class="end-actions">
+        <button class="play" id="end-restart">RESTART</button>
+        <button class="play" id="end-next">NEXT LEVEL</button>
+        <button class="play play-ghost" id="end-board">SCORES</button>
+      </div>
+    </div>
+    <div id="board" class="overlay hidden">
+      <h2>DAM LEADERBOARD</h2>
+      <p class="board-sub">Top yeets from every player online.</p>
+      <div id="board-list" class="board-list"></div>
+      <button class="play" id="board-close">CLOSE</button>
+    </div>
+    <div id="rotate-tip">Tip: landscape yeets harder</div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/scores.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
