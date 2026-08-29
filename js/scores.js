@@ -46,7 +46,7 @@
     const next = {
       name,
       score: Math.floor(Number(entry.score) || 0),
-      levels: Math.max(1, Math.min(6, Math.floor(Number(entry.levels) || 1))),
+      levels: Math.max(1, Math.min(100, Math.floor(Number(entry.levels) || 1))),
       at: entry.at || Date.now(),
     };
     const idx = rows.findIndex((r) => r.name.toLowerCase() === name.toLowerCase());
@@ -94,7 +94,7 @@
     const payload = {
       name: cleanName(entry.name) || DEFAULT_NAME,
       score: Math.floor(Number(entry.score) || 0),
-      levels: Math.max(1, Math.min(6, Math.floor(Number(entry.levels) || 1))),
+      levels: Math.max(1, Math.min(100, Math.floor(Number(entry.levels) || 1))),
       at: entry.at || Date.now(),
     };
     try {

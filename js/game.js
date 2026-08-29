@@ -7,6 +7,7 @@
   const POWER = 0.185;
   const SHOTS = 3;
   const LEVEL_TIME = 20;
+  const LEVEL_COUNT = BoberLevels.COUNT;
 
   const { Engine, World, Bodies, Body, Events } = Matter;
 
@@ -57,8 +58,11 @@
   let tickAcc = 0;
   let bober = null;
   let blocks = [];
-  let starBody = null;
+  let starBodies = [];
   let starGot = false;
+  let charge = 0;
+  let chargedYeet = 0;
+  let currentTheme = BoberLevels.themeFor(0);
   let dragging = false;
   let dragPos = null;
   let flight = false;
@@ -87,6 +91,9 @@
     "Teeth first. Bold.",
     "Holder down!",
     "Yeet... adjacent.",
+    "Let that sink in.",
+    "The bird is not freed.",
+    "Mars can wait.",
   ];
 
   function loadImage(src) {
@@ -154,8 +161,14 @@
 
   function hud() {
     scoreEl.textContent = "SCORE " + score;
-    levelEl.textContent = "LV " + (levelIndex + 1) + "/6";
+    levelEl.textContent = "LV " + (levelIndex + 1) + "/" + LEVEL_COUNT;
     playerChip.textContent = playerName || BoberScores.defaultName;
+    const ch = document.getElementById("charge-chip");
+    if (ch) {
+      ch.textContent = charge ? "⚡".repeat(charge) + " CHARGE" : "CHARGE";
+      ch.classList.toggle("got", charge > 0);
+      ch.classList.remove("hidden");
+    }
     const s = Math.max(0, Math.ceil(timeLeft));
     timeEl.textContent = "0:" + String(s).padStart(2, "0");
     timeEl.classList.toggle("warn", s <= 5);
@@ -180,8 +193,9 @@
     engine.gravity.y = 1.15;
     world = engine.world;
     blocks = [];
-    starBody = null;
+    starBodies = [];
     starGot = false;
+    chargedYeet = 0;
     bober = null;
     flight = false;
     dragging = false;
@@ -206,19 +220,30 @@
     Events.on(engine, "collisionStart", onCollision);
   }
 
+  const BLOCK_STATS = {
+    wood: { d: 0.0009, hp: 2, rest: 0.08 },
+    stone: { d: 0.003, hp: 2, rest: 0.02 },
+    truck: { d: 0.0045, hp: 4, rest: 0.04 },
+    rocket: { d: 0.0022, hp: 3, rest: 0.05 },
+    xblock: { d: 0.0032, hp: 3, rest: 0.03 },
+    sink: { d: 0.0026, hp: 3, rest: 0.06 },
+    doge: { d: 0.0014, hp: 2, rest: 0.12 },
+  };
+
   function addBlock(spec) {
+    const st = BLOCK_STATS[spec.kind] || BLOCK_STATS.wood;
     const body = Bodies.rectangle(spec.x, spec.y, spec.w, spec.h, {
       isStatic: true,
-      density: spec.kind === "stone" ? 0.003 : 0.0009,
+      density: st.d,
       friction: 0.85,
       frictionStatic: 1.2,
-      restitution: spec.kind === "stone" ? 0.02 : 0.08,
+      restitution: st.rest,
       chamfer: { radius: 3 },
       sleepThreshold: 20,
     });
     body.kind = spec.kind;
-    body.maxHp = spec.kind === "stone" ? 2 : 2;
-    body.hp = body.maxHp;
+    body.maxHp = st.hp;
+    body.hp = st.hp;
     body.bw = spec.w;
     body.bh = spec.h;
     body.label = spec.kind;
@@ -264,26 +289,28 @@
     shotsLeft = SHOTS;
     levelScore = 0;
     scoreAtLevelStart = score;
-    timeLeft = LEVEL_TIME;
+    const L = BoberLevels.get(i);
+    currentTheme = L.theme || BoberLevels.themeFor(i);
+    timeLeft = L.time || LEVEL_TIME;
     levelAge = 0;
     tickAcc = 0;
-    const L = BOBER_LEVELS[i];
     shownHint = true;
     hintT = 3.4;
     hintEl.textContent = L.hint || (i === 0 ? "PULL BACK" : "");
     hintEl.classList.toggle("hidden", !hintEl.textContent);
-    starChip.classList.toggle("hidden", !L.star);
+    starChip.classList.toggle("hidden", !(L.stars && L.stars.length));
     starChip.classList.remove("got");
     clearWorld();
     L.blocks.forEach(addBlock);
-    if (L.star) {
-      starBody = Bodies.circle(L.star.x, L.star.y, L.star.r, {
+    starBodies = (L.stars || []).map((s) => {
+      const b = Bodies.circle(s.x, s.y, s.r || 16, {
         isStatic: true,
         isSensor: true,
         label: "star",
       });
-      World.add(world, starBody);
-    }
+      World.add(world, b);
+      return b;
+    });
     spawnBober();
     hud();
     document.getElementById("hud").classList.add("live");
@@ -306,25 +333,28 @@
     if (structureCleared()) winLevel();
   }
 
-  function collectStar(at) {
-    if (!starBody || starGot) return;
+  function collectStar(at, body) {
+    if (!body || body._dead) return;
+    body._dead = true;
+    World.remove(world, body);
+    starBodies = starBodies.filter((s) => s !== body);
     starGot = true;
+    charge = Math.min(3, charge + 1);
     score += 3;
     levelScore += 3;
-    pop(at.x, at.y, "STAR +3", "#ffe566");
-    toast("STAR!");
+    pop(at.x, at.y, "CHARGE +1", "#ffe566");
+    toast(charge === 1 ? "CHARGED!" : "CHARGE x" + charge + "!");
     BoberSfx.star();
-    World.remove(world, starBody);
-    starBody = null;
     starChip.classList.add("got");
     hud();
-    if (structureCleared()) winLevel();
+  }
+
+  function isKeyKind(kind) {
+    return !!(BoberLevels.KEYS && BoberLevels.KEYS[kind]);
   }
 
   function structureCleared() {
-    const L = BOBER_LEVELS[levelIndex];
-    if (L.star && !starGot) return false;
-    if (blocks.some((b) => b.kind === "stone")) return false;
+    if (blocks.some((b) => isKeyKind(b.kind))) return false;
     const standing = blocks.filter((b) => {
       const reach = Math.max(b.bw, b.bh) * 0.5;
       const onFloor = b.position.y + reach >= GROUND_TOP - 16;
@@ -335,11 +365,9 @@
   }
 
   function failWhy() {
-    const L = BOBER_LEVELS[levelIndex];
-    const stones = blocks.filter((b) => b.kind === "stone").length;
-    if (L.star && !starGot) return "Star still hidden.";
-    if (stones) return stones + " stone" + (stones === 1 ? "" : "s") + " still holding the dam.";
-    if (blocks.length) return "Logs still stacked. Hit the base.";
+    const keys = blocks.filter((b) => isKeyKind(b.kind)).length;
+    if (keys) return keys + " heavy bit" + (keys === 1 ? "" : "s") + " still holding.";
+    if (blocks.length) return "Still stacked. Hit the base or CHARGE a star.";
     return "The dam is still standing.";
   }
 
@@ -354,24 +382,25 @@
       const kinds = [A.label, B.label];
 
       if (kinds.includes("star") && flight) {
-        const other = A.label === "star" ? B : A;
-        const at = A.label === "star" ? A.position : B.position;
+        const star = A.label === "star" ? A : B;
+        const other = star === A ? B : A;
         const byBober = other.label === "bober";
-        const byDebris =
-          (other.kind === "wood" || other.kind === "stone") && structureLive && other.speed > 7;
-        if (byBober || byDebris) collectStar(at);
+        const byDebris = other.kind && structureLive && other.speed > 7;
+        if (byBober || byDebris) collectStar(star.position, star);
       }
 
       const speed = relSpeed(A, B);
       for (const body of [A, B]) {
-        if ((body.kind !== "wood" && body.kind !== "stone") || body._dead) continue;
+        if (!body.kind || body._dead) continue;
         const other = body === A ? B : A;
         const hitByBober = other.label === "bober" && flight;
         if (hitByBober) {
           hitBlockThisShot = true;
           unfreezeStructure();
-          const dmg = speed >= 13 ? 2 : speed >= 7 ? 1 : 0;
-          if (body.kind === "stone" && speed < 9) continue;
+          let dmg = speed >= 13 ? 2 : speed >= 7 ? 1 : 0;
+          dmg += chargedYeet;
+          const need = isKeyKind(body.kind) ? (chargedYeet ? 6 : 9) : 6;
+          if (speed < need && chargedYeet === 0) continue;
           if (dmg) {
             body.hp -= dmg;
             if (body.hp <= 0) smash(body);
@@ -379,8 +408,8 @@
           continue;
         }
         if (!structureLive || unfreezeGrace > 0) continue;
-        if (body.kind === "stone") {
-          if (other.kind === "stone" && speed >= 14) {
+        if (isKeyKind(body.kind)) {
+          if (isKeyKind(other.kind) && speed >= 14) {
             body.hp -= 1;
             if (body.hp <= 0) smash(body);
           }
@@ -421,11 +450,14 @@
   function launch() {
     if (!bober || !dragPos) return;
     const p = dragPos;
-    const vx = (SLING.x - p.x) * POWER;
-    const vy = (SLING.y - p.y) * POWER;
+    chargedYeet = charge;
+    charge = 0;
+    const boost = 1 + chargedYeet * 0.32;
+    const vx = (SLING.x - p.x) * POWER * boost;
+    const vy = (SLING.y - p.y) * POWER * boost;
     World.remove(world, bober);
-    bober = Bodies.circle(p.x, p.y, 28, {
-      density: 0.004,
+    bober = Bodies.circle(p.x, p.y, 28 + chargedYeet * 5, {
+      density: 0.004 * (1 + chargedYeet * 0.45),
       restitution: 0.38,
       friction: 0.35,
       frictionAir: 0.004,
@@ -443,6 +475,7 @@
     shotsLeft -= 1;
     shownHint = false;
     hintEl.classList.add("hidden");
+    if (chargedYeet) toast(chargedYeet >= 2 ? "SUPER YEET!" : "CHARGED YEET!");
     BoberSfx.twang();
     hud();
   }
@@ -480,14 +513,13 @@
     BoberSfx.win();
     endTitle.textContent = "YEET!";
     endMsg.textContent =
-      BOBER_LEVELS[levelIndex].name +
+      BoberLevels.get(levelIndex).name +
       " smashed. +" +
       levelScore +
-      " blocks" +
-      (starGot ? " + star" : "") +
+      (starGot ? " + charge" : "") +
       (bonus ? " +" + bonus + " leftover shot" + (bonus === 1 ? "" : "s") : "") +
       ".";
-    endNext.textContent = levelIndex >= 5 ? "DONE" : "NEXT LEVEL";
+    endNext.textContent = levelIndex >= LEVEL_COUNT - 1 ? "DONE" : "NEXT LEVEL";
     endcard.classList.remove("hidden");
     hud();
     submitRun();
@@ -499,7 +531,7 @@
     BoberSfx.fail();
     endTitle.textContent = timeLeft <= 0 ? "TIME'S UP" : "NO BOBER LEFT";
     endMsg.textContent = failWhy() + " Restart or skip.";
-    endNext.textContent = levelIndex >= 5 ? "DONE" : "NEXT LEVEL";
+    endNext.textContent = levelIndex >= LEVEL_COUNT - 1 ? "DONE" : "NEXT LEVEL";
     endcard.classList.remove("hidden");
     submitRun();
   }
@@ -507,10 +539,10 @@
   function finishGame() {
     state = "done";
     endcard.classList.remove("hidden");
-    endTitle.textContent = "DAM COMPLETE";
+    endTitle.textContent = "100 DAMS";
     endMsg.textContent = playerName + " — fan score " + score + ". Holder energy: maximum.";
     endNext.textContent = "PLAY AGAIN";
-    submitRun(6);
+    submitRun(LEVEL_COUNT);
   }
 
   async function submitRun(levelsDone) {
@@ -521,7 +553,7 @@
       await BoberScores.submit({
         name,
         score,
-        levels: Math.min(6, levels),
+        levels: Math.min(LEVEL_COUNT, levels),
         at: Date.now(),
       });
     } catch (_) {}
@@ -563,7 +595,9 @@
           r.score +
           "</span><span>" +
           r.levels +
-          "/6</span></div>"
+          "/" +
+          LEVEL_COUNT +
+          "</span></div>"
         );
       })
       .join("");
@@ -582,9 +616,10 @@
   }
 
   function nextLevel() {
-    if (levelIndex >= 5) {
+    if (levelIndex >= LEVEL_COUNT - 1) {
       if (state === "done") {
         score = 0;
+        charge = 0;
         loadLevel(0);
         return;
       }
@@ -651,27 +686,52 @@
     ev.preventDefault();
   }
 
-  function drawSky() {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#24164a");
-    g.addColorStop(0.45, "#3c2a78");
-    g.addColorStop(0.78, "#6a4aa0");
-    g.addColorStop(1, "#8f6bb0");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-
+  function drawPlanet(kind) {
     uranusA += 0.003;
-    if (img.uranus) {
-      ctx.save();
-      ctx.translate(1080, 128);
-      ctx.rotate(uranusA);
+    ctx.save();
+    ctx.translate(1080, 128);
+    ctx.rotate(kind === "uranus" ? uranusA : uranusA * 0.6);
+    if (kind === "uranus" && img.uranus) {
       const uw = 210;
       const uh = uw * (img.uranus.height / img.uranus.width);
       ctx.drawImage(img.uranus, -uw / 2, -uh / 2, uw, uh);
-      ctx.restore();
+    } else {
+      const g = ctx.createRadialGradient(-20, -20, 10, 0, 0, 90);
+      if (kind === "mars") {
+        g.addColorStop(0, "#f08a4a");
+        g.addColorStop(1, "#8a2810");
+      } else if (kind === "moon") {
+        g.addColorStop(0, "#eee8d8");
+        g.addColorStop(1, "#8a8478");
+      } else if (kind === "earth") {
+        g.addColorStop(0, "#7ec8f0");
+        g.addColorStop(0.55, "#3d8a3a");
+        g.addColorStop(1, "#1a4a8a");
+      } else {
+        g.addColorStop(0, "#c8c8d8");
+        g.addColorStop(1, "#444");
+      }
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, 88, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#1a1020";
+      ctx.lineWidth = 5;
+      ctx.stroke();
     }
+    ctx.restore();
+  }
 
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
+  function drawSky() {
+    const th = currentTheme || BoberLevels.themeFor(levelIndex);
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, th.sky[0]);
+    g.addColorStop(0.5, th.sky[1]);
+    g.addColorStop(1, th.sky[2]);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    if (th.planet && th.planet !== "none") drawPlanet(th.planet);
+    ctx.fillStyle = th.cloud || "rgba(255,255,255,0.5)";
     for (const c of clouds) {
       c.x += 0.12 * c.s;
       if (c.x > W + 80) c.x = -80;
@@ -684,12 +744,15 @@
   }
 
   function drawGround() {
-    ctx.fillStyle = "#4a2e18";
+    const th = currentTheme || BoberLevels.themeFor(levelIndex);
+    ctx.fillStyle = th.dirt;
     ctx.fillRect(0, GROUND_TOP, W, H - GROUND_TOP);
-    ctx.fillStyle = "#3d8a3a";
+    ctx.fillStyle = th.grass;
     ctx.fillRect(0, GROUND_TOP, W, 18);
-    ctx.fillStyle = "#2f6e2c";
+    ctx.fillStyle = th.dirt;
+    ctx.globalAlpha = 0.45;
     ctx.fillRect(0, GROUND_TOP + 14, W, 6);
+    ctx.globalAlpha = 1;
     ctx.strokeStyle = "#1a1020";
     ctx.lineWidth = 4;
     ctx.beginPath();
@@ -740,9 +803,10 @@
   function drawAimPreview(from) {
     let x = from.x;
     let y = from.y;
-    let vx = (SLING.x - from.x) * POWER;
-    let vy = (SLING.y - from.y) * POWER;
-    ctx.fillStyle = "rgba(255, 230, 90, 0.9)";
+    const boost = 1 + charge * 0.32;
+    let vx = (SLING.x - from.x) * POWER * boost;
+    let vy = (SLING.y - from.y) * POWER * boost;
+    ctx.fillStyle = charge ? "rgba(255, 120, 40, 0.95)" : "rgba(255, 230, 90, 0.9)";
     for (let i = 0; i < 16; i++) {
       vx *= 0.996;
       vy = vy * 0.996 + 0.32;
@@ -783,6 +847,54 @@
         ctx.lineTo(w / 2 - 8, i + 1);
         ctx.stroke();
       }
+    } else if (body.kind === "truck") {
+      ctx.fillStyle = "#c8ccc4";
+      roundRect(-w / 2, -h / 2, w, h, 6);
+      ctx.fill();
+      ctx.fillStyle = "#9aa090";
+      roundRect(-w / 2 + 6, -h / 2 + 6, w * 0.38, h - 12, 4);
+      ctx.fill();
+      ctx.fillStyle = "#1a1020";
+      ctx.fillRect(-w / 2 + 10, h / 2 - 10, 10, 8);
+      ctx.fillRect(w / 2 - 22, h / 2 - 10, 10, 8);
+    } else if (body.kind === "rocket") {
+      ctx.fillStyle = "#e8e4dc";
+      roundRect(-w / 2, -h / 2, w, h, 10);
+      ctx.fill();
+      ctx.fillStyle = "#c03020";
+      ctx.fillRect(-w / 2 + 4, h / 2 - 12, w - 8, 10);
+      ctx.fillStyle = "#3a6aaa";
+      ctx.beginPath();
+      ctx.arc(0, -h / 4, 6, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (body.kind === "xblock") {
+      ctx.fillStyle = "#141418";
+      roundRect(-w / 2, -h / 2, w, h, 6);
+      ctx.fill();
+      ctx.strokeStyle = "#f0f0f0";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-w / 4, -h / 4);
+      ctx.lineTo(w / 4, h / 4);
+      ctx.moveTo(w / 4, -h / 4);
+      ctx.lineTo(-w / 4, h / 4);
+      ctx.stroke();
+    } else if (body.kind === "sink") {
+      ctx.fillStyle = "#d8dce2";
+      roundRect(-w / 2, -h / 2, w, h, 8);
+      ctx.fill();
+      ctx.fillStyle = "#9aa4b0";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, w * 0.28, h * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (body.kind === "doge") {
+      ctx.fillStyle = "#e8b030";
+      roundRect(-w / 2, -h / 2, w, h, 10);
+      ctx.fill();
+      ctx.fillStyle = "#fff6c4";
+      ctx.beginPath();
+      ctx.arc(0, 0, Math.min(w, h) * 0.22, 0, Math.PI * 2);
+      ctx.fill();
     } else {
       ctx.fillStyle = "#9aa0aa";
       roundRect(-w / 2, -h / 2, w, h, 8);
@@ -793,9 +905,6 @@
       ctx.fillStyle = "#b3b7be";
       ctx.beginPath();
       ctx.arc(-w / 6, -h / 6, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(w / 5, h / 6, 4, 0, Math.PI * 2);
       ctx.fill();
     }
     if (body.hp < body.maxHp) {
@@ -816,16 +925,19 @@
   }
 
   function drawStar() {
-    if (!starBody || starGot || !img.star) return;
+    if (!img.star) return;
     const t = Date.now() / 400;
-    const x = starBody.position.x;
-    const y = starBody.position.y + Math.sin(t) * 4;
-    const s = 44;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(t * 0.4);
-    ctx.drawImage(img.star, -s / 2, -s / 2, s, s);
-    ctx.restore();
+    starBodies.forEach((st, i) => {
+      if (!st || st._dead) return;
+      const x = st.position.x;
+      const y = st.position.y + Math.sin(t + i) * 4;
+      const s = 44;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(t * 0.4);
+      ctx.drawImage(img.star, -s / 2, -s / 2, s, s);
+      ctx.restore();
+    });
   }
 
   function drawBober() {
@@ -849,6 +961,15 @@
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(ang);
+    if (charge > 0 && !flight) {
+      ctx.shadowColor = "#ff9a2a";
+      ctx.shadowBlur = 18 + charge * 10;
+    }
+    if (chargedYeet > 0 && flight) {
+      ctx.shadowColor = "#ff5a00";
+      ctx.shadowBlur = 22 + chargedYeet * 8;
+      size += chargedYeet * 8;
+    }
     ctx.drawImage(spr, -size / 2, -(size * ratio) / 2, size, size * ratio);
     ctx.restore();
   }
@@ -972,7 +1093,7 @@
   });
   nextBtn.addEventListener("click", () => {
     BoberSfx.ensure();
-    if (levelIndex >= 5 && (state === "win" || state === "done")) finishGame();
+    if (levelIndex >= LEVEL_COUNT - 1 && (state === "win" || state === "done")) finishGame();
     else nextLevel();
   });
   playBtn.addEventListener("click", () => {
@@ -981,6 +1102,7 @@
     playerName = n || BoberScores.defaultName;
     splash.classList.add("hidden");
     score = 0;
+    charge = 0;
     loadLevel(0);
   });
   nameInput.addEventListener("input", refreshNameGate);
@@ -1004,6 +1126,7 @@
     BoberSfx.ensure();
     if (state === "done") {
       score = 0;
+      charge = 0;
       loadLevel(0);
       return;
     }

@@ -45,7 +45,7 @@ def upsert(rows: list, body: dict) -> list:
         return rows
     if not name or score < 0:
         return rows
-    levels = max(1, min(6, levels))
+    levels = max(1, min(100, levels))
     entry = {
         "name": name,
         "score": score,
