@@ -270,6 +270,22 @@ h1 {
   max-width: 28em;
 }
 
+.sib {
+  flex: 0 0 auto;
+  margin: 14px 0 0;
+  padding: 4px 8px 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--cream);
+  letter-spacing: 0.02em;
+  pointer-events: auto;
+}
+.sib a {
+  color: var(--cream);
+  text-decoration: underline;
+}
+
 #toast {
   position: absolute;
   left: 50%;
