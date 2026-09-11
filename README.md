@@ -8,7 +8,7 @@ Cartoon beaver in a yellow slingshot. Yeet Bober at wood and stone. 100 levels, 
 
 No wallet. No tokens. No login. No ads.
 
-Also play · [Dam Defense](https://ccosma1.github.io/bober-dam-defense/) · [Frost Lodge](https://ccosma1.github.io/bober-frost-lodge/). Other games are not required to play.
+[More games · Green Home Games](https://ccosma1.github.io/green-home-games/). Other games are not required to play.
 
 ## Local
 
