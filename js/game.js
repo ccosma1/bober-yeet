@@ -93,6 +93,7 @@
   let pointerAim = { x: W * 0.5, y: H * 0.4 };
   let playerName = "";
   let boardOpen = false;
+  let timeUpAge = 0;
   const starChip = document.getElementById("star-chip");
 
   const FACEPLANTS = [
@@ -173,7 +174,7 @@
   }
 
   function hud() {
-    scoreEl.textContent = "SCORE " + score;
+    scoreEl.textContent = "$BOBER " + score;
     levelEl.textContent = "LV " + (levelIndex + 1) + "/" + LEVEL_COUNT;
     playerChip.textContent = playerName || BoberScores.defaultName;
     const ch = document.getElementById("charge-chip");
@@ -270,8 +271,9 @@
       friction: 0.85,
       frictionStatic: 1.2,
       restitution: st.rest,
+      frictionAir: 0.018,
       chamfer: { radius: 3 },
-      sleepThreshold: 20,
+      sleepThreshold: 12,
     });
     body.kind = spec.kind;
     body.maxHp = st.hp;
@@ -293,6 +295,7 @@
       Body.setStatic(b, false);
       Body.setVelocity(b, { x: 0, y: 0 });
       Body.setAngularVelocity(b, 0);
+      b.frictionAir = 0.028;
     }
   }
 
@@ -324,6 +327,7 @@
     const L = BoberLevels.get(i);
     currentTheme = L.theme || BoberLevels.themeFor(i);
     timeLeft = L.time || LEVEL_TIME;
+    timeUpAge = 0;
     levelAge = 0;
     tickAcc = 0;
     shownHint = true;
@@ -375,7 +379,7 @@
     charge = Math.min(3, charge + 1);
     score += 3;
     levelScore += 3;
-    pop(at.x, at.y, "CHARGE +1", "#ffe566");
+    pop(at.x, at.y, "+3 $BOBER", "#ffe566");
     toast(charge === 1 ? "CHARGED!" : "CHARGE x" + charge + "!");
     BoberSfx.star();
     starChip.classList.add("got");
@@ -534,12 +538,55 @@
   function bodiesQuiet() {
     if (!bober) return true;
     const bobSlow =
-      bober.speed < 0.55 ||
+      bober.speed < 0.9 ||
       bober.position.x > W + 20 ||
       bober.position.x < -40 ||
       bober.position.y > H + 20;
-    const pileSlow = remainingBlocksOnscreen().every((b) => b.speed < 0.45 || b.isSleeping);
+    const pileSlow = remainingBlocksOnscreen().every((b) => b.speed < 0.75 || b.isSleeping);
     return bobSlow && pileSlow;
+  }
+
+  function isSpinning() {
+    if (flight) return true;
+    if (structureLive && !bodiesQuiet()) return true;
+    return false;
+  }
+
+  function dampSpin(hard) {
+    const av = hard ? 0.72 : 0.86;
+    const lin = hard ? 0.88 : 0.95;
+    for (const b of blocks) {
+      if (!b || b._dead || b.isStatic) continue;
+      Body.setAngularVelocity(b, b.angularVelocity * av);
+      Body.setVelocity(b, { x: b.velocity.x * lin, y: b.velocity.y * (hard ? 0.96 : 0.99) });
+      if (b.speed < 1.1 && Math.abs(b.angularVelocity) < 0.18) {
+        Body.setAngularVelocity(b, 0);
+        Body.setVelocity(b, { x: b.velocity.x * 0.4, y: b.velocity.y * 0.55 });
+      }
+    }
+    if (bober && flight && (hard || hitBlockThisShot || flightAge > 0.45)) {
+      Body.setAngularVelocity(bober, bober.angularVelocity * (hard ? 0.7 : 0.88));
+    }
+  }
+
+  function freezeMotion() {
+    for (const b of blocks) {
+      if (!b || b._dead) continue;
+      Body.setVelocity(b, { x: 0, y: 0 });
+      Body.setAngularVelocity(b, 0);
+    }
+    if (bober) {
+      Body.setVelocity(bober, { x: 0, y: 0 });
+      Body.setAngularVelocity(bober, 0);
+    }
+    flight = false;
+  }
+
+  function resolveTimeUp() {
+    if (state !== "play") return;
+    sweepOffscreen();
+    if (structureCleared()) winLevel();
+    else failLevel();
   }
 
   function winLevel() {
@@ -557,10 +604,9 @@
     endMsg.textContent =
       BoberLevels.get(levelIndex).name +
       " smashed. +" +
-      levelScore +
-      (starGot ? " + charge" : "") +
-      (bonus ? " +" + bonus + " leftover shot" + (bonus === 1 ? "" : "s") : "") +
-      ".";
+      (levelScore + bonus) +
+      " $BOBER" +
+      (starGot ? ". Charged." : ".");
     endNext.textContent = "NEXT LEVEL";
     endcard.classList.remove("hidden");
     hud();
@@ -586,7 +632,7 @@
     endTitle.textContent = "MARS IS FULL";
     endMsg.textContent =
       (playerName || "online player") +
-      " cleared all 100 dams. Score " +
+      " cleared all 100 dams. $BOBER " +
       score +
       ".";
     if (endQuote) {
@@ -637,7 +683,7 @@
     }
     const medals = ["🥇", "🥈", "🥉"];
     const head =
-      '<div class="board-row head"><span>#</span><span>PLAYER</span><span>SCORE</span><span>LV</span></div>';
+      '<div class="board-row head"><span>#</span><span>PLAYER</span><span>$BOBER</span><span>LV</span></div>';
     const body = rows
       .slice(0, 15)
       .map((r, i) => {
@@ -696,7 +742,7 @@
       return;
     }
     settleT += 1 / 60;
-    if (settleT < 0.7) return;
+    if (settleT < 0.28) return;
     settleT = 0;
     sweepOffscreen();
     if (state !== "play") return;
@@ -704,7 +750,7 @@
       winLevel();
       return;
     }
-    if (shotsLeft <= 0) {
+    if (shotsLeft <= 0 || timeLeft <= 0) {
       failLevel();
       return;
     }
@@ -1198,7 +1244,10 @@
         hintT -= dt;
         if (hintT <= 0) hintEl.classList.add("hidden");
       }
-      timeLeft -= dt;
+      if (timeLeft > 0) {
+        timeLeft -= dt;
+        if (timeLeft < 0) timeLeft = 0;
+      }
       if (timeLeft <= 5 && timeLeft > 0) {
         tickAcc += dt;
         if (tickAcc >= 1) {
@@ -1208,11 +1257,22 @@
       }
       timeEl.textContent = "0:" + String(Math.max(0, Math.ceil(timeLeft))).padStart(2, "0");
       timeEl.classList.toggle("warn", timeLeft <= 5);
+      if (hitBlockThisShot && timeLeft > 0) {
+        for (const b of blocks) {
+          if (!b || b._dead || b.isStatic) continue;
+          Body.setAngularVelocity(b, b.angularVelocity * 0.9);
+        }
+      }
+      if (timeLeft <= 0) dampSpin(true);
       if (timeLeft <= 0) {
         timeLeft = 0;
-        sweepOffscreen();
-        if (structureCleared()) winLevel();
-        else failLevel();
+        timeUpAge += dt;
+        if (!isSpinning() || timeUpAge >= 0.95) {
+          if (timeUpAge >= 0.95 && isSpinning()) freezeMotion();
+          resolveTimeUp();
+        }
+      } else {
+        timeUpAge = 0;
       }
       if (dragging && bober && dragPos) {
         Body.setPosition(bober, dragPos);
@@ -1324,7 +1384,7 @@
   document.addEventListener(
     "touchmove",
     (e) => {
-      if (e.target.closest && e.target.closest("input, textarea, .board-list, button")) return;
+      if (e.target.closest && e.target.closest("input, textarea, .board-list, button, .museum-grid, .history-body, .museum-detail")) return;
       e.preventDefault();
     },
     { passive: false }

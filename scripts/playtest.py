@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=gh1"
+URL = "http://127.0.0.1:8765/?v=gh2"
 
 
 def shot(page, name):
@@ -37,6 +37,27 @@ def main():
         assert "BOBER YEET" in title
         hub = page.locator("#splash .hub-link a").get_attribute("href")
         assert "green-home-games" in hub
+        assert page.locator("#btn-museum").inner_text() == "MUSEUM"
+        assert page.locator("#btn-history").inner_text() == "HISTORY"
+        page.click("#btn-museum")
+        page.wait_for_timeout(300)
+        assert "hidden" not in (page.locator("#museum").get_attribute("class") or "")
+        cards = page.locator(".museum-card")
+        assert cards.count() >= 3
+        cards.nth(0).click()
+        page.wait_for_timeout(200)
+        assert "hidden" not in (page.locator("#museum-detail").get_attribute("class") or "")
+        shot(page, "test-museum.png")
+        page.click("#museum-close")
+        page.wait_for_timeout(200)
+        page.click("#btn-history")
+        page.wait_for_timeout(300)
+        assert "hidden" not in (page.locator("#history").get_attribute("class") or "")
+        assert page.locator(".hist-node").count() >= 5
+        assert page.locator(".hist-bar").count() >= 8
+        shot(page, "test-history.png")
+        page.click("#history-close")
+        page.wait_for_timeout(200)
         shot(page, "test-splash.png")
 
         page.fill("#player-name", "TestHolder")
@@ -44,8 +65,11 @@ def main():
         page.wait_for_timeout(800)
         shot(page, "test-level1.png")
         hud = page.locator("#level").inner_text()
-        print("HUD", hud, page.locator("#time").inner_text(), page.locator("#score").inner_text())
+        score_txt = page.locator("#score").inner_text()
+        print("HUD", hud, page.locator("#time").inner_text(), score_txt)
         assert "1/100" in hud
+        assert "$BOBER" in score_txt
+        assert "SCORE" not in score_txt
 
         box = page.locator("#game").bounding_box()
         # sling is near left ~188/1280, y ~528/720

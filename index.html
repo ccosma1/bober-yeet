@@ -20,7 +20,7 @@
         <div class="top-stats">
           <div class="chip" id="level">LV 1/100</div>
           <div class="chip" id="player-chip">online player</div>
-          <div class="chip" id="score">SCORE 0</div>
+          <div class="chip coin-chip" id="score">$BOBER 0</div>
           <div class="chip time" id="time">0:20</div>
           <div class="chip star-chip hidden" id="star-chip">★</div>
           <div class="chip star-chip" id="charge-chip">CHARGE</div>
@@ -49,6 +49,10 @@
         <button class="play" id="btn-play" type="button">YEET</button>
         <button class="play play-ghost" id="btn-splash-board">SCORES</button>
       </div>
+      <div class="end-actions lore-actions">
+        <button class="play play-ghost play-sm" id="btn-museum" type="button">MUSEUM</button>
+        <button class="play play-ghost play-sm" id="btn-history" type="button">HISTORY</button>
+      </div>
       <p class="hub-link"><a href="https://ccosma1.github.io/green-home-games/">More games · Green Home Games</a></p>
     </div>
     <div id="endcard" class="overlay hidden">
@@ -64,9 +68,22 @@
     </div>
     <div id="board" class="overlay hidden">
       <h2>DAM LEADERBOARD</h2>
-      <p class="board-sub">Top yeets from every player online.</p>
+      <p class="board-sub">Ranked by $BOBER earned. No wallet.</p>
       <div id="board-list" class="board-list"></div>
       <button class="play" id="board-close">CLOSE</button>
+    </div>
+    <div id="museum" class="overlay hidden">
+      <h2>MUSEUM</h2>
+      <p class="board-sub">Bober, yeet moments, milestones.</p>
+      <div id="museum-grid" class="museum-grid"></div>
+      <div id="museum-detail" class="museum-detail hidden"></div>
+      <button class="play" id="museum-close" type="button">CLOSE</button>
+    </div>
+    <div id="history" class="overlay hidden">
+      <h2>HISTORY</h2>
+      <p class="board-sub">The yeet myth arc. Play is the climb.</p>
+      <div id="history-body" class="history-body"></div>
+      <button class="play" id="history-close" type="button">CLOSE</button>
     </div>
     <div id="rotate-tip">Tip: landscape yeets harder</div>
   </div>
@@ -74,6 +91,7 @@
   <script src="js/audio.js"></script>
   <script src="js/scores.js"></script>
   <script src="js/levels.js"></script>
+  <script src="js/lore.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
