@@ -53,6 +53,10 @@
       this.noise(0.12, 0.16);
       this.beep(140, 0.08, "triangle", 0.07, 70);
     },
+    chip() {
+      this.noise(0.06, 0.1);
+      this.beep(210, 0.05, "triangle", 0.05, 120);
+    },
     stone() {
       this.noise(0.16, 0.2);
       this.beep(90, 0.14, "square", 0.08, 50);

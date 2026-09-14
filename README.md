@@ -6,7 +6,7 @@ Fan game by a holder.
 
 Cartoon beaver in a yellow slingshot. Yeet Bober at wood and stone. 100 levels, 3 shots. Grab stars to CHARGE a stronger yeet. Smash loot and the HUD score are $BOBER coins. Enter your name, smash the dam, climb the shared leaderboard.
 
-Museum and History live on the splash. They do not block Play.
+Museum and History live on the splash. They do not block Play. First run shows a drag-back aim tip once.
 
 No wallet. No token farm. No login. No ads.
 

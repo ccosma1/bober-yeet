@@ -73,9 +73,18 @@
     let blocks = [];
 
     if (i === 0) {
-      return { name: "Tiny Dam", hint: "Hit the bottom log.", theme: t, blocks: [
-        wood(cell(0, 0).x, 0), wood(cell(1, 0).x, 0), wood(cell(0, 1).x + S / 2, S),
-      ], stars: [] };
+      return {
+        name: "Tiny Dam",
+        hint: "Hit the bottom log.",
+        theme: t,
+        time: 32,
+        blocks: [
+          Object.assign(wood(cell(0, 0).x, 0), { hp: 1 }),
+          Object.assign(wood(cell(1, 0).x, 0), { hp: 1 }),
+          Object.assign(wood(cell(0, 1).x + S / 2, S), { hp: 1 }),
+        ],
+        stars: [],
+      };
     }
     if (i === 1) {
       return { name: "Log Stack", hint: "Take the base, not the roof.", theme: t, blocks: [

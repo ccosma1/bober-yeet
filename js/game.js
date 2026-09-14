@@ -94,7 +94,11 @@
   let playerName = "";
   let boardOpen = false;
   let timeUpAge = 0;
+  let aimTutOn = false;
+  const TUT_KEY = "bober-yeet-aim-tut";
   const starChip = document.getElementById("star-chip");
+  const aimTutEl = document.getElementById("aim-tut");
+  const aimTutOk = document.getElementById("aim-tut-ok");
 
   const FACEPLANTS = [
     "FACEPLANT!",
@@ -276,8 +280,10 @@
       sleepThreshold: 12,
     });
     body.kind = spec.kind;
-    body.maxHp = st.hp;
-    body.hp = st.hp;
+    body.maxHp = spec.hp != null ? spec.hp : st.hp;
+    body.hp = body.maxHp;
+    body.flash = 0;
+    body.hpPulse = 0;
     body.bw = spec.w;
     body.bh = spec.h;
     body.label = spec.kind;
@@ -353,6 +359,48 @@
     document.getElementById("hud").classList.add("live");
     endcard.classList.add("hidden");
     state = "play";
+    maybeShowAimTut(i);
+  }
+
+  function aimTutSeen() {
+    try {
+      return localStorage.getItem(TUT_KEY) === "1";
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function dismissAimTut() {
+    aimTutOn = false;
+    if (aimTutEl) aimTutEl.classList.add("hidden");
+    try {
+      localStorage.setItem(TUT_KEY, "1");
+    } catch (_) {}
+  }
+
+  function maybeShowAimTut(i) {
+    if (i === 0 && !aimTutSeen()) {
+      aimTutOn = true;
+      if (aimTutEl) aimTutEl.classList.remove("hidden");
+    } else {
+      aimTutOn = false;
+      if (aimTutEl) aimTutEl.classList.add("hidden");
+    }
+  }
+
+  function applyDamage(body, dmg) {
+    if (!body || body._dead || dmg <= 0) return;
+    body.hp -= dmg;
+    body.flash = 0.28;
+    body.hpPulse = 0.45;
+    if (body.hp <= 0) {
+      smash(body);
+      return;
+    }
+    pop(body.position.x, body.position.y - 16, "HIT", "#fff6c4");
+    if (body.kind === "stone") BoberSfx.stone();
+    else if (BoberSfx.chip) BoberSfx.chip();
+    else BoberSfx.wood();
   }
 
   function smash(body) {
@@ -434,28 +482,20 @@
         if (hitByBober) {
           hitBlockThisShot = true;
           unfreezeStructure();
-          let dmg = speed >= 13 ? 2 : speed >= 7 ? 1 : 0;
+          const easy = levelIndex === 0;
+          let dmg = speed >= 13 ? 2 : speed >= (easy ? 4.5 : 7) ? 1 : 0;
           dmg += chargedYeet;
-          const need = isKeyKind(body.kind) ? (chargedYeet ? 6 : 9) : 6;
+          const need = isKeyKind(body.kind) ? (chargedYeet ? 6 : 9) : easy ? 3.2 : 6;
           if (speed < need && chargedYeet === 0) continue;
-          if (dmg) {
-            body.hp -= dmg;
-            if (body.hp <= 0) smash(body);
-          }
+          if (dmg) applyDamage(body, dmg);
           continue;
         }
         if (!structureLive || unfreezeGrace > 0) continue;
         if (isKeyKind(body.kind)) {
-          if (isKeyKind(other.kind) && speed >= 14) {
-            body.hp -= 1;
-            if (body.hp <= 0) smash(body);
-          }
+          if (isKeyKind(other.kind) && speed >= 14) applyDamage(body, 1);
           continue;
         }
-        if (speed >= 11) {
-          body.hp -= 1;
-          if (body.hp <= 0) smash(body);
-        }
+        if (speed >= 11) applyDamage(body, 1);
       }
 
       if (state === "play" && flight && !splatted && !hitBlockThisShot) {
@@ -512,6 +552,7 @@
     shotsLeft -= 1;
     shownHint = false;
     hintEl.classList.add("hidden");
+    if (aimTutOn) dismissAimTut();
     if (chargedYeet) toast(chargedYeet >= 2 ? "SUPER YEET!" : "CHARGED YEET!");
     BoberSfx.twang();
     hud();
@@ -764,6 +805,7 @@
     if (Math.hypot(p.x - bober.position.x, p.y - bober.position.y) > 90) return;
     dragging = true;
     dragPos = clampPull(p);
+    if (aimTutOn) dismissAimTut();
     try {
       canvas.setPointerCapture(ev.pointerId);
     } catch (_) {}
@@ -1127,10 +1169,84 @@
       ctx.lineTo(-w / 6, h / 3);
       ctx.stroke();
     }
+    if (body.flash > 0) {
+      ctx.fillStyle = "rgba(255,255,255," + Math.min(0.72, body.flash * 2.6) + ")";
+      roundRect(-w / 2, -h / 2, w, h, 7);
+      ctx.fill();
+    }
     ctx.strokeStyle = "#1a1020";
     ctx.lineWidth = 4;
     roundRect(-w / 2, -h / 2, w, h, 7);
     ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawHpPips(body) {
+    if (!body || body._dead) return;
+    const max = body.maxHp | 0;
+    if (max < 1) return;
+    const w = Math.max(28, Math.min(48, body.bw * 0.82));
+    const h = 7;
+    const x = body.position.x - w / 2;
+    const y = body.position.y - Math.max(body.bh, 24) / 2 - 14;
+    const ratio = Math.max(0, body.hp / max);
+    const pulse = body.hpPulse > 0 ? 1 + body.hpPulse * 0.28 : 1;
+    ctx.save();
+    ctx.translate(body.position.x, y + h / 2);
+    ctx.scale(pulse, pulse);
+    ctx.translate(-body.position.x, -(y + h / 2));
+    ctx.fillStyle = "#1a1020";
+    roundRect(x - 2, y - 2, w + 4, h + 4, 4);
+    ctx.fill();
+    ctx.fillStyle = "#2a2030";
+    roundRect(x, y, w, h, 3);
+    ctx.fill();
+    if (ratio > 0) {
+      ctx.fillStyle = ratio <= 0.34 || (body.hp <= 1 && max > 1) ? "#ff8a4a" : "#7dff7a";
+      roundRect(x, y, Math.max(4, w * ratio), h, 3);
+      ctx.fill();
+    }
+    if (max > 1 && max <= 6) {
+      ctx.fillStyle = "#1a1020";
+      for (let i = 1; i < max; i++) {
+        ctx.fillRect(x + (w * i) / max - 1, y, 2, h);
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawAimGhost() {
+    if (!aimTutOn || dragging || flight || state !== "play" || !bober) return;
+    const t = (Date.now() / 850) % 1;
+    const ease = t < 0.72 ? t / 0.72 : 1;
+    const x0 = SLING.x;
+    const y0 = SLING.y - 6;
+    const x1 = x0 - 18 - 88 * ease;
+    const y1 = y0 + 10 + 48 * ease;
+    ctx.save();
+    ctx.globalAlpha = 0.25 + 0.55 * (1 - t);
+    ctx.strokeStyle = "#ffe566";
+    ctx.fillStyle = "#ffe566";
+    ctx.lineWidth = 6;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+    const ang = Math.atan2(y1 - y0, x1 - x0);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x1 - Math.cos(ang - 0.5) * 16, y1 - Math.sin(ang - 0.5) * 16);
+    ctx.lineTo(x1 - Math.cos(ang + 0.5) * 16, y1 - Math.sin(ang + 0.5) * 16);
+    ctx.closePath();
+    ctx.fill();
+    ctx.font = "900 15px Trebuchet MS, sans-serif";
+    ctx.textAlign = "left";
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "#1a1020";
+    ctx.fillStyle = "#fff6c4";
+    ctx.strokeText("PULL", x1 - 8, y1 + 28);
+    ctx.fillText("PULL", x1 - 8, y1 + 28);
     ctx.restore();
   }
 
@@ -1282,6 +1398,10 @@
         maybeEndShot();
       }
       if (splatT > 0) splatT -= dt;
+      for (const b of blocks) {
+        if (b.flash > 0) b.flash = Math.max(0, b.flash - dt);
+        if (b.hpPulse > 0) b.hpPulse = Math.max(0, b.hpPulse - dt);
+      }
     }
 
     if (toastT > 0) {
@@ -1294,10 +1414,12 @@
     if (state !== "splash") drawSling();
     drawStar();
     for (const b of blocks) drawBlock(b);
+    for (const b of blocks) drawHpPips(b);
 
     const hold = dragging && dragPos ? dragPos : bober ? bober.position : SLING;
     if (!flight && bober) drawBands(hold);
     if (dragging && dragPos) drawAimPreview(dragPos);
+    drawAimGhost();
     drawBober();
     drawBits(dt);
     drawPops(dt);
@@ -1330,6 +1452,14 @@
     score = 0;
     charge = 0;
     loadLevel(0);
+  }
+
+  if (aimTutOk) {
+    aimTutOk.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      dismissAimTut();
+    });
   }
 
   playBtn.addEventListener("click", (ev) => {
@@ -1384,7 +1514,7 @@
   document.addEventListener(
     "touchmove",
     (e) => {
-      if (e.target.closest && e.target.closest("input, textarea, .board-list, button, .museum-grid, .history-body, .museum-detail")) return;
+      if (e.target.closest && e.target.closest("input, textarea, .board-list, button, .museum-grid, .history-body, .museum-detail, .aim-tut")) return;
       e.preventDefault();
     },
     { passive: false }

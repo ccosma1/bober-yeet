@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=gh2"
+URL = "http://127.0.0.1:8765/?v=gh3"
 
 
 def shot(page, name):
@@ -60,16 +60,25 @@ def main():
         page.wait_for_timeout(200)
         shot(page, "test-splash.png")
 
+        page.evaluate("() => localStorage.removeItem('bober-yeet-aim-tut')")
         page.fill("#player-name", "TestHolder")
         page.click("#btn-play")
         page.wait_for_timeout(800)
         shot(page, "test-level1.png")
         hud = page.locator("#level").inner_text()
         score_txt = page.locator("#score").inner_text()
-        print("HUD", hud, page.locator("#time").inner_text(), score_txt)
+        time_txt = page.locator("#time").inner_text()
+        print("HUD", hud, time_txt, score_txt)
         assert "1/100" in hud
         assert "$BOBER" in score_txt
         assert "SCORE" not in score_txt
+        assert time_txt.startswith("0:3")
+        tut = page.locator("#aim-tut")
+        print("TUT", tut.get_attribute("class"), tut.inner_text())
+        assert "hidden" not in (tut.get_attribute("class") or "")
+        page.click("#aim-tut-ok")
+        page.wait_for_timeout(150)
+        assert "hidden" in (tut.get_attribute("class") or "")
 
         box = page.locator("#game").bounding_box()
         # sling is near left ~188/1280, y ~528/720

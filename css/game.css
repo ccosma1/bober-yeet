@@ -399,6 +399,46 @@ h1 {
   animation: bob 1.2s ease-in-out infinite;
 }
 .hint.hidden { display: none; }
+
+.aim-tut {
+  position: absolute;
+  left: 6%;
+  top: 40%;
+  z-index: 12;
+  pointer-events: auto;
+  max-width: min(240px, 42vw);
+  padding: 10px 12px 10px;
+  background: rgba(26, 16, 32, 0.9);
+  border: 3px solid #1a1020;
+  border-radius: 14px;
+  text-align: left;
+  box-shadow: 0 4px 0 #0004;
+}
+.aim-tut p {
+  margin: 0 0 8px;
+  font-weight: 800;
+  font-size: clamp(13px, 2.2vw, 16px);
+  color: #fff6c4;
+  text-shadow: 0 1px 0 #000;
+  line-height: 1.25;
+}
+.aim-tut button {
+  pointer-events: auto;
+  touch-action: manipulation;
+  border: 3px solid #1a1020;
+  background: var(--yellow);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 900;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+@media (max-height: 440px) {
+  .aim-tut { top: 28%; left: 4%; padding: 6px 8px; }
+  .aim-tut p { font-size: 12px; margin: 0 0 6px; }
+}
 @keyframes bob {
   0%, 100% { transform: translateX(-50%) translateY(0); }
   50% { transform: translateX(-50%) translateY(-6px); }
