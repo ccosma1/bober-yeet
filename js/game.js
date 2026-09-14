@@ -134,6 +134,7 @@
 
   function pop(x, y, text, color) {
     pops.push({ x, y, text, color, t: 0.7 });
+    window.__lastPop = text;
   }
 
   function burst(x, y, kind) {
@@ -354,7 +355,7 @@
     if (!body || body._dead) return;
     body._dead = true;
     burst(body.position.x, body.position.y, body.kind);
-    pop(body.position.x, body.position.y - 20, "+1", "#f5c400");
+    pop(body.position.x, body.position.y - 20, "+1 $BOBER", "#f5c400");
     score += 1;
     levelScore += 1;
     if (body.kind === "stone") BoberSfx.stone();
@@ -873,16 +874,37 @@
     }
   }
 
+  function isSnowyTheme(th) {
+    const id = (th && th.id) || "";
+    return id === "uranus" || id === "xnight" || id === "sink" || id === "finale";
+  }
+
   function drawGround() {
     const th = currentTheme || BoberLevels.themeFor(levelIndex);
+    const snowy = isSnowyTheme(th);
     ctx.fillStyle = th.dirt;
     ctx.fillRect(0, GROUND_TOP, W, H - GROUND_TOP);
-    ctx.fillStyle = th.grass;
-    ctx.fillRect(0, GROUND_TOP, W, 18);
-    ctx.fillStyle = th.dirt;
-    ctx.globalAlpha = 0.45;
-    ctx.fillRect(0, GROUND_TOP + 14, W, 6);
-    ctx.globalAlpha = 1;
+    if (snowy) {
+      const sg = ctx.createLinearGradient(0, GROUND_TOP, 0, GROUND_TOP + 28);
+      sg.addColorStop(0, "#f4f7fb");
+      sg.addColorStop(0.55, "#d5dde8");
+      sg.addColorStop(1, th.dirt);
+      ctx.fillStyle = sg;
+      ctx.fillRect(0, GROUND_TOP, W, 28);
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      for (let x = 18; x < W; x += 46) {
+        ctx.beginPath();
+        ctx.ellipse(x, GROUND_TOP + 6, 16, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      ctx.fillStyle = th.grass;
+      ctx.fillRect(0, GROUND_TOP, W, 18);
+      ctx.fillStyle = th.dirt;
+      ctx.globalAlpha = 0.45;
+      ctx.fillRect(0, GROUND_TOP + 14, W, 6);
+      ctx.globalAlpha = 1;
+    }
     ctx.strokeStyle = "#1a1020";
     ctx.lineWidth = 4;
     ctx.beginPath();
@@ -963,19 +985,31 @@
     const w = body.bw;
     const h = body.bh;
     if (body.kind === "wood") {
-      ctx.fillStyle = "#c4894a";
+      const wg = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
+      wg.addColorStop(0, "#e0a060");
+      wg.addColorStop(0.45, "#c4894a");
+      wg.addColorStop(1, "#8a4e22");
+      ctx.fillStyle = wg;
       roundRect(-w / 2, -h / 2, w, h, 7);
       ctx.fill();
       ctx.fillStyle = "#a86b32";
       roundRect(-w / 2 + 4, -h / 2 + 4, w - 8, h - 8, 5);
       ctx.fill();
-      ctx.strokeStyle = "#6a4020";
+      ctx.strokeStyle = "rgba(90, 48, 18, 0.7)";
       ctx.lineWidth = 2;
       for (let i = -h / 2 + 10; i < h / 2 - 6; i += 9) {
         ctx.beginPath();
         ctx.moveTo(-w / 2 + 8, i);
         ctx.lineTo(w / 2 - 8, i + 1);
         ctx.stroke();
+      }
+      ctx.fillStyle = "rgba(255, 220, 150, 0.28)";
+      roundRect(-w / 2 + 5, -h / 2 + 4, w * 0.28, h - 10, 4);
+      ctx.fill();
+      if (isSnowyTheme(currentTheme) && h >= 22 && w >= 28) {
+        ctx.fillStyle = "#f4f7fb";
+        roundRect(-w / 2 + 3, -h / 2 + 2, w - 6, Math.min(8, h * 0.22), 4);
+        ctx.fill();
       }
     } else if (body.kind === "truck") {
       ctx.fillStyle = "#c8ccc4";

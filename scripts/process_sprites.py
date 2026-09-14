@@ -1,39 +1,70 @@
-"""Chroma-key magenta sprites to transparent PNG, flip Bober to face right."""
+"""Chroma-key hot-pink / magenta sprites to transparent PNG."""
+from collections import deque
 from pathlib import Path
+
 from PIL import Image
 
-SRC = Path(r"C:\Users\calle\.grok\sessions\C%3A%5CUsers%5Ccalle\01a04cc3-80c9-75f3-b198-55b46073d4ba\images")
+SRC = Path(r"C:\Users\calle\.grok\sessions\C%3A%5CUsers%5Ccalle\01a0a0a5-0c86-7a30-a2ac-4e4dcdb18fa5\images")
 DST = Path(r"C:\Users\calle\Desktop\projects\bober-yeet\assets\sprites")
 DST.mkdir(parents=True, exist_ok=True)
 
 JOBS = [
-    ("4.jpg", "bober-idle.png", True),
-    ("6.jpg", "bober-fly.png", True),
-    ("7.jpg", "bober-splat.png", False),
-    ("5.jpg", "uranus.png", False),
-    ("2.jpg", "slingshot.png", False),
-    ("3.jpg", "star.png", False),
+    ("2.jpg", "bober-idle.png", 512),
+    ("4.jpg", "bober-fly.png", 640),
+    ("5.jpg", "bober-splat.png", 512),
+    ("7.jpg", "slingshot.png", 512),
+    ("1.jpg", "star.png", 256),
+    ("6.jpg", "splash-hero.png", 512),
 ]
 
 
-def is_magenta(r, g, b) -> bool:
-    return r > 145 and b > 120 and g < 125 and (r + b) > g * 2.2 and min(r, b) > g + 20
+def is_key_color(r, g, b) -> bool:
+    # Hot pink / magenta only — not brown wood, gold, cream, or snow.
+    if r < 140 or g >= r - 10 or b < 70:
+        return False
+    if b > g + 15 and r > g + 40:
+        return True
+    if r > 180 and b > 80 and g < 110:
+        return True
+    return False
 
 
 def chroma_key(im: Image.Image) -> Image.Image:
     im = im.convert("RGBA")
-    px = im.load()
     w, h = im.size
+    px = im.load()
     out = Image.new("RGBA", (w, h))
     op = out.load()
     for y in range(h):
         for x in range(w):
             r, g, b, _ = px[x, y]
-            if is_magenta(r, g, b):
-                op[x, y] = (0, 0, 0, 0)
-            else:
-                op[x, y] = (r, g, b, 255)
-    # Eat JPEG magenta fringe along the cut
+            op[x, y] = (0, 0, 0, 0) if is_key_color(r, g, b) else (r, g, b, 255)
+
+    seen = [[False] * w for _ in range(h)]
+    q = deque()
+
+    def try_push(x, y):
+        if x < 0 or y < 0 or x >= w or y >= h or seen[y][x]:
+            return
+        r, g, b, a = op[x, y]
+        if a == 0 or is_key_color(r, g, b):
+            seen[y][x] = True
+            q.append((x, y))
+
+    for x in range(w):
+        try_push(x, 0)
+        try_push(x, h - 1)
+    for y in range(h):
+        try_push(0, y)
+        try_push(w - 1, y)
+    while q:
+        x, y = q.popleft()
+        op[x, y] = (0, 0, 0, 0)
+        try_push(x - 1, y)
+        try_push(x + 1, y)
+        try_push(x, y - 1)
+        try_push(x, y + 1)
+
     for _ in range(3):
         cur = out.copy()
         cp = cur.load()
@@ -48,7 +79,7 @@ def chroma_key(im: Image.Image) -> Image.Image:
                         trans += 1
                 if trans == 0:
                     continue
-                pink = (r > 90 and b > 70 and g < 140 and r + b > g * 1.6)
+                pink = r > 90 and b > 55 and g < 150 and r + b > g * 1.45
                 dark = r < 55 and g < 55 and b < 55
                 if pink and not dark:
                     op[x, y] = (0, 0, 0, 0)
@@ -58,26 +89,27 @@ def chroma_key(im: Image.Image) -> Image.Image:
 
 
 def tight_crop(im: Image.Image, pad: int = 12) -> Image.Image:
-    alpha = im.split()[-1]
-    bbox = alpha.getbbox()
+    bbox = im.split()[-1].getbbox()
     if not bbox:
         return im
     l, t, r, b = bbox
-    l = max(0, l - pad)
-    t = max(0, t - pad)
-    r = min(im.width, r + pad)
-    b = min(im.height, b + pad)
-    return im.crop((l, t, r, b))
+    return im.crop((max(0, l - pad), max(0, t - pad), min(im.width, r + pad), min(im.height, b + pad)))
+
+
+def fit_max(im: Image.Image, max_side: int) -> Image.Image:
+    m = max(im.size)
+    if m <= max_side:
+        return im
+    s = max_side / m
+    return im.resize((max(1, int(im.width * s)), max(1, int(im.height * s))), Image.Resampling.LANCZOS)
 
 
 def main():
-    for src_name, dest_name, flip in JOBS:
-        src = SRC / src_name
-        im = Image.open(src)
+    for src_name, dest_name, max_side in JOBS:
+        im = Image.open(SRC / src_name)
         im = chroma_key(im)
-        if flip:
-            im = im.transpose(Image.FLIP_LEFT_RIGHT)
         im = tight_crop(im, 16)
+        im = fit_max(im, max_side)
         dest = DST / dest_name
         im.save(dest, "PNG")
         print(f"{dest_name}: {im.size}")

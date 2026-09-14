@@ -208,7 +208,7 @@
       stars.push(starAt(cell(2, 2).x + S, S * 2 + 30));
     } else if (pack === 10) {
       name = i >= 80 ? "Mars Colony" : "Fort";
-      hint = i >= 80 ? "To Mars. Charge, then yeet the feet." : "Fort has two stones. Don't farm wood.";
+      hint = i >= 80 ? "To Mars. Charge, then yeet the feet." : "Fort has two stones. Don't farm $BOBER.";
       blocks = [
         stone(cell(0, 0).x, 0), stone(cell(3, 0).x, 0),
         wood(cell(0, 1).x, S), wood(cell(1, 1).x, S), wood(cell(2, 1).x, S), wood(cell(3, 1).x, S),

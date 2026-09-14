@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=7"
+URL = "http://127.0.0.1:8765/?v=gh1"
 
 
 def shot(page, name):
@@ -23,9 +23,20 @@ def main():
         tag = page.locator(".tagline").inner_text()
         print("TAGLINE:", repr(tag))
         assert tag == "Fan game by a holder."
+        assert page.locator(".tagline").count() == 1
+        mission = page.locator(".mission").inner_text()
+        reason = page.locator(".reason").inner_text()
+        print("MISSION:", repr(mission))
+        print("REASON:", repr(reason))
+        assert "Yeet Bober. Clear the myth levels. Leave a score." in mission
+        assert "Aim with skill" in reason
+        assert "100 levels" in reason
+        assert "not a token farm" in reason
         title = page.locator("h1").inner_text()
         print("TITLE:", repr(title))
         assert "BOBER YEET" in title
+        hub = page.locator("#splash .hub-link a").get_attribute("href")
+        assert "green-home-games" in hub
         shot(page, "test-splash.png")
 
         page.fill("#player-name", "TestHolder")
@@ -34,7 +45,7 @@ def main():
         shot(page, "test-level1.png")
         hud = page.locator("#level").inner_text()
         print("HUD", hud, page.locator("#time").inner_text(), page.locator("#score").inner_text())
-        assert "1/6" in hud
+        assert "1/100" in hud
 
         box = page.locator("#game").bounding_box()
         # sling is near left ~188/1280, y ~528/720
@@ -46,18 +57,25 @@ def main():
         page.wait_for_timeout(250)
         shot(page, "test-aim.png")
         page.mouse.up()
-        page.wait_for_timeout(450)
+        page.wait_for_timeout(700)
         shot(page, "test-mid-flight.png")
-        page.wait_for_timeout(2400)
+        last_pop = page.evaluate("() => window.__lastPop || ''")
+        print("LAST POP", last_pop)
+        src = page.evaluate("() => fetch('js/game.js').then(r => r.text())")
+        assert "+1 $BOBER" in src
+        page.wait_for_timeout(2000)
         shot(page, "test-after-shot.png")
         print("SCORE after shot", page.locator("#score").inner_text())
         print("ENDCARD", page.locator("#endcard").get_attribute("class"), page.locator("#end-title").inner_text())
         print("AMMO", page.locator("#ammo img").count(), "used", page.locator("#ammo img.used").count())
 
-        page.click("#btn-mute")
-        pressed = page.locator("#btn-mute").get_attribute("aria-pressed")
-        print("MUTE", pressed)
-        page.click("#btn-restart")
+        if "hidden" not in (page.locator("#endcard").get_attribute("class") or ""):
+            page.click("#end-restart")
+        else:
+            page.click("#btn-mute")
+            pressed = page.locator("#btn-mute").get_attribute("aria-pressed")
+            print("MUTE", pressed)
+            page.click("#btn-restart")
         page.wait_for_timeout(400)
         print("AFTER RESTART", page.locator("#score").inner_text(), page.locator("#time").inner_text())
         shot(page, "test-restart.png")
