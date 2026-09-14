@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=gh3"
+URL = "http://127.0.0.1:8765/?v=gh4"
 
 
 def shot(page, name):
@@ -72,10 +72,14 @@ def main():
         assert "1/100" in hud
         assert "$BOBER" in score_txt
         assert "SCORE" not in score_txt
-        assert time_txt.startswith("0:3")
         tut = page.locator("#aim-tut")
         print("TUT", tut.get_attribute("class"), tut.inner_text())
         assert "hidden" not in (tut.get_attribute("class") or "")
+        assert time_txt == "0:32"
+        page.wait_for_timeout(1600)
+        time_while_tut = page.locator("#time").inner_text()
+        print("TIME WHILE TUT", time_while_tut)
+        assert time_while_tut == "0:32"
         page.click("#aim-tut-ok")
         page.wait_for_timeout(150)
         assert "hidden" in (tut.get_attribute("class") or "")

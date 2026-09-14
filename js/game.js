@@ -1360,11 +1360,12 @@
         hintT -= dt;
         if (hintT <= 0) hintEl.classList.add("hidden");
       }
-      if (timeLeft > 0) {
+      // First-run aim tutorial must not burn the level clock.
+      if (timeLeft > 0 && !aimTutOn) {
         timeLeft -= dt;
         if (timeLeft < 0) timeLeft = 0;
       }
-      if (timeLeft <= 5 && timeLeft > 0) {
+      if (!aimTutOn && timeLeft <= 5 && timeLeft > 0) {
         tickAcc += dt;
         if (tickAcc >= 1) {
           tickAcc = 0;
