@@ -52,10 +52,6 @@
             <img src="assets/sprites/yeet-stick.png" alt="" />
             <span>Yeet Stick <small>INF</small></span>
           </button>
-          <button type="button" class="wep" id="w-snow" data-w="snow">
-            <img src="assets/sprites/snowball.png" alt="" />
-            <span>Snowball <small>INF</small></span>
-          </button>
           <button type="button" class="wep" id="w-dynamite" data-w="dynamite">
             <img src="assets/sprites/dynamite.png" alt="" />
             <span>Dynamite <small id="ammo-dynamite">0</small></span>
@@ -68,10 +64,6 @@
             <img src="assets/sprites/mortar.png" alt="" />
             <span>Lodge Mortar <small id="ammo-mortar">0</small></span>
           </button>
-          <button type="button" class="wep" id="w-ice" data-w="ice">
-            <img src="assets/sprites/ice-brace.png" alt="" />
-            <span>Ice Brace <small id="ammo-ice">0</small></span>
-          </button>
           <button type="button" class="wep" id="w-pine" data-w="pine">
             <img src="assets/sprites/pinecone.png" alt="" />
             <span>Pinecone Cluster <small id="ammo-pine">0</small></span>
@@ -79,10 +71,6 @@
           <button type="button" class="wep" id="w-mine" data-w="mine">
             <img src="assets/sprites/woodchip-mine.png" alt="" />
             <span>Woodchip Mine <small id="ammo-mine">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-buckler" data-w="buckler">
-            <img src="assets/sprites/bark-buckler.png" alt="" />
-            <span>Bark Buckler <small id="ammo-buckler">0</small></span>
           </button>
           <button type="button" class="wep" id="w-rocket" data-w="rocket">
             <img src="assets/sprites/corkscrew-rocket.png" alt="" />
@@ -103,6 +91,18 @@
           <button type="button" class="wep" id="w-ember" data-w="ember">
             <img src="assets/sprites/ember-cascade.png" alt="" />
             <span>Ember Cascade <small id="ammo-ember">0</small></span>
+          </button>
+          <button type="button" class="wep" id="w-snare" data-w="snare">
+            <img src="assets/sprites/sap-snare.png" alt="" />
+            <span>Sap Snare <small id="ammo-snare">0</small></span>
+          </button>
+          <button type="button" class="wep" id="w-stun" data-w="stun">
+            <img src="assets/sprites/stun-cone.png" alt="" />
+            <span>Stun Cone <small id="ammo-stun">0</small></span>
+          </button>
+          <button type="button" class="wep" id="w-lure" data-w="lure">
+            <img src="assets/sprites/grav-lure.png" alt="" />
+            <span>Grav Lure <small id="ammo-lure">0</small></span>
           </button>
         </div>
         <button type="button" class="tray-chev" id="tray-r" aria-label="Scroll weapons right">▶</button>
@@ -221,7 +221,7 @@
         <p>Drag back to set <strong>angle</strong>. Charge <strong>power</strong> 0–100. Read the <strong>wind flag</strong>. Fire.</p>
         <p>Hits dig cover and hurt <strong>HP</strong> (Bobers start at 85). Falloff at the blast edge. Creek, dust, void, methane, or acid below = out. Last beaver standing wins.</p>
         <p><strong>Crates</strong> drop every 3 turns. Walk onto one for gear or $BOBER. Tap <strong>SHOP</strong> mid-match to buy charges. If you are short, the shop says how many more $BOBER you need.</p>
-        <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Each bank has its own scrap. Stick and Snowball stay infinite. Paid guns hit harder. Use the tray <strong>◀ ▶</strong> chevrons (or swipe) to reach Lodge Mortar, Pinecone Cluster, Woodchip Mine, Bark Buckler, Corkscrew Rocket, Lodge Chaingun, Arc Zap, Ricochet Fang, and Ember Cascade. You cannot buy a win.</p>
+        <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Each bank has its own scrap. Yeet Stick stays infinite. Paid guns hit harder. Crowd control: Sap Snare, Stun Cone, Grav Lure. Use the tray <strong>◀ ▶</strong> chevrons (or swipe) to reach Lodge Mortar, Pinecone Cluster, Woodchip Mine, Corkscrew Rocket, Lodge Chaingun, Arc Zap, Ricochet Fang, and Ember Cascade. You cannot buy a win.</p>
         <p>Pick <strong>Easy</strong>, <strong>Normal</strong>, or <strong>Hard</strong>. Both banks start even: same HP, same $BOBER, same charges. After turn 16 — and only when three or fewer Bobers remain, whichever is later — <strong>Sudden Death</strong> raises the hazard slowly. The map reacts: the creek, acid, void, or dust climbs the banks with a rumble and a siren flash.</p>
         <p><strong>Link Battle:</strong> Host gets a 4-letter room code. Friend taps Join and types it. Same Wi-Fi is best. Finding each other uses a short PeerJS internet hop (STUN, then TURN if needed) — no account, no lobby. Host is Lodge, Join is Creek. Two devices. If you see ICE FAIL, retry Host / Join on the same Wi-Fi.</p>
       </div>
@@ -259,15 +259,6 @@
           <button type="button" class="play play-sm" id="buy-mortar">BUY</button>
         </div>
         <div class="shop-row">
-          <img src="assets/sprites/ice-brace.png" alt="" />
-          <div>
-            <strong>Ice Brace</strong>
-            <span>0 dmg · ice wall 60 HP · 2 turns</span>
-            <span class="shop-cost">28 $BOBER · owned <b id="shop-ice-n">0</b></span>
-          </div>
-          <button type="button" class="play play-sm" id="buy-ice">BUY</button>
-        </div>
-        <div class="shop-row">
           <img src="assets/sprites/pinecone.png" alt="" />
           <div>
             <strong>Pinecone Cluster</strong>
@@ -284,15 +275,6 @@
             <span class="shop-cost">32 $BOBER · owned <b id="shop-mine-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-mine">BUY</button>
-        </div>
-        <div class="shop-row">
-          <img src="assets/sprites/bark-buckler.png" alt="" />
-          <div>
-            <strong>Bark Buckler</strong>
-            <span>0 dmg · +35 shield · 2 turns</span>
-            <span class="shop-cost">26 $BOBER · owned <b id="shop-buck-n">0</b></span>
-          </div>
-          <button type="button" class="play play-sm" id="buy-buckler">BUY</button>
         </div>
         <div class="shop-row">
           <img src="assets/sprites/corkscrew-rocket.png" alt="" />
@@ -338,6 +320,33 @@
             <span class="shop-cost">60 $BOBER · owned <b id="shop-ember-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-ember">BUY</button>
+        </div>
+        <div class="shop-row">
+          <img src="assets/sprites/sap-snare.png" alt="" />
+          <div>
+            <strong>Sap Snare</strong>
+            <span>8 dmg · sticky zone 2 turns · slow walk</span>
+            <span class="shop-cost">30 $BOBER · owned <b id="shop-snare-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-snare">BUY</button>
+        </div>
+        <div class="shop-row">
+          <img src="assets/sprites/stun-cone.png" alt="" />
+          <div>
+            <strong>Stun Cone</strong>
+            <span>12 dmg · stun next turn</span>
+            <span class="shop-cost">38 $BOBER · owned <b id="shop-stun-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-stun">BUY</button>
+        </div>
+        <div class="shop-row">
+          <img src="assets/sprites/grav-lure.png" alt="" />
+          <div>
+            <strong>Grav Lure</strong>
+            <span>10 dmg · pull 1–2 foes · tether</span>
+            <span class="shop-cost">45 $BOBER · owned <b id="shop-lure-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-lure">BUY</button>
         </div>
       </div>
       <p class="shop-note">Charges only. You cannot buy a win. No wallet.</p>

@@ -75,12 +75,6 @@
     },
     {
       cat: "Gun",
-      title: "Snowball",
-      img: "assets/sprites/snowball.png",
-      blurb: "Fifteen sting, blast 36, infinite. Softer hit, fatter crater.",
-    },
-    {
-      cat: "Gun",
       title: "Dynamite",
       img: "assets/sprites/dynamite.png",
       blurb: "Fifty-eight sting, blast 58, fuse about two seconds. Paid guns hit harder now. Buy a charge with $BOBER, or find a crate.",
@@ -99,12 +93,6 @@
     },
     {
       cat: "Gun",
-      title: "Ice Brace",
-      img: "assets/sprites/ice-brace.png",
-      blurb: "No sting. A wall of ice, sixty HP, two turns, then melt. Blocks shots and a short step.",
-    },
-    {
-      cat: "Gun",
       title: "Pinecone Cluster",
       img: "assets/sprites/pinecone.png",
       blurb: "Sixteen sting three times, blast 28 each. Splits after the apex. One charge.",
@@ -114,12 +102,6 @@
       title: "Woodchip Mine",
       img: "assets/sprites/woodchip-mine.png",
       blurb: "Fifty-two sting, blast 42. Plants on hit. Arms next turn. Boom is a flame burst with embers, not a quiet puff.",
-    },
-    {
-      cat: "Gun",
-      title: "Bark Buckler",
-      img: "assets/sprites/bark-buckler.png",
-      blurb: "No sting. Thirty-five temp shield on the active Bober, two turns. One charge.",
     },
     {
       cat: "Gun",
@@ -150,6 +132,24 @@
       title: "Ember Cascade",
       img: "assets/sprites/ember-cascade.png",
       blurb: "Eighteen sting, then fire orbs hop bank to bank, up to four hops. One charge, sixty $BOBER. Trail flames.",
+    },
+    {
+      cat: "Gun",
+      title: "Sap Snare",
+      img: "assets/sprites/sap-snare.png",
+      blurb: "Eight sting. Sticky sap zone, two turns. Walk slows to a crawl inside it. One charge, thirty $BOBER.",
+    },
+    {
+      cat: "Gun",
+      title: "Stun Cone",
+      img: "assets/sprites/stun-cone.png",
+      blurb: "Twelve sting. Stunned next turn — no aim, no Fire. One charge, thirty-eight $BOBER.",
+    },
+    {
+      cat: "Gun",
+      title: "Grav Lure",
+      img: "assets/sprites/grav-lure.png",
+      blurb: "Ten sting. Pulls one or two enemies to the impact on a visible tether. One charge, forty-five $BOBER.",
     },
     {
       cat: "Gear",

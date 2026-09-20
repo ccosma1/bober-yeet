@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war9"
+URL = "http://127.0.0.1:8765/?v=war10"
 
 
 def shot(page, name):
@@ -105,7 +105,7 @@ def assert_chrome_fits(page, vp_w, vp_h, landscape=False):
         assert dock["height"] / vp_h <= 0.28 + 0.02
     else:
         assert dock["height"] / vp_h <= 0.36
-    ids = ["w-stick", "w-snow", "w-dynamite", "w-sap", "w-mortar", "w-ice", "w-pine", "w-mine", "w-buckler", "w-rocket", "w-chain", "w-zap", "w-fang", "w-ember"]
+    ids = ["w-stick", "w-dynamite", "w-sap", "w-mortar", "w-pine", "w-mine", "w-rocket", "w-chain", "w-zap", "w-fang", "w-ember", "w-snare", "w-stun", "w-lure"]
     ys = []
     for wid in ids:
         loc = page.locator("#" + wid)
@@ -423,10 +423,10 @@ def main():
         print("SHOP", shop[:240])
         assert "35 $BOBER" in shop
         assert "45 $BOBER" in shop
-        assert "28 $BOBER" in shop
+        assert "38 $BOBER" in shop
         assert "40 $BOBER" in shop
         assert "32 $BOBER" in shop
-        assert "26 $BOBER" in shop
+        assert "30 $BOBER" in shop
         assert "50 $BOBER" in shop
         assert "48 $BOBER" in shop
         assert "Corkscrew Rocket" in shop
@@ -434,6 +434,12 @@ def main():
         assert "Arc Zap" in shop
         assert "Ricochet Fang" in shop
         assert "Ember Cascade" in shop
+        assert "Sap Snare" in shop
+        assert "Stun Cone" in shop
+        assert "Grav Lure" in shop
+        assert "Snowball" not in shop
+        assert "Ice Brace" not in shop
+        assert "Bark Buckler" not in shop
         assert "55 $BOBER" in shop
         assert "42 $BOBER" in shop
         assert "60 $BOBER" in shop
@@ -447,43 +453,46 @@ def main():
         page.evaluate("() => window.__yeetWar.setCoins(800)")
         page.wait_for_timeout(80)
         page.click("#buy-mortar")
-        page.click("#buy-ice")
         page.click("#buy-pine")
         page.click("#buy-mine")
-        page.click("#buy-buckler")
         page.click("#buy-rocket")
         page.click("#buy-chain")
         page.click("#buy-zap")
         page.click("#buy-fang")
         page.click("#buy-ember")
+        page.click("#buy-snare")
+        page.click("#buy-stun")
+        page.click("#buy-lure")
         s = snap(page)
         print("BUY", s["coins"], s["ammo"])
         assert s["ammo"]["lodge"]["mortar"] >= 1
-        assert s["ammo"]["lodge"]["ice"] >= 1
         assert s["ammo"]["lodge"]["pine"] >= 1
         assert s["ammo"]["lodge"]["mine"] >= 1
-        assert s["ammo"]["lodge"]["buckler"] >= 1
         assert s["ammo"]["lodge"]["rocket"] >= 1
         assert s["ammo"]["lodge"]["chain"] >= 1
         assert s["ammo"]["lodge"]["zap"] >= 1
         assert s["ammo"]["lodge"]["fang"] >= 1
         assert s["ammo"]["lodge"]["ember"] >= 1
+        assert s["ammo"]["lodge"]["snare"] >= 1
+        assert s["ammo"]["lodge"]["stun"] >= 1
+        assert s["ammo"]["lodge"]["lure"] >= 1
         page.click("#shop-play")
         wait_phase(page, "aim", timeout=8000)
         page.evaluate(
             """() => {
               const w = window.__yeetWar;
-              w.giveAmmo('lodge', 'ice', 1);
-              w.setWeapon('ice');
-              w.setAim(10, 40);
+              w.giveAmmo('lodge', 'snare', 1);
+              w.setWeapon('snare');
+              w.setAim(90, 28);
               w.fire();
             }"""
         )
-        page.wait_for_function("() => window.__yeetWar.snapshot().walls.length > 0", timeout=8000)
+        page.wait_for_function("() => (window.__yeetWar.snapshot().snares || []).length > 0 || (window.__yeetWar.lastBlast && window.__yeetWar.lastBlast.weapon === 'snare')", timeout=8000)
         s = snap(page)
-        print("ICE", s["walls"])
-        assert s["walls"][0]["hp"] == 60
-        shot(page, "test-ice.png")
+        print("SNARE", s.get("snares"), s.get("lastBlast"))
+        assert s["lastBlast"]["weapon"] == "snare"
+        assert s["lastBlast"]["dmg"] == 8
+        shot(page, "test-snare.png")
         diffs = page.evaluate("() => window.__yeetWar.DIFFS")
         assert diffs["easy"]["ang"] > diffs["hard"]["ang"] * 4
         assert diffs["easy"]["mortar"] < diffs["normal"]["mortar"] < diffs["hard"]["mortar"]
@@ -654,7 +663,7 @@ def main():
         assert page.locator("#w-chain").bounding_box()
         sel = page.evaluate(
             """() => {
-              const snow = document.getElementById('w-snow');
+              const snow = document.getElementById('w-stick');
               const game = document.getElementById('game');
               const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
               const blocked = !snow.dispatchEvent(ev);

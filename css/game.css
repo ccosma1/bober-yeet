@@ -285,7 +285,7 @@ html, body {
 .story-strip {
   position: absolute;
   left: 50%;
-  top: max(48px, calc(env(safe-area-inset-top) + 40px));
+  top: max(96px, 18%);
   transform: translateX(-50%);
   z-index: 7;
   pointer-events: none;
@@ -297,9 +297,19 @@ html, body {
   font-size: clamp(12px, 2.4vw, 16px);
   color: #ffe566;
   text-align: center;
-  max-width: 92%;
+  max-width: 88%;
   user-select: none;
   -webkit-user-select: none;
+}
+@media (max-width: 560px) and (orientation: portrait) {
+  .story-strip {
+    top: max(108px, 20%);
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+}
+@media (orientation: landscape) {
+  .story-strip { top: max(44px, 14%); }
 }
 .story-strip.hidden { display: none !important; }
 .map-story {
