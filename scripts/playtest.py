@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war2c"
+URL = "http://127.0.0.1:8765/?v=war3"
 
 
 def shot(page, name):
@@ -72,9 +72,13 @@ def main():
         assert "team17" not in low
         assert page.locator("#btn-play").inner_text() == "START"
         assert page.locator("#btn-howto").inner_text() == "HOW TO PLAY"
-        assert page.locator("#splash-maps .map-card").count() == 2
-        assert "Lodge Bowl" in page.locator("#splash-maps").inner_text()
-        assert "Twin Ledges" in page.locator("#splash-maps").inner_text()
+        assert page.locator("#splash-maps .map-card").count() == 5
+        splash_maps = page.locator("#splash-maps").inner_text()
+        assert "Lodge Bowl" in splash_maps
+        assert "Twin Ledges" in splash_maps
+        assert "Red Mesa" in splash_maps
+        assert "Crater Rim" in splash_maps
+        assert "Methane Shelf" in splash_maps
         shot(page, "test-splash.png")
 
         page.click("#btn-howto")
@@ -84,23 +88,25 @@ def main():
         assert "HP" in how
         assert "out" in how.lower()
         assert "crate" in how.lower()
+        assert "landscape" in how.lower()
+        assert "Red Mesa" in how
         shot(page, "test-howto.png")
         page.click("#howto-close")
 
         page.click("#btn-history")
         page.wait_for_timeout(250)
-        assert page.locator("#history .museum-card").count() >= 4
+        assert page.locator("#history .museum-card").count() >= 5
         page.locator("#history .museum-card").nth(0).click()
         page.wait_for_timeout(200)
         det = page.locator("#history-detail").inner_text()
         print("HIST", det[:160])
-        assert "yeet" in det.lower() or "sling" in det.lower()
+        assert "bowl" in det.lower() or "green home" in det.lower()
         shot(page, "test-history.png")
         page.click("#history-close")
 
         page.click("#btn-museum")
         page.wait_for_timeout(200)
-        assert page.locator("#museum .museum-card").count() >= 7
+        assert page.locator("#museum .museum-card").count() >= 12
         shot(page, "test-museum.png")
         page.click("#museum-close")
 
@@ -290,13 +296,37 @@ def main():
         page.wait_for_timeout(80)
         assert any(c["kind"] == "mortar" for c in snap(page)["crates"])
 
+        for mid, fname in (
+            ("bowl", "test-map-bowl.png"),
+            ("mesa", "test-map-mesa.png"),
+            ("crater", "test-map-crater.png"),
+            ("methane", "test-map-methane.png"),
+        ):
+            page.evaluate("(id) => window.__yeetWar.setMap(id)", mid)
+            page.evaluate("() => window.__yeetWar.startMatch()")
+            wait_phase(page, "aim", timeout=8000)
+            page.wait_for_timeout(250)
+            s = snap(page)
+            print("MAPSHOT", mid, s.get("mapId"), [(b["name"], int(b["y"])) for b in s["bobers"] if b["alive"]])
+            assert s["mapId"] == mid
+            assert len([b for b in s["bobers"] if b["alive"]]) == 6
+            shot(page, fname)
+
         page = browser.new_page(viewport={"width": 390, "height": 844})
         page.goto(URL, wait_until="networkidle", timeout=30000)
         page.evaluate("() => localStorage.setItem('bober-yeet-war-tut', '1')")
         page.evaluate("() => window.__yeetWar.setMap('ledges')")
         page.click("#btn-play")
         wait_phase(page, "aim", timeout=10000)
-        page.wait_for_timeout(500)
+        page.wait_for_timeout(400)
+        app_cls = page.locator("#app").get_attribute("class") or ""
+        print("PORTRAIT APP", app_cls)
+        assert "portrait-block" in app_cls
+        assert "hidden" not in (page.locator("#tilt-play").get_attribute("class") or "")
+        shot(page, "test-tilt-mobile.png")
+        page.click("#tilt-anyway")
+        page.wait_for_timeout(200)
+        assert "portrait-block" not in (page.locator("#app").get_attribute("class") or "")
         fire = page.locator("#btn-fire").bounding_box()
         stage = page.locator("#stage").bounding_box()
         vp_h = 844
@@ -339,16 +369,29 @@ def main():
         page = browser.new_page(viewport={"width": 844, "height": 390})
         page.goto(URL, wait_until="networkidle", timeout=30000)
         page.evaluate("() => localStorage.setItem('bober-yeet-war-tut', '1')")
+        page.evaluate("() => window.__yeetWar.setMap('ledges')")
         page.click("#btn-play")
         wait_phase(page, "aim", timeout=10000)
         page.wait_for_timeout(400)
+        assert "portrait-block" not in (page.locator("#app").get_attribute("class") or "")
         stage = page.locator("#stage").bounding_box()
+        print("LAND STAGE", stage)
         assert stage and stage["height"] / 390 >= 0.55
         s = snap(page)
         lodge_on, creek_on, view = both_teams_visible(s)
         print("LAND CAM", view, "lodge", lodge_on, "creek", creek_on)
         assert lodge_on and creek_on
         shot(page, "test-match-mobile-landscape.png")
+        shop_box = page.locator("#btn-shop-dock").bounding_box()
+        assert shop_box and shop_box["height"] >= 36
+        page.click("#btn-shop-dock")
+        page.wait_for_timeout(200)
+        assert "hidden" not in (page.locator("#shop").get_attribute("class") or "")
+        page.evaluate("() => window.__yeetWar.setCoins(200)")
+        page.click("#buy-ice")
+        assert snap(page)["ammo"]["lodge"]["ice"] >= 1
+        page.click("#shop-play")
+        wait_phase(page, "aim", timeout=5000)
         page.evaluate("() => window.__yeetWar.killTeam('creek')")
         wait_phase(page, "end", timeout=8000)
         assert "YOU WIN" in page.locator("#end-title").inner_text()

@@ -27,7 +27,7 @@
   const GRANT_KEY = "bober-yeet-war-p2grant";
   const PAID = ["dynamite", "sap", "mortar", "ice"];
   const LEDGES_PAD = 140;
-  const BOWL_PAD = 220;
+  const BOWL_PAD = 80;
 
   const WEAPONS = {
     stick: { id: "stick", name: "Yeet Stick", dmg: 25, blast: 28, r: 7, inf: true },
@@ -42,14 +42,84 @@
     bowl: {
       id: "bowl",
       name: "Lodge Bowl",
-      spawn: { lodge: [150, 250, 340], creek: [940, 1040, 1140] },
+      spawn: { lodge: [180, 280, 380], creek: [900, 1000, 1100] },
+      pad: BOWL_PAD,
+      plate: "bowl",
+      sky: "skyEarth",
+      hazard: "water",
+      hazardY: 640,
+      hazardWord: "SPLASH",
+      hazardColor: "#8ad4ff",
+      under: "#4a2810",
+      washFrom: 430,
     },
     ledges: {
       id: "ledges",
       name: "Twin Ledges",
       spawn: { lodge: [140, 230, 320], creek: [960, 1050, 1140] },
+      pad: LEDGES_PAD,
+      plate: "ledges",
+      sky: "skyEarth",
+      hazard: "water",
+      hazardY: 676,
+      hazardWord: "SPLASH",
+      hazardColor: "#8ad4ff",
+      under: "#4a2810",
+      washFrom: 500,
+    },
+    mesa: {
+      id: "mesa",
+      name: "Red Mesa",
+      spawn: { lodge: [100, 180, 260], creek: [1020, 1100, 1180] },
+      pad: 110,
+      plate: "mesa",
+      sky: "skyMars",
+      hazard: "dust",
+      hazardY: 700,
+      hazardWord: "DUST",
+      hazardColor: "#e8a060",
+      under: "#6a3010",
+      washFrom: 620,
+    },
+    crater: {
+      id: "crater",
+      name: "Crater Rim",
+      spawn: { lodge: [90, 170, 250], creek: [1030, 1110, 1190] },
+      pad: 130,
+      plate: "crater",
+      sky: "skyMoon",
+      hazard: "void",
+      hazardY: 680,
+      hazardWord: "VOID",
+      hazardColor: "#c8c0e0",
+      under: "#2a2a32",
+      washFrom: 520,
+      pit: { x: 640, y: 470, r: 118 },
+    },
+    methane: {
+      id: "methane",
+      name: "Methane Shelf",
+      spawn: { lodge: [140, 230, 320], creek: [980, 1080, 1180] },
+      pad: 130,
+      plate: "methane",
+      sky: "skyUranus",
+      hazard: "methane",
+      hazardY: 640,
+      hazardWord: "SINK",
+      hazardColor: "#6ad4c8",
+      under: "#0a2830",
+      washFrom: 470,
     },
   };
+
+  function spec() {
+    return MAPS[mapId] || MAPS.bowl;
+  }
+
+  function hazardY() {
+    const y = spec().hazardY;
+    return y == null ? WATER_Y : y;
+  }
 
   const LODGE_NAMES = ["Pip", "Nibs", "Paddle"];
   const CREEK_NAMES = ["Rime", "Chip", "Gnaw"];
@@ -143,6 +213,7 @@
   let shopFrom = "splash";
   let howtoFrom = "splash";
   let shopOpen = false;
+  let tiltDismissed = false;
 
   function $(id) {
     return document.getElementById(id);
@@ -421,15 +492,24 @@
     tctx.imageSmoothingQuality = "high";
     tctx.lineJoin = "round";
     tctx.lineCap = "round";
-    const plate = mapId === "ledges" ? img.ledges : img.bowl;
-    const pad = mapId === "ledges" ? LEDGES_PAD : BOWL_PAD;
+    const s = spec();
+    const plate = img[s.plate];
+    const pad = s.pad || 0;
     if (plate && plate.width) {
       tctx.drawImage(plate, 0, pad);
+      if (s.pit) {
+        tctx.save();
+        tctx.globalCompositeOperation = "destination-out";
+        tctx.beginPath();
+        tctx.arc(s.pit.x, s.pit.y + pad, s.pit.r, 0, Math.PI * 2);
+        tctx.fill();
+        tctx.restore();
+      }
     } else {
       paintMoundFallback();
     }
     uctx.clearRect(0, 0, WORLD_W, WORLD_H);
-    uctx.fillStyle = "#4a2810";
+    uctx.fillStyle = s.under || "#4a2810";
     uctx.fillRect(0, 0, WORLD_W, WORLD_H);
     uctx.globalCompositeOperation = "destination-in";
     uctx.drawImage(terrain, 0, 0);
@@ -439,10 +519,11 @@
 
   function surfaceY(x) {
     const x0 = clamp(x | 0, 0, WORLD_W - 1);
-    for (let y = 0; y < WATER_Y; y++) {
+    const hy = hazardY();
+    for (let y = 0; y < hy; y++) {
       if (solid(x0, y)) return y;
     }
-    return WATER_Y;
+    return hy;
   }
 
   function carve(cx, cy, r) {
@@ -481,7 +562,7 @@
     const top = Math.min(gy, y + 8);
     const wall = {
       x: clamp((x - 18) | 0, 8, WORLD_W - 44),
-      y: clamp((top - 48) | 0, 40, WATER_Y - 50),
+      y: clamp((top - 48) | 0, 40, hazardY() - 50),
       w: 36,
       h: 48,
       hp: 60,
@@ -671,7 +752,7 @@
     for (let tries = 0; tries < 14; tries++) {
       const gy = surfaceY(cx);
       const blocked =
-        gy >= WATER_Y - 8 ||
+        gy >= hazardY() - 8 ||
         bobers.some((b) => b.alive && Math.hypot(b.x - cx, b.y - (gy - BOBER_R)) < 44);
       if (!blocked) {
         const crate = { x: cx, y: gy - 18, kind: k, life: 1 };
@@ -813,7 +894,7 @@
     b.vy = 0;
     b.airborne = false;
     BoberSfx.splash();
-    pop(b.x, b.y, why || "SPLASH", "#8ad4ff");
+    pop(b.x, b.y, why || spec().hazardWord || "SPLASH", spec().hazardColor || "#8ad4ff");
     maybeEnd();
   }
 
@@ -882,7 +963,7 @@
 
   function splashShot() {
     if (shot) {
-      burst(shot.x, WATER_Y, "snow");
+      burst(shot.x, hazardY(), "snow");
       BoberSfx.splash();
     }
     shot = null;
@@ -912,7 +993,7 @@
       shot.x += shot.vx / steps;
       shot.y += shot.vy / steps;
       shot.age += 1 / steps;
-      if (shot.y >= WATER_Y) {
+      if (shot.y >= hazardY()) {
         splashShot();
         return;
       }
@@ -952,8 +1033,9 @@
 
   function snapStand(b) {
     const gy = surfaceY(b.x);
-    if (gy >= WATER_Y) {
-      drown(b, "SPLASH");
+    const hy = hazardY();
+    if (gy >= hy) {
+      drown(b, spec().hazardWord);
       return false;
     }
     b.y = gy - BOBER_R;
@@ -979,12 +1061,13 @@
       b.vy += GRAV * 0.85;
       b.y += b.vy;
       const g = surfaceY(b.x);
-      if (b.y + BOBER_R >= g && g < WATER_Y) {
+      const hy = hazardY();
+      if (b.y + BOBER_R >= g && g < hy) {
         b.y = g - BOBER_R;
         b.vy = 0;
         b.vx = 0;
       }
-      if (b.y - 4 > WATER_Y) b.y = WATER_Y + 40;
+      if (b.y - 4 > hy) b.y = hy + 40;
       return;
     }
     if (b.walkT > 0) {
@@ -996,8 +1079,8 @@
     }
     if (!b.airborne) {
       const gy = surfaceY(b.x);
-      if (gy >= WATER_Y) {
-        drown(b, "SPLASH");
+      if (gy >= hazardY()) {
+        drown(b, spec().hazardWord);
         return;
       }
       if (gy - BOBER_R > b.y + 10) {
@@ -1017,8 +1100,8 @@
     b.x += b.vx;
     b.y += b.vy;
     b.x = clamp(b.x, 18, WORLD_W - 18);
-    if (b.y - BOBER_R > WATER_Y || b.y > WATER_Y + 8) {
-      drown(b, "SPLASH");
+    if (b.y - BOBER_R > hazardY() || b.y > hazardY() + 8) {
+      drown(b, spec().hazardWord);
       return;
     }
     const feet = b.y + BOBER_R;
@@ -1086,6 +1169,11 @@
     fuses.length = 0;
     running = true;
     hudTop.classList.remove("live");
+    const appEl = $("app");
+    if (appEl) {
+      appEl.classList.remove("live");
+      appEl.classList.remove("portrait-block");
+    }
     dock.classList.add("hidden");
     if (tipStrip) tipStrip.classList.add("hidden");
     if (who === "lodge") {
@@ -1263,7 +1351,7 @@
       vy += vel.grav;
       x += vx;
       y += vy;
-      if (y >= WATER_Y || x < -20 || x > WORLD_W + 20 || solid(x, y)) break;
+      if (y >= hazardY() || x < -20 || x > WORLD_W + 20 || solid(x, y)) break;
       if (i % 2 === 0) dots.push({ x, y });
     }
     return dots;
@@ -1284,27 +1372,17 @@
       canvas.width = bw;
       canvas.height = bh;
     }
-    let s = cssW / WORLD_W;
+    const s = cssW / WORLD_W;
     let tx = 0;
-    let ty = 0;
     const visH = cssH / s;
-    if (visH >= WORLD_H) {
-      ty = WORLD_H - visH;
-    } else {
-      s = Math.min(cssW / WORLD_W, cssH / WORLD_H);
-      const visW = cssW / s;
-      const visH2 = cssH / s;
-      tx = visW >= WORLD_W ? (WORLD_W - visW) / 2 : 0;
-      ty = visH2 >= WORLD_H ? WORLD_H - visH2 : Math.max(0, WORLD_H - visH2);
-    }
-    if (shot) {
-      const visH2 = cssH / s;
-      const want = shot.y - visH2 * 0.28;
-      if (visH2 < WORLD_H) ty = clamp(want, 0, WORLD_H - visH2);
+    let ty = WORLD_H - visH;
+    if (shot && visH < WORLD_H) {
+      const want = shot.y - visH * 0.28;
+      ty = clamp(want, 0, WORLD_H - visH);
     }
     tx += userPanX;
     const visW = cssW / s;
-    const viewH = cssH / s;
+    const viewH = visH;
     const minTx = visW >= WORLD_W ? (WORLD_W - visW) / 2 : 0;
     const maxTx = visW >= WORLD_W ? minTx : WORLD_W - visW;
     tx = clamp(tx, minTx, maxTx);
@@ -1427,28 +1505,47 @@
     ctx.translate(-view.camX * view.s, -view.camY * view.s);
     ctx.scale(view.s, view.s);
 
-    if (img.sky) ctx.drawImage(img.sky, 0, 0, WORLD_W, WORLD_H);
+    const s = spec();
+    const sky = img[s.sky] || img.skyEarth;
+    if (sky) ctx.drawImage(sky, 0, 0, WORLD_W, WORLD_H);
     else {
       ctx.fillStyle = "#3A2A6A";
       ctx.fillRect(0, 0, WORLD_W, WORLD_H);
     }
-    const waterTop = mapId === "ledges" ? 500 : 430;
+    const waterTop = s.washFrom || 500;
+    const hy = hazardY();
     const wg = ctx.createLinearGradient(0, waterTop, 0, WORLD_H);
-    wg.addColorStop(0, "rgba(70, 140, 170, 0.55)");
-    wg.addColorStop(0.18, "rgba(28, 90, 120, 0.82)");
-    wg.addColorStop(0.55, "rgba(14, 52, 74, 0.92)");
-    wg.addColorStop(1, "rgba(6, 24, 38, 0.97)");
+    if (s.hazard === "dust") {
+      wg.addColorStop(0, "rgba(180, 90, 40, 0.28)");
+      wg.addColorStop(0.45, "rgba(120, 50, 20, 0.7)");
+      wg.addColorStop(1, "rgba(50, 18, 8, 0.92)");
+    } else if (s.hazard === "void") {
+      wg.addColorStop(0, "rgba(20, 16, 32, 0.2)");
+      wg.addColorStop(0.4, "rgba(8, 8, 14, 0.85)");
+      wg.addColorStop(1, "rgba(0, 0, 0, 0.96)");
+    } else if (s.hazard === "methane") {
+      wg.addColorStop(0, "rgba(20, 80, 90, 0.35)");
+      wg.addColorStop(0.4, "rgba(8, 40, 55, 0.82)");
+      wg.addColorStop(1, "rgba(2, 16, 24, 0.96)");
+    } else {
+      wg.addColorStop(0, "rgba(70, 140, 170, 0.55)");
+      wg.addColorStop(0.18, "rgba(28, 90, 120, 0.82)");
+      wg.addColorStop(0.55, "rgba(14, 52, 74, 0.92)");
+      wg.addColorStop(1, "rgba(6, 24, 38, 0.97)");
+    }
     ctx.fillStyle = wg;
     ctx.fillRect(0, waterTop, WORLD_W, WORLD_H - waterTop);
-    ctx.strokeStyle = "rgba(220, 245, 255, 0.5)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    for (let x = 0; x <= WORLD_W; x += 14) {
-      const yy = WATER_Y + Math.sin(x * 0.035 + waveT * 2.2) * 4;
-      if (x === 0) ctx.moveTo(x, yy);
-      else ctx.lineTo(x, yy);
+    if (s.hazard === "water") {
+      ctx.strokeStyle = "rgba(220, 245, 255, 0.5)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let x = 0; x <= WORLD_W; x += 14) {
+        const yy = hy + Math.sin(x * 0.035 + waveT * 2.2) * 4;
+        if (x === 0) ctx.moveTo(x, yy);
+        else ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
     ctx.drawImage(under, 0, 0);
     ctx.drawImage(terrain, 0, 0);
     walls.forEach((w) => {
@@ -1679,7 +1776,10 @@
     weapon = "stick";
     setWeapon("stick");
     hudTop.classList.add("live");
+    const appEl = $("app");
+    if (appEl) appEl.classList.add("live");
     dock.classList.remove("hidden");
+    tiltDismissed = false;
     camS = 1;
     camX = 0;
     camY = 0;
@@ -1693,6 +1793,7 @@
     beginTurn("lodge");
     showTut();
     hud();
+    syncTilt();
     if (!wasRunning) requestAnimationFrame(loop);
   }
 
@@ -1702,12 +1803,29 @@
     shot = null;
     fuses.length = 0;
     hudTop.classList.remove("live");
+    const appEl = $("app");
+    if (appEl) {
+      appEl.classList.remove("live");
+      appEl.classList.remove("portrait-block");
+    }
     dock.classList.add("hidden");
     if (tipStrip) tipStrip.classList.add("hidden");
+    const tilt = $("tilt-play");
+    if (tilt) tilt.classList.add("hidden");
     endcard.classList.add("hidden");
     shopEl.classList.add("hidden");
     howtoEl.classList.add("hidden");
     splash.classList.remove("hidden");
+  }
+
+  function syncTilt() {
+    const appEl = $("app");
+    const tilt = $("tilt-play");
+    if (!appEl) return;
+    const portrait = window.innerHeight > window.innerWidth + 40;
+    const block = running && portrait && !tiltDismissed && phase !== "splash" && phase !== "end";
+    appEl.classList.toggle("portrait-block", block);
+    if (tilt) tilt.classList.toggle("hidden", !block);
   }
 
   function onPointerDown(ev) {
@@ -1860,6 +1978,15 @@
       el.addEventListener("pointerdown", (e) => e.stopPropagation());
     });
     if (shopEl) shopEl.addEventListener("pointerdown", (e) => e.stopPropagation());
+    const tiltAnyway = $("tilt-anyway");
+    if (tiltAnyway) {
+      tiltAnyway.addEventListener("click", () => {
+        tiltDismissed = true;
+        syncTilt();
+      });
+    }
+    window.addEventListener("resize", syncTilt);
+    window.addEventListener("orientationchange", () => setTimeout(syncTilt, 80));
     $("w-mortar").addEventListener("click", () => {
       if (!setWeapon("mortar")) toast("BUY A CHARGE", true);
     });
@@ -1970,6 +2097,7 @@
       maybeEnd();
     },
     setMap,
+    MAPS,
     openShop,
     shopAllowed,
     setWind(v) {
@@ -2000,9 +2128,15 @@
     loadImage("assets/sprites/mortar.png").then((i) => (img.mortar = i)),
     loadImage("assets/sprites/ice-brace.png").then((i) => (img.ice = i)),
     loadImage("assets/sprites/crate.png").then((i) => (img.crate = i)),
-    loadImage("assets/sprites/stage-sky.jpg").then((i) => (img.sky = i)),
+    loadImage("assets/sprites/stage-sky.jpg").then((i) => (img.skyEarth = i)),
+    loadImage("assets/sprites/sky-mars.jpg").then((i) => (img.skyMars = i)),
+    loadImage("assets/sprites/sky-moon.jpg").then((i) => (img.skyMoon = i)),
+    loadImage("assets/sprites/sky-uranus.jpg").then((i) => (img.skyUranus = i)),
     loadImage("assets/sprites/ledges-ground.png").then((i) => (img.ledges = i)),
     loadImage("assets/sprites/bowl-ground.png").then((i) => (img.bowl = i)),
+    loadImage("assets/sprites/mesa-ground.png").then((i) => (img.mesa = i)),
+    loadImage("assets/sprites/crater-ground.png").then((i) => (img.crater = i)),
+    loadImage("assets/sprites/methane-ground.png").then((i) => (img.methane = i)),
   ])
     .catch((err) => console.error(err))
     .then(() => {

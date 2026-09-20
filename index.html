@@ -40,6 +40,10 @@
         <p>Drag back to aim. Tap a Lodge Bober to switch. Tap the bank to take a short step. Fire when ready.</p>
         <button type="button" id="aim-tut-ok">GOT IT</button>
       </div>
+      <div id="tilt-play" class="hidden">
+        <p>Tilt the phone — full bank</p>
+        <button type="button" id="tilt-anyway">PLAY ANYWAY</button>
+      </div>
     </div>
     <div id="dock" class="hidden">
       <div class="weapons">
@@ -88,6 +92,7 @@
       <h1>BOBER YEET WAR</h1>
       <p class="mission">Aim, power, wind. Dig cover. Last beaver standing.</p>
       <p class="tagline">Fan game by a holder.</p>
+      <p class="reason">Bank fights from the Green Home to deep space.</p>
       <div class="map-pick" id="splash-maps">
         <button type="button" class="map-card on" data-map="bowl">
           <img src="assets/history/lodge-bowl.jpg" alt="" />
@@ -96,6 +101,18 @@
         <button type="button" class="map-card" data-map="ledges">
           <img src="assets/history/twin-ledges.jpg" alt="" />
           <span>Twin Ledges</span>
+        </button>
+        <button type="button" class="map-card" data-map="mesa">
+          <img src="assets/history/red-mesa.jpg" alt="" />
+          <span>Red Mesa</span>
+        </button>
+        <button type="button" class="map-card" data-map="crater">
+          <img src="assets/history/crater-rim.jpg" alt="" />
+          <span>Crater Rim</span>
+        </button>
+        <button type="button" class="map-card" data-map="methane">
+          <img src="assets/history/methane-shelf.jpg" alt="" />
+          <span>Methane Shelf</span>
         </button>
       </div>
       <div class="end-actions">
@@ -115,9 +132,10 @@
       <h2>HOW TO PLAY</h2>
       <div class="howto-body">
         <p>Drag back to set <strong>angle</strong>. Charge <strong>power</strong> 0–100. Read the <strong>wind flag</strong>. Fire.</p>
-        <p>Hits dig the bank and hurt <strong>HP</strong>. Falloff at the blast edge. Creek and void below = out. Last beaver standing wins.</p>
-        <p><strong>Crates</strong> drop every 3 turns. Walk onto one for Dynamite, Sap, Lodge Mortar, Ice Brace, or $BOBER.</p>
-        <p>Pick a map: Lodge Bowl or Twin Ledges. Tap <strong>SHOP</strong> mid-match to buy charges without waiting. Stick and Snowball stay infinite. You cannot buy a win.</p>
+        <p>Hits dig cover and hurt <strong>HP</strong>. Falloff at the blast edge. Creek, dust pit, void, or methane below = out. Last beaver standing wins.</p>
+        <p><strong>Crates</strong> drop every 3 turns. Walk onto one for Dynamite, Sap, Lodge Mortar, Ice Brace, or $BOBER. Tap <strong>SHOP</strong> mid-match to buy charges.</p>
+        <p>Five maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf. Stick and Snowball stay infinite. You cannot buy a win.</p>
+        <p class="howto-tilt">On a phone, <strong>tilt to landscape</strong> so the whole bank fills the screen.</p>
       </div>
       <button class="play" id="howto-close" type="button">GOT IT</button>
     </div>
@@ -181,6 +199,18 @@
           <img src="assets/history/twin-ledges.jpg" alt="" />
           <span>Twin Ledges</span>
         </button>
+        <button type="button" class="map-card" data-map="mesa">
+          <img src="assets/history/red-mesa.jpg" alt="" />
+          <span>Red Mesa</span>
+        </button>
+        <button type="button" class="map-card" data-map="crater">
+          <img src="assets/history/crater-rim.jpg" alt="" />
+          <span>Crater Rim</span>
+        </button>
+        <button type="button" class="map-card" data-map="methane">
+          <img src="assets/history/methane-shelf.jpg" alt="" />
+          <span>Methane Shelf</span>
+        </button>
       </div>
       <div class="end-actions">
         <button class="play" id="end-restart" type="button">REMATCH</button>
@@ -194,14 +224,14 @@
     </div>
     <div id="museum" class="overlay hidden">
       <h2>MUSEUM</h2>
-      <p class="board-sub">Was Yeet. Now the bank. Tap a still.</p>
+      <p class="board-sub">Maps, guns, crates. Tap a still.</p>
       <div id="museum-grid" class="museum-grid"></div>
       <div id="museum-detail" class="museum-detail hidden"></div>
       <button class="play" id="museum-close" type="button">CLOSE</button>
     </div>
     <div id="history" class="overlay hidden">
       <h2>HISTORY</h2>
-      <p class="board-sub">Was Yeet. Now War. Tap a still.</p>
+      <p class="board-sub">Green Home to deep space. Tap a still.</p>
       <div id="history-body" class="history-body"></div>
       <div id="history-detail" class="museum-detail hidden"></div>
       <button class="play" id="history-close" type="button">CLOSE</button>

@@ -5,73 +5,79 @@
       cat: "Bober",
       title: "The beaver",
       img: "assets/sprites/splash-hero.png",
-      blurb: "Square wood head, paddle tail, snow in the fur. Calm on the bank. He used to fly from a sling. Now he aims a stick.",
+      blurb: "Square wood head, paddle tail, snow in the fur. Calm on the bank. He aims a stick across five rooms.",
     },
     {
-      cat: "Was Yeet",
-      title: "Slingshot days",
-      img: "assets/history/was-yeet.jpg",
-      blurb: "This room was Bober Yeet: 100 myth levels, three shots, $BOBER on a board. That climb is history. Play is War now.",
+      cat: "Map",
+      title: "Lodge Bowl",
+      img: "assets/history/lodge-bowl.jpg",
+      blurb: "Green Home snow bowl. Rounded banks, a creek in the saddle. Classic Earth lodge fight.",
     },
     {
-      cat: "War",
-      title: "The bank",
-      img: "assets/history/bank-fight.jpg",
-      blurb: "Turns. Three Lodge, three Creek. Aim, power, wind. Dig cover. Last beaver standing.",
+      cat: "Map",
+      title: "Twin Ledges",
+      img: "assets/history/twin-ledges.jpg",
+      blurb: "Two high banks, a thin ice bridge, water in the ditch. Cut the bridge and the crews are cut off.",
     },
     {
-      cat: "War",
-      title: "Aim and wind",
-      img: "assets/history/aim-wind.jpg",
-      blurb: "Drag back for angle. Charge power. Read the yellow flag. Fire. The creek below is out.",
+      cat: "Map",
+      title: "Red Mesa",
+      img: "assets/history/red-mesa.jpg",
+      blurb: "Mars. Twin red rock tables, a dry dust canyon between them. No ice. Dig the soft dust shelves. Fall in the dust pit and you are out.",
     },
     {
-      cat: "War",
+      cat: "Map",
+      title: "Crater Rim",
+      img: "assets/history/crater-rim.jpg",
+      blurb: "Moon. Wide grey rims, a low crater floor, a void pit in the middle. No bridge. Step in the hole and you are gone.",
+    },
+    {
+      cat: "Map",
+      title: "Methane Shelf",
+      img: "assets/history/methane-shelf.jpg",
+      blurb: "Uranus ice. Left shelf high, right shelf mid. Thin brittle teal. Dark methane below. Miss the shelf and you sink.",
+    },
+    {
+      cat: "Gun",
       title: "Yeet Stick",
       img: "assets/sprites/yeet-stick.png",
       blurb: "Twenty-five sting, blast 28, infinite. The honest lodge tool.",
     },
     {
-      cat: "War",
+      cat: "Gun",
       title: "Snowball",
       img: "assets/sprites/snowball.png",
       blurb: "Fifteen sting, blast 36, infinite. Softer hit, fatter crater.",
     },
     {
-      cat: "War",
+      cat: "Gun",
       title: "Dynamite",
       img: "assets/sprites/dynamite.png",
-      blurb: "Forty-five sting, blast 48, fuse about two seconds. Buy a charge with $BOBER, or find a crate. Not a win button.",
+      blurb: "Forty-five sting, blast 48, fuse about two seconds. Buy a charge with $BOBER, or find a crate.",
     },
     {
-      cat: "War",
+      cat: "Gun",
       title: "Sap Bomb",
       img: "assets/sprites/sap-bomb.png",
       blurb: "Thirty sting, blast 40, sticky two ticks. Lodge sap. Charges only.",
     },
     {
-      cat: "War",
-      title: "Crates",
-      img: "assets/history/crate-gear.jpg",
-      blurb: "Every three turns a crate lands on solid ground. Walk on: Dynamite, Sap, Lodge Mortar, Ice Brace, or $BOBER. Tap SHOP mid-match to buy extra charges.",
-    },
-    {
-      cat: "War",
-      title: "Twin Ledges",
-      img: "assets/history/twin-ledges.jpg",
-      blurb: "Two high banks, a thin ice bridge, water in the ditch. Cut the bridge and the crews are cut off. Lodge Bowl is the other room.",
-    },
-    {
-      cat: "War",
+      cat: "Gun",
       title: "Lodge Mortar",
       img: "assets/sprites/mortar.png",
       blurb: "Thirty-eight sting, blast 42, a high lob. One charge. Soft preview. Not a win button.",
     },
     {
-      cat: "War",
+      cat: "Gun",
       title: "Ice Brace",
       img: "assets/sprites/ice-brace.png",
       blurb: "No sting. A wall of ice, sixty HP, two turns, then melt. Blocks shots and a short step.",
+    },
+    {
+      cat: "Gear",
+      title: "Crates and shop",
+      img: "assets/history/crate-gear.jpg",
+      blurb: "Every three turns a crate lands on solid ground. Tap SHOP mid-match to buy Dynamite, Sap, Lodge Mortar, or Ice Brace with $BOBER.",
     },
   ];
 
@@ -79,8 +85,9 @@
     CARDS[1],
     CARDS[2],
     CARDS[3],
-    CARDS[8],
-    CARDS[9],
+    CARDS[4],
+    CARDS[5],
+    CARDS[12],
   ];
 
   function $(id) {
@@ -167,7 +174,7 @@
       body.classList.remove("hidden");
       if (!body.dataset.ready) {
         body.innerHTML =
-          '<p class="hist-cap">The Green Home myth line. This room was Yeet. Play is War. Tap a still.</p>' +
+          '<p class="hist-cap">Bank fights from the Green Home to deep space. Tap a still.</p>' +
           '<div class="museum-grid hist-stills">' +
           STILLS.map((c, i) => cardHtml(c, i, "h")).join("") +
           "</div>";
