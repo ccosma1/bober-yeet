@@ -26,6 +26,8 @@
   const MAP_KEY = "bober-yeet-war-map";
   const GRANT_KEY = "bober-yeet-war-p2grant";
   const PAID = ["dynamite", "sap", "mortar", "ice"];
+  const LEDGES_PAD = 140;
+  const BOWL_PAD = 220;
 
   const WEAPONS = {
     stick: { id: "stick", name: "Yeet Stick", dmg: 25, blast: 28, r: 7, inf: true },
@@ -354,12 +356,7 @@
     ctx.stroke();
   }
 
-  function makeTerrain() {
-    tctx.clearRect(0, 0, WORLD_W, WORLD_H);
-    tctx.imageSmoothingEnabled = true;
-    tctx.imageSmoothingQuality = "high";
-    tctx.lineJoin = "round";
-    tctx.lineCap = "round";
+  function paintMoundFallback() {
     let left;
     let right;
     if (mapId === "ledges") {
@@ -416,8 +413,23 @@
     snowCap(tctx, left);
     snowCap(tctx, right);
     if (mapId === "ledges") drawIceBridge(tctx);
+  }
+
+  function makeTerrain() {
+    tctx.clearRect(0, 0, WORLD_W, WORLD_H);
+    tctx.imageSmoothingEnabled = true;
+    tctx.imageSmoothingQuality = "high";
+    tctx.lineJoin = "round";
+    tctx.lineCap = "round";
+    const plate = mapId === "ledges" ? img.ledges : img.bowl;
+    const pad = mapId === "ledges" ? LEDGES_PAD : BOWL_PAD;
+    if (plate && plate.width) {
+      tctx.drawImage(plate, 0, pad);
+    } else {
+      paintMoundFallback();
+    }
     uctx.clearRect(0, 0, WORLD_W, WORLD_H);
-    uctx.fillStyle = "#1a1028";
+    uctx.fillStyle = "#4a2810";
     uctx.fillRect(0, 0, WORLD_W, WORLD_H);
     uctx.globalCompositeOperation = "destination-in";
     uctx.drawImage(terrain, 0, 0);
@@ -1420,6 +1432,23 @@
       ctx.fillStyle = "#3A2A6A";
       ctx.fillRect(0, 0, WORLD_W, WORLD_H);
     }
+    const waterTop = mapId === "ledges" ? 500 : 430;
+    const wg = ctx.createLinearGradient(0, waterTop, 0, WORLD_H);
+    wg.addColorStop(0, "rgba(70, 140, 170, 0.55)");
+    wg.addColorStop(0.18, "rgba(28, 90, 120, 0.82)");
+    wg.addColorStop(0.55, "rgba(14, 52, 74, 0.92)");
+    wg.addColorStop(1, "rgba(6, 24, 38, 0.97)");
+    ctx.fillStyle = wg;
+    ctx.fillRect(0, waterTop, WORLD_W, WORLD_H - waterTop);
+    ctx.strokeStyle = "rgba(220, 245, 255, 0.5)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let x = 0; x <= WORLD_W; x += 14) {
+      const yy = WATER_Y + Math.sin(x * 0.035 + waveT * 2.2) * 4;
+      if (x === 0) ctx.moveTo(x, yy);
+      else ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
     ctx.drawImage(under, 0, 0);
     ctx.drawImage(terrain, 0, 0);
     walls.forEach((w) => {
@@ -1433,23 +1462,6 @@
       ctx.fillStyle = "#a8d8ff";
       ctx.fillRect(w.x, w.y - 7, w.w * clamp(w.hp / 60, 0, 1), 5);
     });
-
-    const wg = ctx.createLinearGradient(0, WATER_Y - 8, 0, WORLD_H);
-    wg.addColorStop(0, "rgba(120, 190, 210, 0.35)");
-    wg.addColorStop(0.12, "rgba(40, 110, 130, 0.72)");
-    wg.addColorStop(0.55, "rgba(18, 60, 82, 0.88)");
-    wg.addColorStop(1, "rgba(8, 28, 42, 0.96)");
-    ctx.fillStyle = wg;
-    ctx.fillRect(0, WATER_Y - 6, WORLD_W, WORLD_H - WATER_Y + 6);
-    ctx.strokeStyle = "rgba(220, 245, 255, 0.55)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    for (let x = 0; x <= WORLD_W; x += 14) {
-      const yy = WATER_Y + Math.sin(x * 0.035 + waveT * 2.2) * 4;
-      if (x === 0) ctx.moveTo(x, yy);
-      else ctx.lineTo(x, yy);
-    }
-    ctx.stroke();
 
     crates.forEach((c) => {
       const spr = img.crate;
@@ -1593,11 +1605,15 @@
     } else splash.classList.remove("hidden");
   }
 
+  function shopAllowed() {
+    return phase === "aim" || phase === "settle" || phase === "cpu";
+  }
+
   function openShop(from) {
     shopFrom = from || "splash";
     if (from === "match") {
-      if (phase !== "aim" || turn !== "lodge") {
-        toast("WAIT YOUR TURN", true);
+      if (!shopAllowed()) {
+        toast("WAIT", true);
         return;
       }
       shopOpen = true;
@@ -1830,8 +1846,20 @@
     if (howClose) howClose.addEventListener("click", closeHowTo);
     const btnGear = $("btn-gear");
     if (btnGear) btnGear.addEventListener("click", () => openShop("splash"));
-    const btnShop = $("btn-shop");
-    if (btnShop) btnShop.addEventListener("click", () => openShop("match"));
+    const onShopMatch = (ev) => {
+      if (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+      openShop("match");
+    };
+    ["btn-shop", "btn-shop-dock", "coin-chip"].forEach((id) => {
+      const el = $(id);
+      if (!el) return;
+      el.addEventListener("click", onShopMatch);
+      el.addEventListener("pointerdown", (e) => e.stopPropagation());
+    });
+    if (shopEl) shopEl.addEventListener("pointerdown", (e) => e.stopPropagation());
     $("w-mortar").addEventListener("click", () => {
       if (!setWeapon("mortar")) toast("BUY A CHARGE", true);
     });
@@ -1942,6 +1970,8 @@
       maybeEnd();
     },
     setMap,
+    openShop,
+    shopAllowed,
     setWind(v) {
       wind = clamp(v | 0, -4, 4);
       hud();
@@ -1970,7 +2000,9 @@
     loadImage("assets/sprites/mortar.png").then((i) => (img.mortar = i)),
     loadImage("assets/sprites/ice-brace.png").then((i) => (img.ice = i)),
     loadImage("assets/sprites/crate.png").then((i) => (img.crate = i)),
-    loadImage("assets/sprites/bank-sky.jpg").then((i) => (img.sky = i)),
+    loadImage("assets/sprites/stage-sky.jpg").then((i) => (img.sky = i)),
+    loadImage("assets/sprites/ledges-ground.png").then((i) => (img.ledges = i)),
+    loadImage("assets/sprites/bowl-ground.png").then((i) => (img.bowl = i)),
   ])
     .catch((err) => console.error(err))
     .then(() => {

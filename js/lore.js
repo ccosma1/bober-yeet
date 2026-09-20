@@ -53,7 +53,7 @@
       cat: "War",
       title: "Crates",
       img: "assets/history/crate-gear.jpg",
-      blurb: "Every three turns a crate lands on solid ground. Walk on: Dynamite, Sap, Lodge Mortar, Ice Brace, or $BOBER. Between matches, spend coins on extra charges.",
+      blurb: "Every three turns a crate lands on solid ground. Walk on: Dynamite, Sap, Lodge Mortar, Ice Brace, or $BOBER. Tap SHOP mid-match to buy extra charges.",
     },
     {
       cat: "War",

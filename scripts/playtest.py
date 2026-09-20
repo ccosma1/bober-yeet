@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war2"
+URL = "http://127.0.0.1:8765/?v=war2c"
 
 
 def shot(page, name):
@@ -130,25 +130,34 @@ def main():
             if b["alive"]:
                 assert b["y"] > 300
         shot(page, "test-match.png")
+        assert page.locator("#btn-shop").inner_text() == "SHOP"
+        assert page.locator("#btn-shop-dock").inner_text() == "SHOP"
         page.click("#btn-shop")
         page.wait_for_timeout(200)
         assert "hidden" not in (page.locator("#shop").get_attribute("class") or "")
         assert "BACK TO FIGHT" in page.locator("#shop-play").inner_text()
         page.evaluate("() => window.__yeetWar.setCoins(200)")
-        page.click("#buy-dynamite")
+        page.click("#buy-mortar")
+        page.wait_for_timeout(80)
+        s = snap(page)
+        assert s["ammo"]["lodge"]["mortar"] >= 1
+        assert s["phase"] == "aim"
+        shot(page, "test-midshop.png")
         page.click("#shop-play")
         wait_phase(page, "aim", timeout=5000)
         s = snap(page)
         assert s["phase"] == "aim"
-        assert s["ammo"]["lodge"]["dynamite"] >= 1
-        page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('dynamite'); w.setAim(18, 40); w.fire(); }")
+        assert s["ammo"]["lodge"]["mortar"] >= 1
+        page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('mortar'); w.setAim(-42, 62); w.fire(); }")
+        page.wait_for_timeout(420)
+        shot(page, "test-mortar.png")
         page.wait_for_function(
-            "() => window.__yeetWar.lastBlast && window.__yeetWar.lastBlast.weapon === 'dynamite'",
+            "() => window.__yeetWar.lastBlast && window.__yeetWar.lastBlast.weapon === 'mortar'",
             timeout=8000,
         )
         s = snap(page)
-        print("MIDSHOP", s["lastBlast"], "ammo", s["ammo"]["lodge"])
-        shot(page, "test-midshop.png")
+        print("MIDSHOP MORTAR", s["lastBlast"], "ammo", s["ammo"]["lodge"])
+        assert s["lastBlast"]["dmg"] == 38
         wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
         if snap(page)["phase"] == "cpu":
             wait_phase(page, ["aim", "end"], timeout=20000)
@@ -266,37 +275,17 @@ def main():
         page.evaluate(
             """() => {
               const w = window.__yeetWar;
-              w.setWeapon('mortar');
-              w.setAim(-42, 62);
+              w.giveAmmo('lodge', 'ice', 1);
+              w.setWeapon('ice');
+              w.setAim(10, 40);
               w.fire();
             }"""
         )
-        page.wait_for_function(
-            "() => window.__yeetWar.lastBlast && window.__yeetWar.lastBlast.weapon === 'mortar'",
-            timeout=8000,
-        )
+        page.wait_for_function("() => window.__yeetWar.snapshot().walls.length > 0", timeout=8000)
         s = snap(page)
-        print("MORTAR", s["lastBlast"])
-        assert s["lastBlast"]["dmg"] == 38
-        shot(page, "test-mortar.png")
-        wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
-        if snap(page)["phase"] == "cpu":
-            wait_phase(page, ["aim", "end"], timeout=20000)
-        if snap(page)["phase"] == "aim":
-            page.evaluate(
-                """() => {
-                  const w = window.__yeetWar;
-                  w.giveAmmo('lodge', 'ice', 1);
-                  w.setWeapon('ice');
-                  w.setAim(10, 40);
-                  w.fire();
-                }"""
-            )
-            page.wait_for_function("() => window.__yeetWar.snapshot().walls.length > 0", timeout=8000)
-            s = snap(page)
-            print("ICE", s["walls"])
-            assert s["walls"][0]["hp"] == 60
-            shot(page, "test-ice.png")
+        print("ICE", s["walls"])
+        assert s["walls"][0]["hp"] == 60
+        shot(page, "test-ice.png")
         page.evaluate("() => window.__yeetWar.spawnCrate('mortar', 80)")
         page.wait_for_timeout(80)
         assert any(c["kind"] == "mortar" for c in snap(page)["crates"])
@@ -319,6 +308,22 @@ def main():
         print("PHONE CAM", view, "lodge", lodge_on, "creek", creek_on)
         assert lodge_on and creek_on
         shot(page, "test-match-mobile.png")
+        shop_box = page.locator("#btn-shop-dock").bounding_box()
+        print("PHONE SHOP", shop_box)
+        assert shop_box and shop_box["height"] >= 44
+        page.click("#btn-shop-dock")
+        page.wait_for_timeout(250)
+        assert "hidden" not in (page.locator("#shop").get_attribute("class") or "")
+        page.evaluate("() => window.__yeetWar.setCoins(200)")
+        page.click("#buy-mortar")
+        page.wait_for_timeout(80)
+        s = snap(page)
+        print("PHONE BUY", s["ammo"]["lodge"], s["phase"])
+        assert s["ammo"]["lodge"]["mortar"] >= 1
+        assert s["phase"] == "aim"
+        shot(page, "test-midshop-mobile.png")
+        page.click("#shop-play")
+        wait_phase(page, "aim", timeout=5000)
         page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('stick'); w.setAim(-50, 70); w.fire(); }")
         page.wait_for_timeout(800)
         page.evaluate("() => window.__yeetWar.killTeam('creek')")

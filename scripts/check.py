@@ -90,9 +90,18 @@ def main() -> int:
     must(game, "creek: [940, 1040, 1140]", "game.js")
     must(game, "lodge: [140, 230, 320]", "game.js")
     must(game, 'openShop("match")', "game.js")
+    must(game, "function shopAllowed(", "game.js")
+    must(game, "const LEDGES_PAD = 140", "game.js")
+    must(game, "const BOWL_PAD = 220", "game.js")
+    must(game, "ledges-ground.png", "game.js")
+    must(game, "bowl-ground.png", "game.js")
+    must(game, "stage-sky.jpg", "game.js")
     must(html, 'id="btn-shop"', "index.html")
+    must(html, 'id="btn-shop-dock"', "index.html")
+    must(html, ">SHOP<", "index.html")
     must(game, "function fillMound(", "game.js")
     must(game, "function drawIceBridge(", "game.js")
+    must(game, "function paintMoundFallback(", "game.js")
     must(game, "carve(", "game.js")
     must(game, "b.airborne = false", "game.js")
     must(game, "flying ? img.fly : img.idle", "game.js")
@@ -139,6 +148,10 @@ def main() -> int:
         "assets/history/aim-wind.jpg",
         "assets/history/crate-gear.jpg",
         "assets/history/twin-ledges.jpg",
+        "assets/history/lodge-bowl.jpg",
+        "assets/sprites/ledges-ground.png",
+        "assets/sprites/bowl-ground.png",
+        "assets/sprites/stage-sky.jpg",
         "assets/icons/bober-yeet-war.ico",
     ):
         if not (ROOT / rel).exists():
