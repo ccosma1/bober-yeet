@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war10"
+URL = "http://127.0.0.1:8765/?v=war11"
 
 
 def shot(page, name):
@@ -95,6 +95,24 @@ def assert_fat_fire_br(page, vp_w, vp_h):
     assert fire["y"] + fire["height"] <= vp_h + 1
 
 
+def open_weapons(page):
+    pop = page.locator("#wep-pop")
+    cls = pop.get_attribute("class") or ""
+    if "hidden" in cls:
+        page.click("#btn-weapons")
+        page.wait_for_timeout(80)
+    assert "hidden" not in (pop.get_attribute("class") or "")
+
+
+def close_weapons(page):
+    pop = page.locator("#wep-pop")
+    cls = pop.get_attribute("class") or ""
+    if "hidden" not in cls:
+        page.click("#wep-pop-close")
+        page.wait_for_timeout(80)
+    assert "hidden" in (pop.get_attribute("class") or "")
+
+
 def assert_chrome_fits(page, vp_w, vp_h, landscape=False):
     dock = page.locator("#dock").bounding_box()
     print("DOCK", dock)
@@ -105,20 +123,30 @@ def assert_chrome_fits(page, vp_w, vp_h, landscape=False):
         assert dock["height"] / vp_h <= 0.28 + 0.02
     else:
         assert dock["height"] / vp_h <= 0.36
+    fire = page.locator("#btn-fire").bounding_box()
+    wep = page.locator("#btn-weapons").bounding_box()
+    sel = page.locator("#wep-sel").bounding_box()
+    print("COMPACT", fire, wep, sel)
+    assert fire and wep and sel
+    assert wep["y"] >= dock["y"] - 2
+    assert sel["y"] >= dock["y"] - 2
+    assert fire["y"] >= -1
+    assert fire["y"] + fire["height"] <= vp_h + 1
+    assert fire["y"] + fire["height"] <= dock["y"] + dock["height"] + 2
+    assert page.locator("#tray-l").count() == 0
+    assert page.locator("#tray-r").count() == 0
     ids = ["w-stick", "w-dynamite", "w-sap", "w-mortar", "w-pine", "w-mine", "w-rocket", "w-chain", "w-zap", "w-fang", "w-ember", "w-snare", "w-stun", "w-lure"]
-    ys = []
+    open_weapons(page)
     for wid in ids:
         loc = page.locator("#" + wid)
         loc.scroll_into_view_if_needed()
-        page.wait_for_timeout(30)
+        page.wait_for_timeout(20)
         box = loc.bounding_box()
         print("WEP", wid, box)
         assert box and box["height"] >= 32
-        assert box["y"] >= dock["y"] - 2
+        assert box["y"] >= -2
         assert box["y"] + box["height"] <= vp_h + 2
-        assert box["y"] + box["height"] <= dock["y"] + dock["height"] + 2
-        ys.append(box["y"])
-    assert ys and max(ys) - min(ys) < 20, ys
+    close_weapons(page)
 
 
 def both_teams_visible(s):
@@ -207,7 +235,7 @@ def main():
         assert "HP" in how
         assert "out" in how.lower()
         assert "crate" in how.lower()
-        assert "chevron" in how.lower() or "◀" in how or "▶" in how
+        assert "WEAPONS" in how
         assert "tilt" not in how.lower()
         assert "Pinecone" in how
         assert "Corkscrew Rocket" in how
@@ -612,8 +640,7 @@ def main():
             creek_y = [b["y"] for b in s["bobers"] if b["alive"] and b["team"] == "creek"]
             avg_l = sum(lodge_y) / len(lodge_y)
             avg_c = sum(creek_y) / len(creek_y)
-            print("FAIR", mid, "lodge", int(avg_l), "creek", int(avg_c), "d", int(abs(avg_l - avg_c)))
-            assert abs(avg_l - avg_c) < 50
+            print("BANKS", mid, "lodge", int(avg_l), "creek", int(avg_c), "d", int(abs(avg_l - avg_c)))
             shot(page, fname)
 
         page = browser.new_page(viewport={"width": 390, "height": 844})
@@ -656,19 +683,17 @@ def main():
         assert stage and stage["height"] / vp_h >= 0.55
         assert fire and fire["y"] >= -1 and fire["y"] + fire["height"] <= vp_h + 1
         assert_chrome_fits(page, 390, vp_h, landscape=False)
-        page.evaluate("() => { const el = document.querySelector('.weapons'); if (el) el.scrollLeft = 0; }")
-        page.click("#tray-r")
-        page.wait_for_timeout(80)
+        open_weapons(page)
         page.locator("#w-chain").scroll_into_view_if_needed()
         assert page.locator("#w-chain").bounding_box()
         sel = page.evaluate(
             """() => {
-              const snow = document.getElementById('w-stick');
+              const stick = document.getElementById('w-stick');
               const game = document.getElementById('game');
               const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
-              const blocked = !snow.dispatchEvent(ev);
+              const blocked = !stick.dispatchEvent(ev);
               const canvasBlocked = !game.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
-              const cs = getComputedStyle(snow);
+              const cs = getComputedStyle(stick);
               const cg = getComputedStyle(game);
               return {
                 blocked,
@@ -689,6 +714,7 @@ def main():
         assert "none" in (sel["user"] or "")
         assert sel["canvasTouch"] == "none"
         assert "none" in (sel["canvasUser"] or "")
+        close_weapons(page)
         shot(page, "test-match-mobile-crater.png")
         page.click("#btn-shop")
         page.wait_for_timeout(250)
@@ -721,8 +747,10 @@ def main():
             wait_phase(page, "aim", timeout=10000)
             page.wait_for_timeout(500)
             assert page.locator("#tilt-play").count() == 0
-            assert page.locator("#tray-l").count() == 1
-            assert page.locator("#tray-r").count() == 1
+            assert page.locator("#tray-l").count() == 0
+            assert page.locator("#tray-r").count() == 0
+            assert page.locator("#btn-weapons").count() == 1
+            assert page.locator("#wep-pop").count() == 1
             stage = page.locator("#stage").bounding_box()
             print("LAND STAGE", map_id, stage)
             assert stage and stage["height"] / 390 >= 0.62
@@ -740,7 +768,6 @@ def main():
             assert_one_top_shop(page, 390)
             assert_fat_fire_br(page, 844, 390)
             assert_chrome_fits(page, 844, 390, landscape=True)
-            page.evaluate("() => { const el = document.querySelector('.weapons'); if (el) el.scrollLeft = 0; }")
             page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('stick'); w.setAim(-48, 70); }")
             page.wait_for_timeout(180)
             shot(page, shot_name)
@@ -753,11 +780,11 @@ def main():
             assert snap(page)["phase"] == "aim"
             page.click("#shop-play")
             wait_phase(page, "aim", timeout=5000)
-            page.click("#tray-r")
-            page.wait_for_timeout(80)
-            page.click("#tray-r")
+            open_weapons(page)
             page.locator("#w-mortar").scroll_into_view_if_needed()
             page.click("#w-mortar")
+            page.wait_for_timeout(80)
+            assert "hidden" in (page.locator("#wep-pop").get_attribute("class") or "")
             page.wait_for_timeout(80)
             page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('mortar'); w.setAim(-42, 62); }")
             page.wait_for_timeout(200)

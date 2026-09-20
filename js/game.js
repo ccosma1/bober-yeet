@@ -65,6 +65,23 @@
     lure: { id: "lure", name: "Grav Lure", dmg: 10, blast: 24, r: 8, cost: LURE_COST, pull: 2, pullRange: 220 },
   };
 
+  const WEP_SRC = {
+    stick: "assets/sprites/yeet-stick.png",
+    dynamite: "assets/sprites/dynamite.png",
+    sap: "assets/sprites/sap-bomb.png",
+    mortar: "assets/sprites/mortar.png",
+    pine: "assets/sprites/pinecone.png",
+    mine: "assets/sprites/woodchip-mine.png",
+    rocket: "assets/sprites/corkscrew-rocket.png",
+    chain: "assets/sprites/lodge-chaingun.png",
+    zap: "assets/sprites/arc-zap.png",
+    fang: "assets/sprites/ricochet-fang.png",
+    ember: "assets/sprites/ember-cascade.png",
+    snare: "assets/sprites/sap-snare.png",
+    stun: "assets/sprites/stun-cone.png",
+    lure: "assets/sprites/grav-lure.png",
+  };
+
   const MAPS = {
     bowl: {
       id: "bowl",
@@ -130,7 +147,7 @@
     methane: {
       id: "methane",
       name: "Methane Shelf",
-      spawn: { lodge: [140, 230, 320], creek: [960, 1050, 1140] },
+      spawn: { lodge: [140, 230, 320], creek: [980, 1080, 1180] },
       pad: 130,
       plate: "methane",
       sky: "skyUranus",
@@ -145,7 +162,7 @@
     acid: {
       id: "acid",
       name: "Acid Vents",
-      spawn: { lodge: [120, 200, 320], creek: [960, 1080, 1160] },
+      spawn: { lodge: [120, 200, 320], creek: [960, 1100, 1200] },
       pad: 80,
       plate: "acid",
       sky: "skyVenus",
@@ -160,7 +177,7 @@
     ring: {
       id: "ring",
       name: "Ring Span",
-      spawn: { lodge: [100, 180, 260], creek: [1020, 1100, 1180] },
+      spawn: { lodge: [80, 160, 240], creek: [1000, 1100, 1180] },
       pad: 70,
       plate: "ring",
       sky: "skySaturn",
@@ -175,7 +192,7 @@
     pack: {
       id: "pack",
       name: "Deep Pack",
-      spawn: { lodge: [100, 180, 280], creek: [1000, 1100, 1180] },
+      spawn: { lodge: [80, 160, 280], creek: [960, 1100, 1200] },
       pad: 90,
       plate: "pack",
       sky: "skyNeptune",
@@ -190,7 +207,7 @@
     frost: {
       id: "frost",
       name: "Frost Pit",
-      spawn: { lodge: [100, 180, 260], creek: [1020, 1100, 1180] },
+      spawn: { lodge: [80, 160, 240], creek: [1000, 1100, 1200] },
       pad: 40,
       plate: "frost",
       sky: "skyPluto",
@@ -205,7 +222,7 @@
     dock: {
       id: "dock",
       name: "Dock Notch",
-      spawn: { lodge: [160, 220, 280], creek: [1000, 1060, 1120] },
+      spawn: { lodge: [160, 220, 280], creek: [980, 1080, 1160] },
       pad: 40,
       plate: "dock",
       sky: "skyAsteroid",
@@ -754,91 +771,6 @@
     uctx.drawImage(terrain, 0, 0);
     uctx.globalCompositeOperation = "source-over";
     rebuildMask();
-    fairPads();
-  }
-
-  function sampleBank(x, y) {
-    for (let dy = 0; dy < 56; dy++) {
-      const px = tctx.getImageData(clamp(x | 0, 0, WORLD_W - 1), clamp((y + dy) | 0, 0, WORLD_H - 1), 1, 1).data;
-      const r = px[0];
-      const g = px[1];
-      const b = px[2];
-      if (px[3] < 200) continue;
-      if (r + g + b < 160) continue;
-      if (r > 140 && b > 70 && g < r - 20 && b > g) continue;
-      return [r, g, b];
-    }
-    const fb = {
-      bowl: [176, 138, 92],
-      ledges: [176, 138, 92],
-      mesa: [176, 96, 58],
-      crater: [150, 148, 152],
-      methane: [110, 176, 170],
-      acid: [176, 160, 72],
-      ring: [198, 176, 112],
-      pack: [86, 140, 188],
-      frost: [210, 218, 228],
-      dock: [118, 112, 122],
-    };
-    return fb[spec().id] || [160, 118, 78];
-  }
-
-  function stampPad(x, topY, srcX) {
-    const hw = 46;
-    const depth = 38;
-    const col = {
-      bowl: [176, 138, 92],
-      ledges: [176, 138, 92],
-      mesa: [176, 96, 58],
-      crater: [150, 148, 152],
-      methane: [110, 176, 170],
-      acid: [176, 160, 72],
-      ring: [198, 176, 112],
-      pack: [86, 140, 188],
-      frost: [210, 218, 228],
-      dock: [118, 112, 122],
-    }[spec().id] || [160, 118, 78];
-    const r = col[0];
-    const g = col[1];
-    const b = col[2];
-    tctx.save();
-    tctx.beginPath();
-    tctx.moveTo(x - hw, topY + depth);
-    tctx.quadraticCurveTo(x - hw + 8, topY + 2, x, topY);
-    tctx.quadraticCurveTo(x + hw - 8, topY + 2, x + hw, topY + depth);
-    tctx.closePath();
-    tctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
-    tctx.fill();
-    tctx.fillStyle = "rgba(255,255,255,0.16)";
-    tctx.fillRect(x - hw + 10, topY, (hw - 10) * 2, 5);
-    tctx.strokeStyle = "rgba(20,10,8,0.35)";
-    tctx.lineWidth = 2;
-    tctx.stroke();
-    tctx.restore();
-  }
-
-  function scanFairX(x0, targetY) {
-    for (let d = 0; d <= 120; d += 4) {
-      for (let k = 0; k < 2; k++) {
-        const x = clamp(x0 + (k ? d : -d), 24, WORLD_W - 24);
-        if (Math.abs(surfaceY(x) - targetY) <= 12) return x;
-      }
-    }
-    return x0;
-  }
-
-  function fairPads() {
-    const s = spec();
-    const lx = s.spawn.lodge;
-    const rx = s.spawn.creek;
-    for (let i = 0; i < Math.min(lx.length, rx.length); i++) {
-      const yL = surfaceY(lx[i]);
-      const yC = surfaceY(rx[i]);
-      const fair = Math.min(yL, yC);
-      if (yL - fair > 8) stampPad(lx[i], fair, rx[i]);
-      if (yC - fair > 8) stampPad(rx[i], fair, lx[i]);
-    }
-    rebuildMask();
   }
 
   function surfaceY(x) {
@@ -964,6 +896,33 @@
     return (ammo[team] && ammo[team][id]) || 0;
   }
 
+  function wepPopOpen() {
+    const el = $("wep-pop");
+    return !!(el && !el.classList.contains("hidden"));
+  }
+
+  function openWepPop() {
+    const el = $("wep-pop");
+    if (el) el.classList.remove("hidden");
+  }
+
+  function closeWepPop() {
+    const el = $("wep-pop");
+    if (el) el.classList.add("hidden");
+  }
+
+  function syncWepSel(id) {
+    const wpn = WEAPONS[id] || WEAPONS.stick;
+    const nameEl = $("wep-sel-name");
+    if (nameEl) nameEl.textContent = wpn.name;
+    const imgEl = $("wep-sel-img");
+    if (imgEl) imgEl.src = WEP_SRC[id] || WEP_SRC.stick;
+    const chip = $("wep-chip");
+    if (chip) chip.textContent = wpn.name.toUpperCase();
+    const now = $("wep-now");
+    if (now) now.textContent = wpn.name;
+  }
+
   function setWeapon(id) {
     if (!WEAPONS[id]) return false;
     if (!WEAPONS[id].inf && teamAmmo(turn, id) <= 0) return false;
@@ -972,11 +931,8 @@
       const el = $("w-" + w);
       if (el) el.classList.toggle("on", w === id);
     });
-    const nm = WEAPONS[id].name;
-    const chip = $("wep-chip");
-    if (chip) chip.textContent = nm.toUpperCase();
-    const now = $("wep-now");
-    if (now) now.textContent = nm;
+    syncWepSel(id);
+    closeWepPop();
     if (isGuest() && canControl()) netSend({ t: "in", k: "weapon", id });
     return true;
   }
@@ -1031,14 +987,9 @@
       storyStrip.textContent = spec().story || "";
       storyStrip.classList.toggle("hidden", storyT <= 0);
     }
-    const nm = (WEAPONS[weapon] || WEAPONS.stick).name;
-    const chip = $("wep-chip");
-    if (chip) chip.textContent = nm.toUpperCase();
-    const now = $("wep-now");
-    if (now) now.textContent = nm;
+    syncWepSel(weapon);
     hudAim();
     hudShop();
-    syncTrayChevs();
   }
 
   function hudShop() {
@@ -3148,6 +3099,7 @@
 
   function openHowTo(from) {
     howtoFrom = from || "splash";
+    closeWepPop();
     howtoEl.classList.remove("hidden");
   }
 
@@ -3167,6 +3119,7 @@
 
   function openShop(from) {
     shopFrom = from || "splash";
+    closeWepPop();
     if (from === "match") {
       if (!shopAllowed()) {
         toast("WAIT", true);
@@ -3228,6 +3181,7 @@
     endcard.classList.add("hidden");
     shopEl.classList.add("hidden");
     howtoEl.classList.add("hidden");
+    closeWepPop();
     if (window.BoberLore) BoberLore.close();
     makeTerrain();
     spawnCrew();
@@ -3316,6 +3270,7 @@
     endcard.classList.add("hidden");
     shopEl.classList.add("hidden");
     howtoEl.classList.add("hidden");
+    closeWepPop();
     splash.classList.remove("hidden");
     const drop = $("net-drop");
     if (drop) drop.classList.add("hidden");
@@ -3329,24 +3284,6 @@
     const portrait = window.innerHeight > window.innerWidth + 40;
     if (lastPortrait !== null && lastPortrait !== portrait) camInit = false;
     lastPortrait = portrait;
-    syncTrayChevs();
-  }
-
-  function syncTrayChevs() {
-    const el = $("weapons");
-    const l = $("tray-l");
-    const r = $("tray-r");
-    if (!el || !l || !r) return;
-    const max = Math.max(0, el.scrollWidth - el.clientWidth);
-    l.disabled = el.scrollLeft <= 4;
-    r.disabled = el.scrollLeft >= max - 4;
-  }
-
-  function scrollTray(dir) {
-    const el = $("weapons");
-    if (!el) return;
-    el.scrollBy({ left: dir * Math.max(96, el.clientWidth * 0.55), behavior: "smooth" });
-    setTimeout(syncTrayChevs, 180);
   }
 
   function onPointerDown(ev) {
@@ -3785,12 +3722,18 @@
     if (shopEl) shopEl.addEventListener("pointerdown", (e) => e.stopPropagation());
     window.addEventListener("resize", syncOrient);
     window.addEventListener("orientationchange", () => setTimeout(syncOrient, 80));
-    const wepsEl = $("weapons");
-    if (wepsEl) wepsEl.addEventListener("scroll", syncTrayChevs);
-    const trayL = $("tray-l");
-    const trayR = $("tray-r");
-    if (trayL) trayL.addEventListener("click", () => scrollTray(-1));
-    if (trayR) trayR.addEventListener("click", () => scrollTray(1));
+    const btnWeps = $("btn-weapons");
+    if (btnWeps) btnWeps.addEventListener("click", openWepPop);
+    const wepSel = $("wep-sel");
+    if (wepSel) wepSel.addEventListener("click", openWepPop);
+    const wepClose = $("wep-pop-close");
+    if (wepClose) wepClose.addEventListener("click", closeWepPop);
+    const wepPop = $("wep-pop");
+    if (wepPop) {
+      wepPop.addEventListener("click", (e) => {
+        if (e.target === wepPop) closeWepPop();
+      });
+    }
     $("w-mortar").addEventListener("click", () => {
       if (!setWeapon("mortar")) toast("BUY A CHARGE", true);
     });
@@ -3934,12 +3877,17 @@
     canvas.addEventListener("pointerup", onPointerUp);
     canvas.addEventListener("pointercancel", onPointerUp);
     const blockSel = (e) => e.preventDefault();
-    [canvas, $("stage"), $("dock"), $("hud-top")].forEach((el) => {
+    [canvas, $("stage"), $("dock"), $("hud-top"), $("wep-pop"), $("weapons"), $("wep-sel")].forEach((el) => {
       if (!el) return;
       el.addEventListener("contextmenu", blockSel);
       el.addEventListener("selectstart", blockSel);
       el.addEventListener("dragstart", blockSel);
       el.addEventListener("gesturestart", blockSel);
+    });
+    document.querySelectorAll(".wep").forEach((el) => {
+      el.addEventListener("contextmenu", blockSel);
+      el.addEventListener("selectstart", blockSel);
+      el.addEventListener("dragstart", blockSel);
     });
     document.addEventListener("selectstart", (e) => {
       const t = e.target;
@@ -3947,6 +3895,16 @@
       if (phase !== "splash" || (hudTop && hudTop.classList.contains("live"))) e.preventDefault();
     });
     window.addEventListener("keydown", (ev) => {
+      if (wepPopOpen()) {
+        if (ev.key === "Escape") {
+          closeWepPop();
+          return;
+        }
+        if (ev.key === " " || ev.key === "Enter") {
+          ev.preventDefault();
+          return;
+        }
+      }
       if (phase === "splash" && (ev.key === "Enter" || ev.key === " ")) {
         startMatch();
         return;

@@ -45,69 +45,13 @@
       </div>
     </div>
     <div id="dock" class="hidden">
-      <div class="tray">
-        <button type="button" class="tray-chev" id="tray-l" aria-label="Scroll weapons left">◀</button>
-        <div class="weapons" id="weapons">
-          <button type="button" class="wep on" id="w-stick" data-w="stick">
-            <img src="assets/sprites/yeet-stick.png" alt="" />
-            <span>Yeet Stick <small>INF</small></span>
-          </button>
-          <button type="button" class="wep" id="w-dynamite" data-w="dynamite">
-            <img src="assets/sprites/dynamite.png" alt="" />
-            <span>Dynamite <small id="ammo-dynamite">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-sap" data-w="sap">
-            <img src="assets/sprites/sap-bomb.png" alt="" />
-            <span>Sap Bomb <small id="ammo-sap">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-mortar" data-w="mortar">
-            <img src="assets/sprites/mortar.png" alt="" />
-            <span>Lodge Mortar <small id="ammo-mortar">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-pine" data-w="pine">
-            <img src="assets/sprites/pinecone.png" alt="" />
-            <span>Pinecone Cluster <small id="ammo-pine">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-mine" data-w="mine">
-            <img src="assets/sprites/woodchip-mine.png" alt="" />
-            <span>Woodchip Mine <small id="ammo-mine">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-rocket" data-w="rocket">
-            <img src="assets/sprites/corkscrew-rocket.png" alt="" />
-            <span>Corkscrew Rocket <small id="ammo-rocket">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-chain" data-w="chain">
-            <img src="assets/sprites/lodge-chaingun.png" alt="" />
-            <span>Lodge Chaingun <small id="ammo-chain">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-zap" data-w="zap">
-            <img src="assets/sprites/arc-zap.png" alt="" />
-            <span>Arc Zap <small id="ammo-zap">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-fang" data-w="fang">
-            <img src="assets/sprites/ricochet-fang.png" alt="" />
-            <span>Ricochet Fang <small id="ammo-fang">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-ember" data-w="ember">
-            <img src="assets/sprites/ember-cascade.png" alt="" />
-            <span>Ember Cascade <small id="ammo-ember">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-snare" data-w="snare">
-            <img src="assets/sprites/sap-snare.png" alt="" />
-            <span>Sap Snare <small id="ammo-snare">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-stun" data-w="stun">
-            <img src="assets/sprites/stun-cone.png" alt="" />
-            <span>Stun Cone <small id="ammo-stun">0</small></span>
-          </button>
-          <button type="button" class="wep" id="w-lure" data-w="lure">
-            <img src="assets/sprites/grav-lure.png" alt="" />
-            <span>Grav Lure <small id="ammo-lure">0</small></span>
-          </button>
+      <div class="wep-slot">
+        <div id="wep-sel" class="wep-sel">
+          <img id="wep-sel-img" src="assets/sprites/yeet-stick.png" alt="" />
+          <span id="wep-sel-name">Yeet Stick</span>
         </div>
-        <button type="button" class="tray-chev" id="tray-r" aria-label="Scroll weapons right">▶</button>
+        <button type="button" class="play play-sm" id="btn-weapons">WEAPONS</button>
       </div>
-      <div class="wep-now" id="wep-now">Yeet Stick</div>
       <div class="aim-row">
         <button type="button" class="btn fat" id="ang-l" aria-label="Angle left">◄</button>
         <button type="button" class="btn fat" id="ang-r" aria-label="Angle right">►</button>
@@ -121,6 +65,68 @@
       <div class="fire-row">
         <button type="button" class="fire" id="btn-fire">FIRE</button>
       </div>
+    </div>
+    <div id="wep-pop" class="overlay hidden" role="dialog" aria-label="Weapons">
+      <h2>WEAPONS</h2>
+      <div class="weapons" id="weapons">
+        <button type="button" class="wep on" id="w-stick" data-w="stick">
+          <img src="assets/sprites/yeet-stick.png" alt="" />
+          <span>Yeet Stick <small>INF</small></span>
+        </button>
+        <button type="button" class="wep" id="w-dynamite" data-w="dynamite">
+          <img src="assets/sprites/dynamite.png" alt="" />
+          <span>Dynamite <small id="ammo-dynamite">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-sap" data-w="sap">
+          <img src="assets/sprites/sap-bomb.png" alt="" />
+          <span>Sap Bomb <small id="ammo-sap">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-mortar" data-w="mortar">
+          <img src="assets/sprites/mortar.png" alt="" />
+          <span>Lodge Mortar <small id="ammo-mortar">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-pine" data-w="pine">
+          <img src="assets/sprites/pinecone.png" alt="" />
+          <span>Pinecone Cluster <small id="ammo-pine">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-mine" data-w="mine">
+          <img src="assets/sprites/woodchip-mine.png" alt="" />
+          <span>Woodchip Mine <small id="ammo-mine">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-rocket" data-w="rocket">
+          <img src="assets/sprites/corkscrew-rocket.png" alt="" />
+          <span>Corkscrew Rocket <small id="ammo-rocket">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-chain" data-w="chain">
+          <img src="assets/sprites/lodge-chaingun.png" alt="" />
+          <span>Lodge Chaingun <small id="ammo-chain">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-zap" data-w="zap">
+          <img src="assets/sprites/arc-zap.png" alt="" />
+          <span>Arc Zap <small id="ammo-zap">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-fang" data-w="fang">
+          <img src="assets/sprites/ricochet-fang.png" alt="" />
+          <span>Ricochet Fang <small id="ammo-fang">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-ember" data-w="ember">
+          <img src="assets/sprites/ember-cascade.png" alt="" />
+          <span>Ember Cascade <small id="ammo-ember">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-snare" data-w="snare">
+          <img src="assets/sprites/sap-snare.png" alt="" />
+          <span>Sap Snare <small id="ammo-snare">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-stun" data-w="stun">
+          <img src="assets/sprites/stun-cone.png" alt="" />
+          <span>Stun Cone <small id="ammo-stun">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-lure" data-w="lure">
+          <img src="assets/sprites/grav-lure.png" alt="" />
+          <span>Grav Lure <small id="ammo-lure">0</small></span>
+        </button>
+      </div>
+      <button class="play" id="wep-pop-close" type="button">BACK</button>
     </div>
     <div id="splash" class="overlay">
       <img class="hero" src="assets/sprites/splash-hero.png" alt="Bober with a yeet stick" />
@@ -221,7 +227,7 @@
         <p>Drag back to set <strong>angle</strong>. Charge <strong>power</strong> 0–100. Read the <strong>wind flag</strong>. Fire.</p>
         <p>Hits dig cover and hurt <strong>HP</strong> (Bobers start at 85). Falloff at the blast edge. Creek, dust, void, methane, or acid below = out. Last beaver standing wins.</p>
         <p><strong>Crates</strong> drop every 3 turns. Walk onto one for gear or $BOBER. Tap <strong>SHOP</strong> mid-match to buy charges. If you are short, the shop says how many more $BOBER you need.</p>
-        <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Each bank has its own scrap. Yeet Stick stays infinite. Paid guns hit harder. Crowd control: Sap Snare, Stun Cone, Grav Lure. Use the tray <strong>◀ ▶</strong> chevrons (or swipe) to reach Lodge Mortar, Pinecone Cluster, Woodchip Mine, Corkscrew Rocket, Lodge Chaingun, Arc Zap, Ricochet Fang, and Ember Cascade. You cannot buy a win.</p>
+        <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Each bank has its own scrap. Yeet Stick stays infinite. Paid guns hit harder. Crowd control: Sap Snare, Stun Cone, Grav Lure. Tap <strong>WEAPONS</strong> to pick Lodge Mortar, Pinecone Cluster, Woodchip Mine, Corkscrew Rocket, Lodge Chaingun, Arc Zap, Ricochet Fang, Ember Cascade, or a crowd-control charge. You cannot buy a win.</p>
         <p>Pick <strong>Easy</strong>, <strong>Normal</strong>, or <strong>Hard</strong>. Both banks start even: same HP, same $BOBER, same charges. After turn 16 — and only when three or fewer Bobers remain, whichever is later — <strong>Sudden Death</strong> raises the hazard slowly. The map reacts: the creek, acid, void, or dust climbs the banks with a rumble and a siren flash.</p>
         <p><strong>Link Battle:</strong> Host gets a 4-letter room code. Friend taps Join and types it. Same Wi-Fi is best. Finding each other uses a short PeerJS internet hop (STUN, then TURN if needed) — no account, no lobby. Host is Lodge, Join is Creek. Two devices. If you see ICE FAIL, retry Host / Join on the same Wi-Fi.</p>
       </div>
