@@ -75,6 +75,7 @@ def main() -> int:
     must(css, "min-height: 62dvh", "game.css")
     must(css, "min-height: 56px", "game.css")
     must(css, "portrait-block", "game.css")
+    must(css, "object-fit: cover", "game.css")
 
     must(game, "const HP_MAX = 100", "game.js")
     must(game, 'name: "Yeet Stick", dmg: 25, blast: 28', "game.js")
@@ -109,8 +110,10 @@ def main() -> int:
     must(game, "crater-ground.png", "game.js")
     must(game, "methane-ground.png", "game.js")
     must(html, 'id="btn-shop"', "index.html")
-    must(html, 'id="btn-shop-dock"', "index.html")
+    must(html, 'id="btn-fire"', "index.html")
     must(html, ">SHOP<", "index.html")
+    forbid(html, 'btn-shop-dock', "index.html")
+    forbid(html, "shop-dock", "index.html")
     must(game, "function fillMound(", "game.js")
     must(game, "function drawIceBridge(", "game.js")
     must(game, "function paintMoundFallback(", "game.js")
@@ -122,6 +125,8 @@ def main() -> int:
     must(game, "YOU LOSE", "game.js")
     must(game, "function fightSpan(", "game.js")
     must(game, "function syncTilt(", "game.js")
+    must(game, "function drawSkyCover(", "game.js")
+    must(game, "Math.max(sW, sH)", "game.js")
 
     must(lore, "Lodge Bowl", "lore.js")
     must(lore, "Twin Ledges", "lore.js")

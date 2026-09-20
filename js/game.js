@@ -214,6 +214,7 @@
   let howtoFrom = "splash";
   let shopOpen = false;
   let tiltDismissed = false;
+  let lastPortrait = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -1358,7 +1359,23 @@
   }
 
   function fightSpan() {
-    return { x0: 0, x1: WORLD_W, y0: 0, y1: WORLD_H, w: WORLD_W, h: WORLD_H };
+    let y0 = WORLD_H;
+    let y1 = 0;
+    bobers.forEach((b) => {
+      if (!b.alive) return;
+      y0 = Math.min(y0, b.y - 96);
+      y1 = Math.max(y1, b.y + 56);
+    });
+    if (shot) {
+      y0 = Math.min(y0, shot.y - 48);
+      y1 = Math.max(y1, shot.y + 36);
+    }
+    y1 = Math.max(y1, hazardY() + 12, 8);
+    if (y0 >= y1) {
+      y0 = 0;
+      y1 = WORLD_H;
+    }
+    return { x0: 0, x1: WORLD_W, y0, y1, w: WORLD_W, h: y1 - y0 };
   }
 
   function layoutCam() {
@@ -1372,30 +1389,43 @@
       canvas.width = bw;
       canvas.height = bh;
     }
-    const s = cssW / WORLD_W;
-    let tx = 0;
-    const visH = cssH / s;
-    let ty = WORLD_H - visH;
-    if (shot && visH < WORLD_H) {
-      const want = shot.y - visH * 0.28;
-      ty = clamp(want, 0, WORLD_H - visH);
-    }
-    tx += userPanX;
+    const sW = cssW / WORLD_W;
+    const sH = cssH / WORLD_H;
+    const landscape = cssW >= cssH;
+    let s = landscape ? Math.max(sW, sH) : sW;
+    const minVisW = WORLD_W * 0.92;
+    if (cssW / s < minVisW) s = cssW / minVisW;
     const visW = cssW / s;
-    const viewH = visH;
+    const visH = cssH / s;
+    let tx = visW >= WORLD_W ? (WORLD_W - visW) / 2 : (WORLD_W - visW) / 2;
+    tx += userPanX;
     const minTx = visW >= WORLD_W ? (WORLD_W - visW) / 2 : 0;
     const maxTx = visW >= WORLD_W ? minTx : WORLD_W - visW;
     tx = clamp(tx, minTx, maxTx);
-    if (viewH < WORLD_H) ty = clamp(ty, 0, WORLD_H - viewH);
-    if (!camInit) {
+    const span = fightSpan();
+    let ty;
+    if (visH >= WORLD_H) {
+      ty = WORLD_H - visH;
+    } else {
+      ty = WORLD_H - visH;
+      const teamTop = clamp(span.y0, 0, WORLD_H);
+      if (teamTop < ty) ty = teamTop;
+      if (shot) {
+        const want = shot.y - visH * 0.28;
+        ty = clamp(want, 0, WORLD_H - visH);
+      }
+      ty = clamp(ty, 0, WORLD_H - visH);
+    }
+    const snap = !camInit || Math.abs(s - camS) > 0.18;
+    if (snap) {
       camS = s;
       camX = tx;
       camY = ty;
       camInit = true;
     } else {
-      camS += (s - camS) * 0.18;
-      camX += (tx - camX) * 0.16;
-      camY += (ty - camY) * 0.16;
+      camS += (s - camS) * 0.28;
+      camX += (tx - camX) * 0.2;
+      camY += (ty - camY) * 0.2;
     }
     view = {
       s: camS,
@@ -1404,8 +1434,24 @@
       cssW,
       cssH,
       dpr,
+      landscape,
+      cover: camS * WORLD_H >= cssH - 1.5 && camS * WORLD_W >= cssW * 0.9,
       showRadar: cssW / camS < WORLD_W - 80,
     };
+  }
+
+  function drawSkyCover(sky) {
+    if (view.landscape && sky) {
+      const iw = sky.width || WORLD_W;
+      const ih = sky.height || WORLD_H;
+      const sc = Math.max(view.cssW / iw, view.cssH / ih);
+      const dw = iw * sc;
+      const dh = ih * sc;
+      ctx.drawImage(sky, (view.cssW - dw) / 2, (view.cssH - dh) / 2, dw, dh);
+      return;
+    }
+    ctx.fillStyle = "#1a1035";
+    ctx.fillRect(0, 0, view.cssW, view.cssH);
   }
 
   function drawBober(b) {
@@ -1499,17 +1545,16 @@
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
-    ctx.fillStyle = "#3A2A6A";
-    ctx.fillRect(0, 0, view.cssW, view.cssH);
+    const s = spec();
+    const sky = img[s.sky] || img.skyEarth;
+    drawSkyCover(sky);
     ctx.save();
     ctx.translate(-view.camX * view.s, -view.camY * view.s);
     ctx.scale(view.s, view.s);
 
-    const s = spec();
-    const sky = img[s.sky] || img.skyEarth;
     if (sky) ctx.drawImage(sky, 0, 0, WORLD_W, WORLD_H);
     else {
-      ctx.fillStyle = "#3A2A6A";
+      ctx.fillStyle = "#24143c";
       ctx.fillRect(0, 0, WORLD_W, WORLD_H);
     }
     const waterTop = s.washFrom || 500;
@@ -1780,6 +1825,7 @@
     if (appEl) appEl.classList.add("live");
     dock.classList.remove("hidden");
     tiltDismissed = false;
+    lastPortrait = null;
     camS = 1;
     camX = 0;
     camY = 0;
@@ -1823,6 +1869,8 @@
     const tilt = $("tilt-play");
     if (!appEl) return;
     const portrait = window.innerHeight > window.innerWidth + 40;
+    if (lastPortrait !== null && lastPortrait !== portrait) camInit = false;
+    lastPortrait = portrait;
     const block = running && portrait && !tiltDismissed && phase !== "splash" && phase !== "end";
     appEl.classList.toggle("portrait-block", block);
     if (tilt) tilt.classList.toggle("hidden", !block);
@@ -1971,7 +2019,7 @@
       }
       openShop("match");
     };
-    ["btn-shop", "btn-shop-dock", "coin-chip"].forEach((id) => {
+    ["btn-shop", "coin-chip"].forEach((id) => {
       const el = $(id);
       if (!el) return;
       el.addEventListener("click", onShopMatch);
@@ -2054,7 +2102,15 @@
       crates: crates.map((c) => ({ x: c.x, y: c.y, kind: c.kind })),
       fuses: fuses.map((f) => ({ x: f.x, y: f.y, t: f.t, weapon: f.weapon })),
       walls: walls.map((w) => ({ x: w.x, y: w.y, hp: w.hp })),
-      view: { s: view.s, camX: view.camX, camY: view.camY, cssW: view.cssW, cssH: view.cssH },
+      view: {
+        s: view.s,
+        camX: view.camX,
+        camY: view.camY,
+        cssW: view.cssW,
+        cssH: view.cssH,
+        landscape: !!view.landscape,
+        cover: !!view.cover,
+      },
       bobers: bobers.map((b) => ({
         id: b.id,
         name: b.name,

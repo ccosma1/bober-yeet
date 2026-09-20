@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war3"
+URL = "http://127.0.0.1:8765/?v=war3b"
 
 
 def shot(page, name):
@@ -30,6 +30,62 @@ def wait_phase(page, want, timeout=12000):
 
 def snap(page):
     return page.evaluate("() => window.__yeetWar.snapshot()")
+
+
+def is_flat_purple(rgba):
+    r, g, b = rgba[0], rgba[1], rgba[2]
+    fills = ((58, 42, 106), (44, 27, 88), (36, 20, 60), (26, 16, 53))
+    return any(abs(r - fr) <= 10 and abs(g - fg) <= 10 and abs(b - fb) <= 12 for fr, fg, fb in fills)
+
+
+def canvas_edges(page):
+    return page.evaluate(
+        """() => {
+          const c = document.getElementById('game');
+          const ctx = c.getContext('2d');
+          const w = c.width, h = c.height;
+          const samp = (x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data);
+          const midX = (w / 2) | 0;
+          const midY = (h / 2) | 0;
+          return {
+            w, h,
+            top: samp(midX, 8),
+            bot: samp(midX, Math.max(0, h - 10)),
+            left: samp(8, midY),
+            right: samp(Math.max(0, w - 10), midY),
+          };
+        }"""
+    )
+
+
+def visible_shop_ids(page):
+    return page.evaluate(
+        """() => [...document.querySelectorAll('button')].filter((b) => {
+          const t = (b.innerText || '').trim();
+          if (t !== 'SHOP') return false;
+          const r = b.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        }).map((b) => b.id)"""
+    )
+
+
+def assert_one_top_shop(page, vp_h):
+    assert page.locator("#btn-shop-dock").count() == 0
+    ids = visible_shop_ids(page)
+    print("SHOP IDS", ids)
+    assert ids == ["btn-shop"]
+    shop = page.locator("#btn-shop").bounding_box()
+    coin = page.locator("#coin-chip").bounding_box()
+    assert shop and shop["y"] < min(90, vp_h * 0.24)
+    assert coin and abs(shop["y"] - coin["y"]) < 56
+
+
+def assert_fat_fire_br(page, vp_w, vp_h):
+    fire = page.locator("#btn-fire").bounding_box()
+    print("FIRE", fire)
+    assert fire and fire["height"] >= 44
+    assert fire["x"] + fire["width"] > vp_w * 0.62
+    assert fire["y"] + fire["height"] > vp_h * 0.72
 
 
 def both_teams_visible(s):
@@ -137,7 +193,8 @@ def main():
                 assert b["y"] > 300
         shot(page, "test-match.png")
         assert page.locator("#btn-shop").inner_text() == "SHOP"
-        assert page.locator("#btn-shop-dock").inner_text() == "SHOP"
+        assert_one_top_shop(page, 720)
+        assert_fat_fire_br(page, 1280, 720)
         page.click("#btn-shop")
         page.wait_for_timeout(200)
         assert "hidden" not in (page.locator("#shop").get_attribute("class") or "")
@@ -338,10 +395,9 @@ def main():
         print("PHONE CAM", view, "lodge", lodge_on, "creek", creek_on)
         assert lodge_on and creek_on
         shot(page, "test-match-mobile.png")
-        shop_box = page.locator("#btn-shop-dock").bounding_box()
-        print("PHONE SHOP", shop_box)
-        assert shop_box and shop_box["height"] >= 44
-        page.click("#btn-shop-dock")
+        assert_one_top_shop(page, vp_h)
+        assert_fat_fire_br(page, 390, vp_h)
+        page.click("#btn-shop")
         page.wait_for_timeout(250)
         assert "hidden" not in (page.locator("#shop").get_attribute("class") or "")
         page.evaluate("() => window.__yeetWar.setCoins(200)")
@@ -366,32 +422,51 @@ def main():
         wait_phase(page, "end", timeout=8000)
         assert "YOU LOSE" in page.locator("#end-title").inner_text()
 
+        def smoke_land(page, map_id, shot_name, check_purple=False):
+            page.evaluate("(id) => window.__yeetWar.setMap(id)", map_id)
+            page.evaluate("() => window.__yeetWar.startMatch()")
+            wait_phase(page, "aim", timeout=10000)
+            page.wait_for_timeout(500)
+            assert "portrait-block" not in (page.locator("#app").get_attribute("class") or "")
+            stage = page.locator("#stage").bounding_box()
+            print("LAND STAGE", map_id, stage)
+            assert stage and stage["height"] / 390 >= 0.62
+            s = snap(page)
+            lodge_on, creek_on, view = both_teams_visible(s)
+            print("LAND CAM", map_id, view, "lodge", lodge_on, "creek", creek_on)
+            assert lodge_on and creek_on
+            assert view.get("cover") is True
+            assert view["s"] * 720 >= view["cssH"] - 2
+            edges = canvas_edges(page)
+            print("LAND EDGES", map_id, edges)
+            if check_purple:
+                assert not is_flat_purple(edges["top"]), edges["top"]
+                assert not is_flat_purple(edges["bot"]), edges["bot"]
+            assert_one_top_shop(page, 390)
+            assert_fat_fire_br(page, 844, 390)
+            page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('stick'); w.setAim(-48, 70); }")
+            page.wait_for_timeout(180)
+            shot(page, shot_name)
+            page.click("#btn-shop")
+            page.wait_for_timeout(200)
+            assert "hidden" not in (page.locator("#shop").get_attribute("class") or "")
+            page.evaluate("() => window.__yeetWar.setCoins(200)")
+            page.click("#buy-ice")
+            assert snap(page)["ammo"]["lodge"]["ice"] >= 1
+            assert snap(page)["phase"] == "aim"
+            page.click("#shop-play")
+            wait_phase(page, "aim", timeout=5000)
+            page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('stick'); w.setAim(-48, 70); w.fire(); }")
+            page.wait_for_timeout(700)
+            s = snap(page)
+            print("LAND FIRE", map_id, s.get("phase"), s.get("lastBlast"))
+            assert s["phase"] in ("fly", "settle", "cpu", "aim", "fuse")
+
         page = browser.new_page(viewport={"width": 844, "height": 390})
         page.goto(URL, wait_until="networkidle", timeout=30000)
         page.evaluate("() => localStorage.setItem('bober-yeet-war-tut', '1')")
-        page.evaluate("() => window.__yeetWar.setMap('ledges')")
-        page.click("#btn-play")
-        wait_phase(page, "aim", timeout=10000)
-        page.wait_for_timeout(400)
-        assert "portrait-block" not in (page.locator("#app").get_attribute("class") or "")
-        stage = page.locator("#stage").bounding_box()
-        print("LAND STAGE", stage)
-        assert stage and stage["height"] / 390 >= 0.55
-        s = snap(page)
-        lodge_on, creek_on, view = both_teams_visible(s)
-        print("LAND CAM", view, "lodge", lodge_on, "creek", creek_on)
-        assert lodge_on and creek_on
-        shot(page, "test-match-mobile-landscape.png")
-        shop_box = page.locator("#btn-shop-dock").bounding_box()
-        assert shop_box and shop_box["height"] >= 36
-        page.click("#btn-shop-dock")
-        page.wait_for_timeout(200)
-        assert "hidden" not in (page.locator("#shop").get_attribute("class") or "")
-        page.evaluate("() => window.__yeetWar.setCoins(200)")
-        page.click("#buy-ice")
-        assert snap(page)["ammo"]["lodge"]["ice"] >= 1
-        page.click("#shop-play")
-        wait_phase(page, "aim", timeout=5000)
+        smoke_land(page, "mesa", "test-match-mobile-landscape.png", check_purple=True)
+        smoke_land(page, "crater", "test-mobile-landscape.png", check_purple=True)
         page.evaluate("() => window.__yeetWar.killTeam('creek')")
         wait_phase(page, "end", timeout=8000)
         assert "YOU WIN" in page.locator("#end-title").inner_text()
