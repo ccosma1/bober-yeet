@@ -127,6 +127,12 @@
       img: "assets/history/crate-gear.jpg",
       blurb: "Every three turns a crate lands on solid ground. Tap SHOP mid-match to buy charges with $BOBER. Short on coins? The shop says how many more you need.",
     },
+    {
+      cat: "Gear",
+      title: "Link Battle",
+      img: "assets/history/bank-fight.jpg",
+      blurb: "Two phones. Host gets a 4-letter room code. Join types it. Same Wi-Fi is best; a short PeerJS hop finds the other player. Host is Lodge, Join is Creek. Two devices, no account.",
+    },
   ];
 
   const STILLS = CARDS.filter((c) => c.cat === "Map" || c.cat === "Gear");

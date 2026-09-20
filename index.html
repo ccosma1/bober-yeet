@@ -107,6 +107,10 @@
       <p class="mission">Aim, power, wind. Dig cover. Last beaver standing.</p>
       <p class="tagline">Fan game by a holder.</p>
       <p class="reason">Bank fights from the Green Home to deep space.</p>
+      <div class="mode-pick" id="mode-pick">
+        <button type="button" class="diff-card on" id="mode-vsai" data-mode="vsai">VS AI</button>
+        <button type="button" class="diff-card" id="mode-link" data-mode="link">LINK BATTLE</button>
+      </div>
       <div class="map-pick" id="splash-maps">
         <button type="button" class="map-card on" data-map="bowl">
           <img src="assets/history/lodge-bowl.jpg" alt="" />
@@ -154,6 +158,28 @@
         <button type="button" class="diff-card on" data-diff="normal">NORMAL</button>
         <button type="button" class="diff-card" data-diff="hard">HARD</button>
       </div>
+      <div id="link-panel" class="link-panel hidden">
+        <div class="end-actions" id="link-pick">
+          <button class="play" id="btn-host" type="button">HOST</button>
+          <button class="play play-ghost" id="btn-join" type="button">JOIN</button>
+        </div>
+        <div id="host-wait" class="hidden">
+          <p class="link-label">Room code</p>
+          <div id="room-code">————</div>
+          <p id="host-status">Waiting for friend…</p>
+          <p class="link-note">Same Wi-Fi works best. A short internet hop (PeerJS) finds the other phone. No account.</p>
+          <button class="play play-ghost play-sm" id="btn-host-cancel" type="button">BACK</button>
+        </div>
+        <div id="join-box" class="hidden">
+          <p class="link-label">Enter room code</p>
+          <input id="join-code" maxlength="4" spellcheck="false" autocomplete="off" placeholder="CODE" aria-label="Room code" />
+          <div class="end-actions">
+            <button class="play" id="btn-connect" type="button">CONNECT</button>
+            <button class="play play-ghost" id="btn-join-cancel" type="button">BACK</button>
+          </div>
+          <p class="link-note" id="join-status"></p>
+        </div>
+      </div>
       <div class="end-actions">
         <button class="play" id="btn-play" type="button">START</button>
       </div>
@@ -175,6 +201,7 @@
         <p><strong>Crates</strong> drop every 3 turns. Walk onto one for gear or $BOBER. Tap <strong>SHOP</strong> mid-match to buy charges. If you are short, the shop says how many more $BOBER you need.</p>
         <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Stick and Snowball stay infinite. Use the tray <strong>◀ ▶</strong> chevrons (or swipe) to reach Lodge Mortar, Pinecone Cluster, Woodchip Mine, and Bark Buckler. You cannot buy a win.</p>
         <p>Pick <strong>Easy</strong>, <strong>Normal</strong>, or <strong>Hard</strong>. After turn 12 — or when two Bobers remain — <strong>Sudden Death</strong> raises the hazard every 2 turns so the match ends.</p>
+        <p><strong>Link Battle:</strong> Host gets a 4-letter room code. Friend taps Join and types it. Same Wi-Fi is best. Finding each other uses a short PeerJS internet hop — no account, no lobby. Host is Lodge, Join is Creek. Two devices.</p>
       </div>
       <button class="play" id="howto-close" type="button">GOT IT</button>
     </div>
@@ -313,6 +340,14 @@
       </div>
       <p class="hub-link"><a href="https://ccosma1.github.io/green-home-games/">More games · Green Home Games</a></p>
     </div>
+    <div id="net-drop" class="overlay hidden">
+      <h2>OPPONENT DISCONNECTED</h2>
+      <p class="board-sub">The link dropped. No stall.</p>
+      <div class="end-actions">
+        <button class="play" id="drop-rematch" type="button">REMATCH</button>
+        <button class="play play-ghost" id="drop-splash" type="button">SPLASH</button>
+      </div>
+    </div>
     <div id="museum" class="overlay hidden">
       <h2>MUSEUM</h2>
       <p class="board-sub">Maps, guns, crates. Tap a still.</p>
@@ -330,6 +365,7 @@
   </div>
   <script src="js/audio.js"></script>
   <script src="js/lore.js"></script>
+  <script src="js/net.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>

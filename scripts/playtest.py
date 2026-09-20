@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war5"
+URL = "http://127.0.0.1:8765/?v=war6"
 
 
 def shot(page, name):
@@ -159,6 +159,21 @@ def main():
         assert page.locator("#splash-maps .map-card").count() == 10
         assert page.locator("#splash-diff .diff-card").count() == 3
         assert page.locator("#splash-diff .diff-card.on").inner_text() == "NORMAL"
+        assert page.locator("#mode-vsai").inner_text() == "VS AI"
+        assert page.locator("#mode-link").inner_text() == "LINK BATTLE"
+        page.click("#mode-link")
+        page.wait_for_timeout(120)
+        assert "hidden" not in (page.locator("#link-panel").get_attribute("class") or "")
+        assert page.locator("#btn-host").inner_text() == "HOST"
+        assert page.locator("#btn-join").inner_text() == "JOIN"
+        page.click("#btn-join")
+        page.wait_for_timeout(80)
+        assert "hidden" not in (page.locator("#join-box").get_attribute("class") or "")
+        page.click("#btn-join-cancel")
+        page.click("#mode-vsai")
+        page.wait_for_timeout(80)
+        assert "hidden" in (page.locator("#link-panel").get_attribute("class") or "")
+        shot(page, "test-splash.png")
         splash_maps = page.locator("#splash-maps").inner_text()
         for name in (
             "Lodge Bowl",
@@ -173,8 +188,6 @@ def main():
             "Dock Notch",
         ):
             assert name in splash_maps
-        shot(page, "test-splash.png")
-
         page.click("#btn-howto")
         page.wait_for_timeout(200)
         how = page.locator("#howto").inner_text()
@@ -188,6 +201,9 @@ def main():
         assert "Red Mesa" in how
         assert "Sudden Death" in how
         assert "Easy" in how and "Hard" in how
+        assert "Link Battle" in how
+        assert "PeerJS" in how
+        assert "hotseat" not in how.lower()
         shot(page, "test-howto.png")
         page.click("#howto-close")
 

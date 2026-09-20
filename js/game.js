@@ -305,9 +305,36 @@
   let howtoFrom = "splash";
   let shopOpen = false;
   let lastPortrait = null;
+  let playMode = "vsai";
+  let netRole = null;
+  let netReady = false;
+  let carveLog = [];
+  let carveN = 0;
+  let lastNetSend = 0;
+  let guestBag = null;
+  let netFireLock = false;
 
   function $(id) {
     return document.getElementById(id);
+  }
+
+  function isLink() {
+    return playMode === "link" && !!netRole;
+  }
+  function isHost() {
+    return isLink() && netRole === "host";
+  }
+  function isGuest() {
+    return isLink() && netRole === "guest";
+  }
+  function myTeam() {
+    return isGuest() ? "creek" : "lodge";
+  }
+  function canControl() {
+    return phase === "aim" && turn === myTeam() && !aimTutOn;
+  }
+  function netSend(msg) {
+    if (window.BoberNet && BoberNet.connected) BoberNet.send(msg);
   }
 
   function clamp(v, a, b) {
@@ -347,6 +374,7 @@
   }
 
   function saveCoins() {
+    if (isGuest()) return;
     localStorage.setItem(COIN_KEY, String(coins));
     localStorage.setItem(AMMO_KEY, JSON.stringify({
       dynamite: ammo.lodge.dynamite,
@@ -623,15 +651,20 @@
     return hy;
   }
 
-  function carve(cx, cy, r) {
+  function carve(cx, cy, r, fromNet) {
     tctx.save();
     tctx.globalCompositeOperation = "destination-out";
     tctx.beginPath();
     tctx.arc(cx, cy, r, 0, Math.PI * 2);
     tctx.fill();
+    let seed = ((cx * 131) + (cy * 17) + (r * 9)) | 0;
+    const rnd = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    };
     for (let i = 0; i < 6; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const rr = r * (0.28 + Math.random() * 0.42);
+      const a = rnd() * Math.PI * 2;
+      const rr = r * (0.28 + rnd() * 0.42);
       tctx.beginPath();
       tctx.arc(cx + Math.cos(a) * r * 0.62, cy + Math.sin(a) * r * 0.62, rr, 0, Math.PI * 2);
       tctx.fill();
@@ -640,6 +673,11 @@
     rebuildMask();
     craterCount += 1;
     hurtWalls(cx, cy, r, 28);
+    if (!fromNet && isHost()) {
+      carveLog.push({ x: cx, y: cy, r });
+      carveN += 1;
+      netSend({ t: "cv", x: cx, y: cy, r, n: carveN });
+    }
   }
 
   function hurtWalls(cx, cy, r, dmg) {
@@ -755,6 +793,7 @@
     if (chip) chip.textContent = nm.toUpperCase();
     const now = $("wep-now");
     if (now) now.textContent = nm;
+    if (isGuest() && canControl()) netSend({ t: "in", k: "weapon", id });
     return true;
   }
 
@@ -779,19 +818,26 @@
     phaseChip.textContent = labels[phase] || phase.toUpperCase();
     const sdChip = $("sd-chip");
     if (sdChip) sdChip.classList.toggle("hidden", !sudden);
-    if (coinChip) coinChip.textContent = "$BOBER " + coins;
+    if (coinChip) coinChip.textContent = "$BOBER " + (myTeam() === "creek" ? cpuCoins : coins);
     const mapChip = $("map-chip");
     if (mapChip) mapChip.textContent = (MAPS[mapId] || MAPS.bowl).name.toUpperCase();
     PAID.forEach((id) => {
-      const n = teamAmmo("lodge", id);
+      const n = teamAmmo(myTeam(), id);
       const el = $("ammo-" + id);
       if (el) el.textContent = String(n);
       const btn = $("w-" + id);
       if (btn) btn.classList.toggle("out", n <= 0);
     });
-    const canFire = phase === "aim" && turn === "lodge" && !aimTutOn;
+    const canFire = canControl();
     fireBtn.disabled = !canFire;
-    fireBtn.textContent = phase === "cpu" ? "CPU…" : phase === "fly" || phase === "fuse" ? "YEET" : "FIRE";
+    fireBtn.textContent =
+      phase === "cpu"
+        ? "CPU…"
+        : phase === "fly" || phase === "fuse"
+          ? "YEET"
+          : isLink() && phase === "aim" && turn !== myTeam()
+            ? "WAIT"
+            : "FIRE";
     if (tipStrip) {
       const showTip = (phase === "aim" || phase === "cpu") && turnN <= 2;
       tipStrip.classList.toggle("hidden", !showTip);
@@ -820,10 +866,11 @@
     ];
     ids.forEach((row) => {
       const nEl = $(row[0]);
-      if (nEl) nEl.textContent = String(ammo.lodge[row[1]] || 0);
+      if (nEl) nEl.textContent = String(ammo[myTeam()][row[1]] || 0);
       const b = $(row[2]);
       if (!b) return;
-      const need = row[3] - coins;
+      const purse = myTeam() === "creek" ? cpuCoins : coins;
+      const need = row[3] - purse;
       if (need > 0) {
         b.disabled = true;
         b.textContent = "NEED " + need + " MORE $BOBER";
@@ -843,7 +890,7 @@
   }
 
   function syncDiffCards() {
-    document.querySelectorAll(".diff-card").forEach((el) => {
+    document.querySelectorAll(".diff-card[data-diff]").forEach((el) => {
       el.classList.toggle("on", el.getAttribute("data-diff") === diff);
     });
   }
@@ -912,7 +959,7 @@
           pop(c.x, c.y, "+10 $BOBER", "#ffe566");
         } else {
           cpuCoins += 10;
-          pop(c.x, c.y, "NICKED", "#a8c4e8");
+          pop(c.x, c.y, isLink() ? "+10 $BOBER" : "NICKED", isLink() ? "#ffe566" : "#a8c4e8");
         }
       } else {
         ammo[b.team][c.kind] = (ammo[b.team][c.kind] || 0) + 1;
@@ -943,29 +990,30 @@
     tickShields();
     tickSuddenDeath();
     if (turnN > 0 && turnN % CRATE_EVERY === 0) spawnCrate();
-    if (team === "lodge") {
-      phase = "aim";
-      pickActive("lodge");
-      const a = getActive();
-      if (a) {
-        angle = -0.95;
-        a.facing = 1;
-        pickupCrates(a);
-      }
-      if (!WEAPONS[weapon] || (!WEAPONS[weapon].inf && teamAmmo("lodge", weapon) <= 0)) weapon = "stick";
-      setWeapon(weapon);
-      power = 50;
-      BoberSfx.turn();
-      toast("LODGE TURN");
-    } else {
+    if (team === "creek" && !isLink()) {
       phase = "cpu";
       pickActive("creek");
       cpuT = 0;
       cpuReady = false;
       cpuShop();
       toast("CREEK TURN");
+    } else {
+      phase = "aim";
+      pickActive(team);
+      const a = getActive();
+      if (a) {
+        angle = team === "lodge" ? -0.95 : -2.2;
+        a.facing = team === "lodge" ? 1 : -1;
+        pickupCrates(a);
+      }
+      if (!WEAPONS[weapon] || (!WEAPONS[weapon].inf && teamAmmo(team, weapon) <= 0)) weapon = "stick";
+      setWeapon(weapon);
+      power = 50;
+      BoberSfx.turn();
+      toast(team === "lodge" ? "LODGE TURN" : "CREEK TURN");
     }
     hud();
+    netPush(true);
   }
 
   function tickSuddenDeath() {
@@ -1030,9 +1078,18 @@
     return { vx, vy, grav };
   }
 
-  function tryFire() {
+  function tryFire(fromNet) {
+    if (isGuest() && !fromNet) {
+      if (!canControl() || netFireLock) return false;
+      netFireLock = true;
+      netSend({ t: "in", k: "fire", angle, power, weapon, activeId });
+      return true;
+    }
     if (phase !== "aim" && phase !== "cpu") return false;
-    if (phase === "aim" && turn !== "lodge") return false;
+    if (isLink()) {
+      if (phase !== "aim") return false;
+      if (!fromNet && turn !== myTeam()) return false;
+    } else if (phase === "aim" && turn !== "lodge") return false;
     const b = getActive();
     if (!b || !b.alive) return false;
     const wpn = WEAPONS[weapon];
@@ -1053,6 +1110,7 @@
       phase = "settle";
       settleT = 0.25;
       hud();
+      netPush(true);
       return true;
     }
     const nose = BOBER_R + 10;
@@ -1074,6 +1132,7 @@
     dragging = false;
     BoberSfx.yeet();
     hud();
+    netPush(true);
     return true;
   }
 
@@ -1442,9 +1501,15 @@
     }
   }
 
-  function walkActive(dir) {
+  function walkActive(dir, fromNet) {
+    if (isGuest() && !fromNet) {
+      if (!canControl()) return;
+      netSend({ t: "in", k: "walk", dir: dir < 0 ? -1 : 1 });
+      return;
+    }
     const b = getActive();
-    if (!b || !b.alive || phase !== "aim" || turn !== "lodge") return;
+    if (!b || !b.alive || phase !== "aim") return;
+    if (!fromNet && turn !== myTeam()) return;
     if (b.airborne) return;
     b.walkDir = dir < 0 ? -1 : 1;
     b.walkT = 0.28;
@@ -1495,25 +1560,27 @@
     }
     dock.classList.add("hidden");
     if (tipStrip) tipStrip.classList.add("hidden");
-    if (who === "lodge") {
-      addCoins(20);
-      endTitle.textContent = "YOU WIN";
-      endMsg.textContent = "Bank cleared. Lodge still standing.";
-      BoberSfx.win();
-    } else if (who === "creek") {
-      addCoins(4);
-      endTitle.textContent = "YOU LOSE";
-      endMsg.textContent = "Crew down. Creek took the bank.";
-      BoberSfx.fail();
-    } else {
+    const mine = myTeam();
+    if (who === "draw") {
       endTitle.textContent = "DRAW";
       endMsg.textContent = "Everybody yeeted. The bank is empty.";
       BoberSfx.fail();
+    } else if (who === mine) {
+      if (!isGuest()) addCoins(20);
+      endTitle.textContent = "YOU WIN";
+      endMsg.textContent = mine === "lodge" ? "Bank cleared. Lodge still standing." : "Creek took the bank.";
+      BoberSfx.win();
+    } else {
+      if (!isGuest()) addCoins(4);
+      endTitle.textContent = "YOU LOSE";
+      endMsg.textContent = who === "creek" ? "Crew down. Creek took the bank." : "Bank cleared. Lodge still standing.";
+      BoberSfx.fail();
     }
     const ec = $("end-coins");
-    if (ec) ec.textContent = "This match +" + matchCoins + " · bag $BOBER " + coins;
+    if (ec) ec.textContent = "This match +" + matchCoins + " · bag $BOBER " + (mine === "creek" ? cpuCoins : coins);
     endcard.classList.remove("hidden");
     hud();
+    netPush(true);
   }
 
   function finishSettle() {
@@ -1633,6 +1700,7 @@
       if (toastT <= 0) toastEl.classList.remove("show");
     }
     waveT += dt;
+    if (isGuest()) return;
     if (shopOpen) return;
     if (phase === "cpu") stepCpu(dt);
     if (phase === "fly") stepShot();
@@ -1663,6 +1731,7 @@
       pops[i].y -= 18 * dt;
       if (pops[i].t <= 0) pops.splice(i, 1);
     }
+    netPush(false);
   }
 
   function worldFromEvent(ev) {
@@ -2035,7 +2104,7 @@
       if (b.alive) drawBober(b);
     });
 
-    if ((phase === "aim" && turn === "lodge") || phase === "cpu") {
+    if ((phase === "aim" && turn === myTeam()) || (phase === "cpu" && !isLink())) {
       const b = getActive();
       if (b) {
         const dots = simDots();
@@ -2155,6 +2224,7 @@
   }
 
   function shopAllowed() {
+    if (isLink()) return phase === "aim" && turn === myTeam();
     return phase === "aim" || phase === "settle" || phase === "cpu";
   }
 
@@ -2189,23 +2259,32 @@
     else splash.classList.remove("hidden");
   }
 
-  function buy(id) {
+  function buy(id, fromNet) {
     const wpn = WEAPONS[id];
     const cost = wpn && wpn.cost;
     if (!cost) return false;
-    if (coins < cost) {
-      toast("NEED " + (cost - coins) + " MORE $BOBER", true);
+    if (isGuest() && !fromNet) {
+      netSend({ t: "in", k: "buy", id });
+      return true;
+    }
+    const team = fromNet ? "creek" : myTeam();
+    const purse = team === "creek" ? cpuCoins : coins;
+    if (purse < cost) {
+      toast("NEED " + (cost - purse) + " MORE $BOBER", true);
       return false;
     }
-    coins -= cost;
-    ammo.lodge[id] = (ammo.lodge[id] || 0) + 1;
+    if (team === "creek") cpuCoins -= cost;
+    else coins -= cost;
+    ammo[team][id] = (ammo[team][id] || 0) + 1;
     saveCoins();
     BoberSfx.pop();
     hud();
+    netPush(true);
     return true;
   }
 
   function startMatch() {
+    if (isGuest()) return;
     BoberSfx.ensure();
     loadCoins();
     splash.classList.add("hidden");
@@ -2220,6 +2299,8 @@
     walls = [];
     mines = [];
     pellets = [];
+    carveLog = [];
+    carveN = 0;
     shopOpen = false;
     craterCount = 0;
     lastBlast = null;
@@ -2229,8 +2310,13 @@
     sudden = false;
     sdRise = 0;
     sdTickAt = 0;
-    cpuCoins = diffSpec().coins;
-    ammo.creek = emptyAmmo();
+    if (isLink() && guestBag) {
+      cpuCoins = guestBag.coins | 0;
+      ammo.creek = guestBag.ammo || emptyAmmo();
+    } else {
+      cpuCoins = diffSpec().coins;
+      ammo.creek = emptyAmmo();
+    }
     weapon = "stick";
     setWeapon("stick");
     hudTop.classList.add("live");
@@ -2252,6 +2338,7 @@
     showTut();
     hud();
     syncOrient();
+    if (isHost()) netSend({ t: "go", mapId, carves: carveLog, n: carveN, st: packState() });
     if (!wasRunning) requestAnimationFrame(loop);
   }
 
@@ -2271,6 +2358,12 @@
     shopEl.classList.add("hidden");
     howtoEl.classList.add("hidden");
     splash.classList.remove("hidden");
+    const drop = $("net-drop");
+    if (drop) drop.classList.add("hidden");
+    if (window.BoberNet) BoberNet.close();
+    netRole = null;
+    netReady = false;
+    guestBag = null;
   }
 
   function syncOrient() {
@@ -2306,10 +2399,11 @@
     aimDrag = false;
     panning = false;
     dragging = false;
-    if (phase === "aim" && turn === "lodge" && !aimTutOn) {
-      const tapped = boberAt(w.x, w.y, "lodge");
+    if (canControl()) {
+      const tapped = boberAt(w.x, w.y, myTeam());
       if (tapped) {
         activeId = tapped.id;
+        if (isGuest()) netSend({ t: "in", k: "active", id: tapped.id });
         BoberSfx.pop();
         aimDrag = true;
         dragging = true;
@@ -2345,8 +2439,8 @@
       canvas.releasePointerCapture(ev.pointerId);
     } catch (_) {}
     if (panning && dragStart && Math.hypot(w.x - dragStart.x, w.y - dragStart.y) < 16) {
-      if (phase === "aim" && turn === "lodge" && !aimTutOn) {
-        const tapped = boberAt(w.x, w.y, "lodge");
+      if (canControl()) {
+        const tapped = boberAt(w.x, w.y, myTeam());
         if (!tapped) {
           const b = getActive();
           if (b && Math.abs(w.x - b.x) > 12) walkActive(w.x < b.x ? -1 : 1);
@@ -2375,11 +2469,261 @@
     el.addEventListener("pointerleave", stop);
   }
 
+  function packState() {
+    return {
+      t: "st",
+      phase,
+      turn,
+      turnN,
+      wind,
+      weapon,
+      power,
+      angle,
+      sudden,
+      sdRise,
+      mapId,
+      winner,
+      coinsL: coins,
+      coinsC: cpuCoins,
+      ammoL: { ...ammo.lodge },
+      ammoC: { ...ammo.creek },
+      bobers: bobers.map((b) => ({
+        id: b.id,
+        name: b.name,
+        team: b.team,
+        hp: b.hp,
+        alive: b.alive,
+        x: b.x,
+        y: b.y,
+        vx: b.vx,
+        vy: b.vy,
+        facing: b.facing,
+        standing: b.standing,
+        airborne: b.airborne,
+        sapTicks: b.sapTicks,
+        shield: b.shield || 0,
+        shieldTurns: b.shieldTurns || 0,
+      })),
+      crates: crates.map((c) => ({ x: c.x, y: c.y, kind: c.kind })),
+      fuses: fuses.map((f) => ({ x: f.x, y: f.y, t: f.t, weapon: f.weapon, team: f.team })),
+      walls: walls.map((w) => ({ x: w.x, y: w.y, w: w.w, h: w.h, hp: w.hp, bornTurn: w.bornTurn })),
+      mines: mines.map((m) => ({ x: m.x, y: m.y, armed: m.armed, bornTurn: m.bornTurn, team: m.team })),
+      shot: shot ? { ...shot } : null,
+      pellets: pellets.map((p) => ({ ...p })),
+      carveN,
+      lastCarve: carveLog.length ? carveLog[carveLog.length - 1] : null,
+    };
+  }
+
+  function netPush(force) {
+    if (!isHost() || !netReady) return;
+    const now = performance.now();
+    const busy = phase === "fly" || phase === "fuse" || phase === "settle";
+    if (!force && now - lastNetSend < (busy ? 80 : 280)) return;
+    lastNetSend = now;
+    netSend(packState());
+  }
+
+  function applyState(s) {
+    if (!s) return;
+    const wasEnd = phase === "end";
+    phase = s.phase;
+    turn = s.turn;
+    turnN = s.turnN;
+    wind = s.wind;
+    sudden = !!s.sudden;
+    sdRise = s.sdRise || 0;
+    winner = s.winner;
+    const keepAim = isGuest() && s.phase === "aim" && s.turn === "creek";
+    if (!keepAim && !dragging) {
+      weapon = s.weapon;
+      power = s.power;
+      angle = s.angle;
+    }
+    coins = s.coinsL | 0;
+    cpuCoins = s.coinsC | 0;
+    if (s.ammoL) ammo.lodge = s.ammoL;
+    if (s.ammoC) ammo.creek = s.ammoC;
+    if (s.bobers) {
+      s.bobers.forEach((nb) => {
+        const b = bobers.find((x) => x.id === nb.id);
+        if (!b) return;
+        Object.assign(b, nb);
+      });
+    }
+    crates = (s.crates || []).map((c) => ({ ...c }));
+    fuses = (s.fuses || []).map((f) => ({ ...f }));
+    walls = (s.walls || []).map((w) => ({ ...w }));
+    mines = (s.mines || []).map((m) => ({ ...m }));
+    shot = s.shot ? { ...s.shot } : null;
+    pellets = (s.pellets || []).map((p) => ({ ...p }));
+    if (s.lastCarve && s.carveN > carveN) {
+      carve(s.lastCarve.x, s.lastCarve.y, s.lastCarve.r, true);
+      carveN = s.carveN;
+    }
+    hud();
+    if (s.phase !== "aim") netFireLock = false;
+    if (s.phase === "end" && !wasEnd) {
+      const drop = $("net-drop");
+      if (drop) drop.classList.add("hidden");
+      hudTop.classList.remove("live");
+      dock.classList.add("hidden");
+      const mine = myTeam();
+      if (s.winner === "draw") {
+        endTitle.textContent = "DRAW";
+        endMsg.textContent = "Everybody yeeted. The bank is empty.";
+      } else if (s.winner === mine) {
+        endTitle.textContent = "YOU WIN";
+        endMsg.textContent = mine === "creek" ? "Creek took the bank." : "Bank cleared. Lodge still standing.";
+      } else {
+        endTitle.textContent = "YOU LOSE";
+        endMsg.textContent = s.winner === "creek" ? "Crew down. Creek took the bank." : "Bank cleared. Lodge still standing.";
+      }
+      endcard.classList.remove("hidden");
+    }
+  }
+
+  function guestGo(msg) {
+    mapId = msg.mapId || mapId;
+    splash.classList.add("hidden");
+    endcard.classList.add("hidden");
+    const drop = $("net-drop");
+    if (drop) drop.classList.add("hidden");
+    makeTerrain();
+    carveLog = msg.carves || [];
+    carveN = 0;
+    carveLog.forEach((c) => carve(c.x, c.y, c.r, true));
+    carveN = msg.n || carveLog.length;
+    spawnCrew();
+    applyState(msg.st);
+    hudTop.classList.add("live");
+    const appEl = $("app");
+    if (appEl) appEl.classList.add("live");
+    dock.classList.remove("hidden");
+    const wasRunning = running;
+    running = true;
+    lastTs = performance.now();
+    acc = 0;
+    camInit = false;
+    if (!wasRunning) requestAnimationFrame(loop);
+  }
+
+  function onNetEvent(ev) {
+    if (ev.type === "open" && ev.code) {
+      const el = $("room-code");
+      if (el) el.textContent = ev.code;
+      const st = $("host-status");
+      if (st) st.textContent = "Waiting for friend…";
+    }
+    if (ev.type === "peer") {
+      netReady = true;
+      const st = $("host-status");
+      if (isHost() && st) st.textContent = "Friend joined. Pick a map and START.";
+      if (isHost()) {
+        const play = $("btn-play");
+        if (play) play.classList.remove("hidden");
+        netSend({ t: "ok" });
+      }
+      if (isGuest()) {
+        netSend({ t: "hello", coins, ammo: { ...ammo.lodge } });
+        const js = $("join-status");
+        if (js) js.textContent = "Connected. Host picks the map.";
+      }
+    }
+    if (ev.type === "drop" || ev.type === "error") {
+      if (phase !== "splash" && phase !== "end") showNetDrop();
+      else if (ev.type === "error") toast("LINK FAIL", true);
+    }
+    if (ev.type !== "data" || !ev.msg) return;
+    const msg = ev.msg;
+    if (msg.t === "hello" && isHost()) {
+      guestBag = { coins: msg.coins | 0, ammo: msg.ammo || emptyAmmo() };
+    }
+    if (msg.t === "go" && isGuest()) guestGo(msg);
+    if (msg.t === "st" && isGuest()) applyState(msg);
+    if (msg.t === "cv" && isGuest()) {
+      carve(msg.x, msg.y, msg.r, true);
+      carveN = msg.n || carveN + 1;
+    }
+    if (msg.t === "in" && isHost()) onGuestInput(msg);
+  }
+
+  function onGuestInput(msg) {
+    if (turn !== "creek" || phase !== "aim") return;
+    if (msg.k === "weapon") setWeapon(msg.id);
+    if (msg.k === "active" && msg.id != null) {
+      const b = bobers.find((x) => x.id === msg.id && x.team === "creek" && x.alive);
+      if (b) activeId = b.id;
+    }
+    if (msg.k === "walk") walkActive(msg.dir, true);
+    if (msg.k === "buy") buy(msg.id, true);
+    if (msg.k === "fire") {
+      if (msg.weapon) setWeapon(msg.weapon);
+      if (msg.activeId != null) {
+        const b = bobers.find((x) => x.id === msg.activeId && x.team === "creek" && x.alive);
+        if (b) activeId = b.id;
+      }
+      angle = msg.angle;
+      power = msg.power;
+      tryFire(true);
+    }
+  }
+
+  function showNetDrop() {
+    netReady = false;
+    const el = $("net-drop");
+    if (el) el.classList.remove("hidden");
+  }
+
+  function setPlayMode(mode) {
+    playMode = mode === "link" ? "link" : "vsai";
+    document.querySelectorAll("#mode-pick .diff-card").forEach((el) => {
+      el.classList.toggle("on", el.getAttribute("data-mode") === playMode);
+    });
+    const link = $("link-panel");
+    const diffEl = $("splash-diff");
+    const play = $("btn-play");
+    if (playMode === "link") {
+      if (link) link.classList.remove("hidden");
+      if (diffEl) diffEl.classList.add("hidden");
+      if (play) play.classList.add("hidden");
+      showLinkPick();
+    } else {
+      if (link) link.classList.add("hidden");
+      if (diffEl) diffEl.classList.remove("hidden");
+      if (play) play.classList.remove("hidden");
+      if (window.BoberNet) BoberNet.close();
+      netRole = null;
+      netReady = false;
+    }
+  }
+
+  function showLinkPick() {
+    const pick = $("link-pick");
+    const hw = $("host-wait");
+    const jb = $("join-box");
+    if (pick) pick.classList.remove("hidden");
+    if (hw) hw.classList.add("hidden");
+    if (jb) jb.classList.add("hidden");
+    const play = $("btn-play");
+    if (play && playMode === "link") play.classList.add("hidden");
+  }
+
   function bind() {
     loadCoins();
     hud();
-    playBtn.addEventListener("click", startMatch);
-    endRestart.addEventListener("click", startMatch);
+    playBtn.addEventListener("click", () => {
+      if (playMode === "link" && !isHost()) return;
+      startMatch();
+    });
+    endRestart.addEventListener("click", () => {
+      if (playMode === "link") {
+        if (isHost() && netReady) startMatch();
+        else toast("HOST STARTS", true);
+        return;
+      }
+      startMatch();
+    });
     const endSplash = $("end-splash");
     if (endSplash) endSplash.addEventListener("click", leaveToSplash);
     fireBtn.addEventListener("click", () => {
@@ -2400,22 +2744,22 @@
       if (!setWeapon("sap")) toast("BUY A CHARGE", true);
     });
     holdBtn($("ang-l"), () => {
-      if (phase !== "aim") return;
+      if (!canControl()) return;
       angle -= 0.045;
       hudAim();
     });
     holdBtn($("ang-r"), () => {
-      if (phase !== "aim") return;
+      if (!canControl()) return;
       angle += 0.045;
       hudAim();
     });
     holdBtn($("pwr-d"), () => {
-      if (phase !== "aim") return;
+      if (!canControl()) return;
       power = clamp(power - 2, 0, 100);
       hudAim();
     });
     holdBtn($("pwr-u"), () => {
-      if (phase !== "aim") return;
+      if (!canControl()) return;
       power = clamp(power + 2, 0, 100);
       hudAim();
     });
@@ -2492,10 +2836,82 @@
     document.querySelectorAll(".map-card").forEach((el) => {
       el.addEventListener("click", () => setMap(el.getAttribute("data-map")));
     });
-    document.querySelectorAll(".diff-card").forEach((el) => {
+    document.querySelectorAll(".diff-card[data-diff]").forEach((el) => {
       el.addEventListener("click", () => setDiff(el.getAttribute("data-diff")));
     });
     syncDiffCards();
+    const modeVs = $("mode-vsai");
+    const modeLink = $("mode-link");
+    if (modeVs) modeVs.addEventListener("click", () => setPlayMode("vsai"));
+    if (modeLink) modeLink.addEventListener("click", () => setPlayMode("link"));
+    const btnHost = $("btn-host");
+    if (btnHost) {
+      btnHost.addEventListener("click", () => {
+        playMode = "link";
+        netRole = "host";
+        $("link-pick").classList.add("hidden");
+        $("join-box").classList.add("hidden");
+        $("host-wait").classList.remove("hidden");
+        $("room-code").textContent = "…";
+        $("host-status").textContent = "Waiting for friend…";
+        BoberNet.host(onNetEvent).catch(() => {
+          toast("LINK FAIL", true);
+          showLinkPick();
+        });
+      });
+    }
+    const btnJoin = $("btn-join");
+    if (btnJoin) {
+      btnJoin.addEventListener("click", () => {
+        $("link-pick").classList.add("hidden");
+        $("host-wait").classList.add("hidden");
+        $("join-box").classList.remove("hidden");
+        $("join-status").textContent = "";
+        const inp = $("join-code");
+        if (inp) inp.focus();
+      });
+    }
+    const btnConnect = $("btn-connect");
+    if (btnConnect) {
+      btnConnect.addEventListener("click", () => {
+        const inp = $("join-code");
+        const code = inp ? inp.value : "";
+        playMode = "link";
+        netRole = "guest";
+        $("join-status").textContent = "Connecting…";
+        BoberNet.join(code, onNetEvent).catch(() => {
+          toast("LINK FAIL", true);
+          $("join-status").textContent = "Could not connect. Check the code.";
+        });
+      });
+    }
+    ["btn-host-cancel", "btn-join-cancel"].forEach((id) => {
+      const el = $(id);
+      if (el) el.addEventListener("click", () => {
+        if (window.BoberNet) BoberNet.close();
+        netRole = null;
+        netReady = false;
+        showLinkPick();
+      });
+    });
+    const dropR = $("drop-rematch");
+    if (dropR) dropR.addEventListener("click", () => {
+      $("net-drop").classList.add("hidden");
+      leaveToSplash();
+      setPlayMode("link");
+    });
+    const dropS = $("drop-splash");
+    if (dropS) dropS.addEventListener("click", () => {
+      $("net-drop").classList.add("hidden");
+      leaveToSplash();
+      setPlayMode("vsai");
+    });
+    const joinInp = $("join-code");
+    if (joinInp) {
+      joinInp.addEventListener("input", () => {
+        joinInp.value = joinInp.value.toUpperCase().replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "").slice(0, 4);
+      });
+    }
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
@@ -2545,6 +2961,8 @@
       coins,
       ammo: { lodge: { ...ammo.lodge }, creek: { ...ammo.creek } },
       mapId,
+      playMode,
+      netRole,
       diff,
       sudden,
       sdRise,
