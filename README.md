@@ -6,7 +6,7 @@ Fan game by a holder.
 
 Aim, power, wind. Dig cover. Last beaver standing.
 
-Turn-based stick fights vs AI. Yeet Stick and Snowball stay infinite. Spend $BOBER (not a wallet) on Dynamite and Sap Bomb charges. Crates drop every 3 turns.
+Turn-based stick fights vs AI. Maps: Lodge Bowl and Twin Ledges. Yeet Stick and Snowball stay infinite. Spend $BOBER (not a wallet) on Dynamite, Sap Bomb, Lodge Mortar, and Ice Brace. Crates drop every 3 turns.
 
 This room was Bober Yeet (slingshot, 100 myth levels). Museum and History keep that story. Play is War now.
 

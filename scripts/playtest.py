@@ -72,6 +72,9 @@ def main():
         assert "team17" not in low
         assert page.locator("#btn-play").inner_text() == "START"
         assert page.locator("#btn-howto").inner_text() == "HOW TO PLAY"
+        assert page.locator("#splash-maps .map-card").count() == 2
+        assert "Lodge Bowl" in page.locator("#splash-maps").inner_text()
+        assert "Twin Ledges" in page.locator("#splash-maps").inner_text()
         shot(page, "test-splash.png")
 
         page.click("#btn-howto")
@@ -102,12 +105,15 @@ def main():
         page.click("#museum-close")
 
         page.evaluate("() => localStorage.setItem('bober-yeet-war-tut', '1')")
+        page.evaluate("() => window.__yeetWar.setMap('ledges')")
         page.click("#btn-play")
         wait_phase(page, "aim", timeout=10000)
         page.wait_for_timeout(400)
         s = snap(page)
         print("IDLE", [(b["name"], b["vx"], b["standing"], b["airborne"]) for b in s["bobers"]])
+        print("MAP", s.get("mapId"))
         assert s["phase"] == "aim"
+        assert s["mapId"] == "ledges"
         assert len(s["bobers"]) == 6
         for b in s["bobers"]:
             if not b["alive"]:
@@ -219,15 +225,64 @@ def main():
         page.click("#btn-gear")
         page.wait_for_timeout(200)
         shop = page.locator("#shop").inner_text()
-        print("SHOP", shop[:200])
-        assert "12 $BOBER" in shop
+        print("SHOP", shop[:240])
+        assert "35 $BOBER" in shop
+        assert "45 $BOBER" in shop
+        assert "28 $BOBER" in shop
         assert "cannot buy a win" in shop.lower()
         shot(page, "test-shop.png")
-        page.click("#shop-back")
+        page.evaluate("() => window.__yeetWar.setCoins(200)")
+        page.wait_for_timeout(80)
+        page.click("#buy-mortar")
+        page.click("#buy-ice")
+        s = snap(page)
+        print("BUY", s["coins"], s["ammo"])
+        assert s["ammo"]["lodge"]["mortar"] >= 1
+        assert s["ammo"]["lodge"]["ice"] >= 1
+        page.click("#shop-play")
+        wait_phase(page, "aim", timeout=8000)
+        page.evaluate(
+            """() => {
+              const w = window.__yeetWar;
+              w.setWeapon('mortar');
+              w.setAim(-42, 62);
+              w.fire();
+            }"""
+        )
+        page.wait_for_function(
+            "() => window.__yeetWar.lastBlast && window.__yeetWar.lastBlast.weapon === 'mortar'",
+            timeout=8000,
+        )
+        s = snap(page)
+        print("MORTAR", s["lastBlast"])
+        assert s["lastBlast"]["dmg"] == 38
+        shot(page, "test-mortar.png")
+        wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
+        if snap(page)["phase"] == "cpu":
+            wait_phase(page, ["aim", "end"], timeout=20000)
+        if snap(page)["phase"] == "aim":
+            page.evaluate(
+                """() => {
+                  const w = window.__yeetWar;
+                  w.giveAmmo('lodge', 'ice', 1);
+                  w.setWeapon('ice');
+                  w.setAim(10, 40);
+                  w.fire();
+                }"""
+            )
+            page.wait_for_function("() => window.__yeetWar.snapshot().walls.length > 0", timeout=8000)
+            s = snap(page)
+            print("ICE", s["walls"])
+            assert s["walls"][0]["hp"] == 60
+            shot(page, "test-ice.png")
+        page.evaluate("() => window.__yeetWar.spawnCrate('mortar', 80)")
+        page.wait_for_timeout(80)
+        assert any(c["kind"] == "mortar" for c in snap(page)["crates"])
 
         page = browser.new_page(viewport={"width": 390, "height": 844})
         page.goto(URL, wait_until="networkidle", timeout=30000)
         page.evaluate("() => localStorage.setItem('bober-yeet-war-tut', '1')")
+        page.evaluate("() => window.__yeetWar.setMap('ledges')")
         page.click("#btn-play")
         wait_phase(page, "aim", timeout=10000)
         page.wait_for_timeout(500)

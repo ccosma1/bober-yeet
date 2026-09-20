@@ -51,6 +51,10 @@ def main() -> int:
     must(html, "Snowball", "index.html")
     must(html, "Dynamite", "index.html")
     must(html, "Sap Bomb", "index.html")
+    must(html, "Lodge Mortar", "index.html")
+    must(html, "Ice Brace", "index.html")
+    must(html, "Lodge Bowl", "index.html")
+    must(html, "Twin Ledges", "index.html")
     must(html, "angle · power · wind flag · Fire", "index.html")
     must(html, "You cannot buy a win", "index.html")
     must(html, 'id="btn-fire"', "index.html")
@@ -68,14 +72,22 @@ def main() -> int:
     must(game, 'name: "Snowball", dmg: 15, blast: 36', "game.js")
     must(game, 'name: "Dynamite", dmg: 45, blast: 48', "game.js")
     must(game, 'name: "Sap Bomb", dmg: 30, blast: 40', "game.js")
+    must(game, 'name: "Lodge Mortar", dmg: 38, blast: 42', "game.js")
+    must(game, 'name: "Ice Brace", dmg: 0', "game.js")
     must(game, "const FUSE_SEC = 2", "game.js")
     must(game, "const SAP_TICKS = 2", "game.js")
     must(game, "const CRATE_EVERY = 3", "game.js")
-    must(game, "const DYN_COST = 12", "game.js")
-    must(game, "const SAP_COST = 10", "game.js")
+    must(game, "const DYN_COST = 35", "game.js")
+    must(game, "const SAP_COST = 30", "game.js")
+    must(game, "const MORTAR_COST = 45", "game.js")
+    must(game, "const ICE_COST = 28", "game.js")
+    must(game, "const START_COINS = 80", "game.js")
+    must(game, 'id: "ledges"', "game.js")
+    must(game, "function placeIceWall(", "game.js")
     must_re(game, r"return \(Math\.random\(\) \* 9 \| 0\) - 4", "game.js")
-    must(game, "xs: [108, 236, 364]", "game.js")
-    must(game, "xs: [916, 1044, 1172]", "game.js")
+    must(game, "lodge: [108, 236, 364]", "game.js")
+    must(game, "creek: [916, 1044, 1172]", "game.js")
+    must(game, "lodge: [110, 210, 310]", "game.js")
     must(game, "carve(", "game.js")
     must(game, "b.airborne = false", "game.js")
     must(game, "flying ? img.fly : img.idle", "game.js")
@@ -88,6 +100,8 @@ def main() -> int:
     must(lore, "Was Yeet", "lore.js")
     must(lore, "assets/history/was-yeet.jpg", "lore.js")
     must(lore, "assets/history/bank-fight.jpg", "lore.js")
+    must(lore, "assets/history/twin-ledges.jpg", "lore.js")
+    must(lore, "Twin Ledges", "lore.js")
     must(readme, "Bober Yeet War", "README.md")
 
     for path, text in (
@@ -110,6 +124,8 @@ def main() -> int:
         "assets/sprites/snowball.png",
         "assets/sprites/dynamite.png",
         "assets/sprites/sap-bomb.png",
+        "assets/sprites/mortar.png",
+        "assets/sprites/ice-brace.png",
         "assets/sprites/crate.png",
         "assets/sprites/splash-hero.png",
         "assets/sprites/bober-idle.png",
@@ -117,6 +133,7 @@ def main() -> int:
         "assets/history/bank-fight.jpg",
         "assets/history/aim-wind.jpg",
         "assets/history/crate-gear.jpg",
+        "assets/history/twin-ledges.jpg",
         "assets/icons/bober-yeet-war.ico",
     ):
         if not (ROOT / rel).exists():

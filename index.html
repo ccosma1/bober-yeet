@@ -24,6 +24,7 @@
             <span id="wind-val">WIND 0</span>
           </div>
           <div class="chip" id="phase-chip">AIM</div>
+          <div class="chip" id="map-chip">LODGE BOWL</div>
           <div class="chip coin-chip" id="coin-chip">$BOBER 0</div>
         </div>
         <div class="btns">
@@ -57,6 +58,14 @@
           <img src="assets/sprites/sap-bomb.png" alt="" />
           <span>Sap Bomb <small id="ammo-sap">0</small></span>
         </button>
+        <button type="button" class="wep" id="w-mortar" data-w="mortar">
+          <img src="assets/sprites/mortar.png" alt="" />
+          <span>Lodge Mortar <small id="ammo-mortar">0</small></span>
+        </button>
+        <button type="button" class="wep" id="w-ice" data-w="ice">
+          <img src="assets/sprites/ice-brace.png" alt="" />
+          <span>Ice Brace <small id="ammo-ice">0</small></span>
+        </button>
       </div>
       <div class="aim-row">
         <button type="button" class="btn fat" id="ang-l" aria-label="Angle left">◄</button>
@@ -75,6 +84,16 @@
       <h1>BOBER YEET WAR</h1>
       <p class="mission">Aim, power, wind. Dig cover. Last beaver standing.</p>
       <p class="tagline">Fan game by a holder.</p>
+      <div class="map-pick" id="splash-maps">
+        <button type="button" class="map-card on" data-map="bowl">
+          <img src="assets/sprites/bank-sky.jpg" alt="" />
+          <span>Lodge Bowl</span>
+        </button>
+        <button type="button" class="map-card" data-map="ledges">
+          <img src="assets/history/twin-ledges.jpg" alt="" />
+          <span>Twin Ledges</span>
+        </button>
+      </div>
       <div class="end-actions">
         <button class="play" id="btn-play" type="button">START</button>
       </div>
@@ -93,8 +112,8 @@
       <div class="howto-body">
         <p>Drag back to set <strong>angle</strong>. Charge <strong>power</strong> 0–100. Read the <strong>wind flag</strong>. Fire.</p>
         <p>Hits dig the bank and hurt <strong>HP</strong>. Falloff at the blast edge. Creek and void below = out. Last beaver standing wins.</p>
-        <p><strong>Crates</strong> drop every 3 turns. Walk onto one for Dynamite, Sap Bomb, or $BOBER.</p>
-        <p>Between matches, spend $BOBER on extra charges. Stick and Snowball stay infinite. You cannot buy a win.</p>
+        <p><strong>Crates</strong> drop every 3 turns. Walk onto one for Dynamite, Sap, Lodge Mortar, Ice Brace, or $BOBER.</p>
+        <p>Pick a map: Lodge Bowl or Twin Ledges. Between matches, spend $BOBER on extra charges. Stick and Snowball stay infinite. You cannot buy a win.</p>
       </div>
       <button class="play" id="howto-close" type="button">GOT IT</button>
     </div>
@@ -107,7 +126,7 @@
           <div>
             <strong>Dynamite</strong>
             <span>45 dmg · blast 48 · fuse ~2s</span>
-            <span class="shop-cost">12 $BOBER · owned <b id="shop-dyn-n">0</b></span>
+            <span class="shop-cost">35 $BOBER · owned <b id="shop-dyn-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-dynamite">BUY</button>
         </div>
@@ -116,9 +135,27 @@
           <div>
             <strong>Sap Bomb</strong>
             <span>30 dmg · blast 40 · sticky 2 ticks</span>
-            <span class="shop-cost">10 $BOBER · owned <b id="shop-sap-n">0</b></span>
+            <span class="shop-cost">30 $BOBER · owned <b id="shop-sap-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-sap">BUY</button>
+        </div>
+        <div class="shop-row">
+          <img src="assets/sprites/mortar.png" alt="" />
+          <div>
+            <strong>Lodge Mortar</strong>
+            <span>38 dmg · blast 42 · high lob</span>
+            <span class="shop-cost">45 $BOBER · owned <b id="shop-mortar-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-mortar">BUY</button>
+        </div>
+        <div class="shop-row">
+          <img src="assets/sprites/ice-brace.png" alt="" />
+          <div>
+            <strong>Ice Brace</strong>
+            <span>0 dmg · ice wall 60 HP · 2 turns</span>
+            <span class="shop-cost">28 $BOBER · owned <b id="shop-ice-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-ice">BUY</button>
         </div>
       </div>
       <p class="shop-note">Charges only. You cannot buy a win. No wallet.</p>
@@ -131,6 +168,16 @@
       <h2 id="end-title">YEET!</h2>
       <p id="end-msg"></p>
       <p class="board-sub" id="end-coins"></p>
+      <div class="map-pick" id="end-maps">
+        <button type="button" class="map-card on" data-map="bowl">
+          <img src="assets/sprites/bank-sky.jpg" alt="" />
+          <span>Lodge Bowl</span>
+        </button>
+        <button type="button" class="map-card" data-map="ledges">
+          <img src="assets/history/twin-ledges.jpg" alt="" />
+          <span>Twin Ledges</span>
+        </button>
+      </div>
       <div class="end-actions">
         <button class="play" id="end-restart" type="button">REMATCH</button>
         <button class="play play-ghost" id="end-splash" type="button">SPLASH</button>

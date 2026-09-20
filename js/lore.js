@@ -53,7 +53,25 @@
       cat: "War",
       title: "Crates",
       img: "assets/history/crate-gear.jpg",
-      blurb: "Every three turns a crate lands on solid ground. Walk on: Dynamite, Sap, or $BOBER. Between matches, spend coins on extra charges.",
+      blurb: "Every three turns a crate lands on solid ground. Walk on: Dynamite, Sap, Lodge Mortar, Ice Brace, or $BOBER. Between matches, spend coins on extra charges.",
+    },
+    {
+      cat: "War",
+      title: "Twin Ledges",
+      img: "assets/history/twin-ledges.jpg",
+      blurb: "Two high banks, a thin ice bridge, water in the ditch. Cut the bridge and the crews are cut off. Lodge Bowl is the other room.",
+    },
+    {
+      cat: "War",
+      title: "Lodge Mortar",
+      img: "assets/sprites/mortar.png",
+      blurb: "Thirty-eight sting, blast 42, a high lob. One charge. Soft preview. Not a win button.",
+    },
+    {
+      cat: "War",
+      title: "Ice Brace",
+      img: "assets/sprites/ice-brace.png",
+      blurb: "No sting. A wall of ice, sixty HP, two turns, then melt. Blocks shots and a short step.",
     },
   ];
 
@@ -62,6 +80,7 @@
     CARDS[2],
     CARDS[3],
     CARDS[8],
+    CARDS[9],
   ];
 
   function $(id) {
