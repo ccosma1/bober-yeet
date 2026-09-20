@@ -5,7 +5,7 @@
       cat: "Bober",
       title: "The beaver",
       img: "assets/sprites/splash-hero.png",
-      blurb: "Square wood head, paddle tail, snow in the fur. Calm on the bank. He aims a stick across five rooms.",
+      blurb: "Square wood head, paddle tail, snow in the fur. Calm on the bank. He aims a stick across ten rooms.",
     },
     {
       cat: "Map",
@@ -36,6 +36,36 @@
       title: "Methane Shelf",
       img: "assets/history/methane-shelf.jpg",
       blurb: "Uranus ice. Left shelf high, right shelf mid. Thin brittle teal. Dark methane below. Miss the shelf and you sink.",
+    },
+    {
+      cat: "Map",
+      title: "Acid Vents",
+      img: "assets/history/acid-vents.jpg",
+      blurb: "Venus. Twin sulfur shelves, bubbling acid in the gap. No bridge. Fall in the vents and you are cooked.",
+    },
+    {
+      cat: "Map",
+      title: "Ring Span",
+      img: "assets/history/ring-span.jpg",
+      blurb: "Saturn. Staggered gold chunks, a thin ring-bridge mid, void below. Cut the ring and the crews are cut off.",
+    },
+    {
+      cat: "Map",
+      title: "Deep Pack",
+      img: "assets/history/deep-pack.jpg",
+      blurb: "Neptune. Tall blue ice stacks, a narrow mid channel, deep water. Miss the pack and you sink.",
+    },
+    {
+      cat: "Map",
+      title: "Frost Pit",
+      img: "assets/history/frost-pit.jpg",
+      blurb: "Pluto. High rim spawns, a low snow bowl in the center. Soft pit, not a hole. Dig the packed snow.",
+    },
+    {
+      cat: "Map",
+      title: "Dock Notch",
+      img: "assets/history/dock-notch.jpg",
+      blurb: "Asteroid. Irregular rock notches, a floating mid island, void on the sides. The island can be dug away.",
     },
     {
       cat: "Gun",
@@ -74,21 +104,32 @@
       blurb: "No sting. A wall of ice, sixty HP, two turns, then melt. Blocks shots and a short step.",
     },
     {
+      cat: "Gun",
+      title: "Pinecone Cluster",
+      img: "assets/sprites/pinecone.png",
+      blurb: "Twelve sting three times, blast 22 each. Splits after the apex. One charge.",
+    },
+    {
+      cat: "Gun",
+      title: "Woodchip Mine",
+      img: "assets/sprites/woodchip-mine.png",
+      blurb: "Forty sting, blast 30. Plants on hit. Arms next turn. Step on it and it pops.",
+    },
+    {
+      cat: "Gun",
+      title: "Bark Buckler",
+      img: "assets/sprites/bark-buckler.png",
+      blurb: "No sting. Thirty-five temp shield on the active Bober, two turns. One charge.",
+    },
+    {
       cat: "Gear",
       title: "Crates and shop",
       img: "assets/history/crate-gear.jpg",
-      blurb: "Every three turns a crate lands on solid ground. Tap SHOP mid-match to buy Dynamite, Sap, Lodge Mortar, or Ice Brace with $BOBER.",
+      blurb: "Every three turns a crate lands on solid ground. Tap SHOP mid-match to buy charges with $BOBER. Short on coins? The shop says how many more you need.",
     },
   ];
 
-  const STILLS = [
-    CARDS[1],
-    CARDS[2],
-    CARDS[3],
-    CARDS[4],
-    CARDS[5],
-    CARDS[12],
-  ];
+  const STILLS = CARDS.filter((c) => c.cat === "Map" || c.cat === "Gear");
 
   function $(id) {
     return document.getElementById(id);

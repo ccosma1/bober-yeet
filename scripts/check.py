@@ -54,11 +54,19 @@ def main() -> int:
     must(html, "Sap Bomb", "index.html")
     must(html, "Lodge Mortar", "index.html")
     must(html, "Ice Brace", "index.html")
+    must(html, "Pinecone Cluster", "index.html")
+    must(html, "Woodchip Mine", "index.html")
+    must(html, "Bark Buckler", "index.html")
     must(html, "Lodge Bowl", "index.html")
     must(html, "Twin Ledges", "index.html")
     must(html, "Red Mesa", "index.html")
     must(html, "Crater Rim", "index.html")
     must(html, "Methane Shelf", "index.html")
+    must(html, "Acid Vents", "index.html")
+    must(html, "Ring Span", "index.html")
+    must(html, "Deep Pack", "index.html")
+    must(html, "Frost Pit", "index.html")
+    must(html, "Dock Notch", "index.html")
     must(html, "angle · power · wind flag · Fire", "index.html")
     must(html, "You cannot buy a win", "index.html")
     must(html, 'id="btn-fire"', "index.html")
@@ -68,8 +76,11 @@ def main() -> int:
     must(html, "HISTORY", "index.html")
     must(html, "$BOBER", "index.html")
     must(html, 'id="btn-shop"', "index.html")
-    must(html, 'id="tilt-play"', "index.html")
-    must(html, "tilt to landscape", "index.html")
+    must(html, 'id="tray-l"', "index.html")
+    must(html, 'id="tray-r"', "index.html")
+    forbid(html, "tilt-play", "index.html")
+    forbid(html, "PLAY ANYWAY", "index.html")
+    forbid(html, "tilt to landscape", "index.html")
 
     must(css, "min-height: 55vh", "game.css")
     must(css, "min-height: 62dvh", "game.css")
@@ -77,8 +88,9 @@ def main() -> int:
     must(css, "max-height: 28dvh", "game.css")
     must(css, "overflow-x: auto", "game.css")
     must(css, "env(safe-area-inset-bottom)", "game.css")
-    must(css, "portrait-block", "game.css")
     must(css, "object-fit: cover", "game.css")
+    must(css, "tray-chev", "game.css")
+    forbid(css, "portrait-block", "game.css")
 
     must(game, "const HP_MAX = 100", "game.js")
     must(game, 'name: "Yeet Stick", dmg: 25, blast: 28', "game.js")
@@ -87,6 +99,9 @@ def main() -> int:
     must(game, 'name: "Sap Bomb", dmg: 30, blast: 40', "game.js")
     must(game, 'name: "Lodge Mortar", dmg: 38, blast: 42', "game.js")
     must(game, 'name: "Ice Brace", dmg: 0', "game.js")
+    must(game, 'name: "Pinecone Cluster", dmg: 12, blast: 22', "game.js")
+    must(game, 'name: "Woodchip Mine", dmg: 40, blast: 30', "game.js")
+    must(game, 'name: "Bark Buckler", dmg: 0', "game.js")
     must(game, "const FUSE_SEC = 2", "game.js")
     must(game, "const SAP_TICKS = 2", "game.js")
     must(game, "const CRATE_EVERY = 3", "game.js")
@@ -94,11 +109,19 @@ def main() -> int:
     must(game, "const SAP_COST = 30", "game.js")
     must(game, "const MORTAR_COST = 45", "game.js")
     must(game, "const ICE_COST = 28", "game.js")
+    must(game, "const PINE_COST = 40", "game.js")
+    must(game, "const MINE_COST = 32", "game.js")
+    must(game, "const BUCK_COST = 26", "game.js")
     must(game, "const START_COINS = 80", "game.js")
     must(game, 'id: "ledges"', "game.js")
     must(game, 'id: "mesa"', "game.js")
     must(game, 'id: "crater"', "game.js")
     must(game, 'id: "methane"', "game.js")
+    must(game, 'id: "acid"', "game.js")
+    must(game, 'id: "ring"', "game.js")
+    must(game, 'id: "pack"', "game.js")
+    must(game, 'id: "frost"', "game.js")
+    must(game, 'id: "dock"', "game.js")
     must(game, "function placeIceWall(", "game.js")
     must_re(game, r"return \(Math\.random\(\) \* 9 \| 0\) - 4", "game.js")
     must(game, "lodge: [180, 280, 380]", "game.js")
@@ -112,6 +135,14 @@ def main() -> int:
     must(game, "mesa-ground.png", "game.js")
     must(game, "crater-ground.png", "game.js")
     must(game, "methane-ground.png", "game.js")
+    must(game, "acid-ground.png", "game.js")
+    must(game, "ring-ground.png", "game.js")
+    must(game, "pack-ground.png", "game.js")
+    must(game, "frost-ground.png", "game.js")
+    must(game, "dock-ground.png", "game.js")
+    must(game, "function plantMine(", "game.js")
+    must(game, "function splitPine(", "game.js")
+    must(game, "NEED \" + (cost - coins) + \" MORE $BOBER", "game.js")
     must(html, 'id="btn-shop"', "index.html")
     must(html, 'id="btn-fire"', "index.html")
     must(html, ">SHOP<", "index.html")
@@ -127,7 +158,8 @@ def main() -> int:
     must(game, "YOU WIN", "game.js")
     must(game, "YOU LOSE", "game.js")
     must(game, "function fightSpan(", "game.js")
-    must(game, "function syncTilt(", "game.js")
+    must(game, "function syncOrient(", "game.js")
+    must(game, "function scrollTray(", "game.js")
     must(game, "function drawSkyCover(", "game.js")
     must(game, "Math.max(sW, sH)", "game.js")
 
@@ -136,9 +168,17 @@ def main() -> int:
     must(lore, "Red Mesa", "lore.js")
     must(lore, "Crater Rim", "lore.js")
     must(lore, "Methane Shelf", "lore.js")
+    must(lore, "Acid Vents", "lore.js")
+    must(lore, "Ring Span", "lore.js")
+    must(lore, "Deep Pack", "lore.js")
+    must(lore, "Frost Pit", "lore.js")
+    must(lore, "Dock Notch", "lore.js")
     must(lore, "Yeet Stick", "lore.js")
     must(lore, "Lodge Mortar", "lore.js")
     must(lore, "Ice Brace", "lore.js")
+    must(lore, "Pinecone Cluster", "lore.js")
+    must(lore, "Woodchip Mine", "lore.js")
+    must(lore, "Bark Buckler", "lore.js")
     must(lore, "assets/history/twin-ledges.jpg", "lore.js")
     must(lore, "Green Home to deep space", "lore.js")
     must(readme, "Bober Yeet War", "README.md")
@@ -160,8 +200,8 @@ def main() -> int:
     forbid(html, "js/scores.js", "index.html")
 
     cards = html.count('class="map-card')
-    if cards < 10:
-        FAILS.append("need 5 map cards on splash and end (got %d)" % cards)
+    if cards < 20:
+        FAILS.append("need 10 map cards on splash and end (got %d)" % cards)
 
     for rel in (
         "assets/sprites/yeet-stick.png",
@@ -170,6 +210,9 @@ def main() -> int:
         "assets/sprites/sap-bomb.png",
         "assets/sprites/mortar.png",
         "assets/sprites/ice-brace.png",
+        "assets/sprites/pinecone.png",
+        "assets/sprites/woodchip-mine.png",
+        "assets/sprites/bark-buckler.png",
         "assets/sprites/crate.png",
         "assets/sprites/splash-hero.png",
         "assets/sprites/bober-idle.png",
@@ -181,15 +224,30 @@ def main() -> int:
         "assets/history/red-mesa.jpg",
         "assets/history/crater-rim.jpg",
         "assets/history/methane-shelf.jpg",
+        "assets/history/acid-vents.jpg",
+        "assets/history/ring-span.jpg",
+        "assets/history/deep-pack.jpg",
+        "assets/history/frost-pit.jpg",
+        "assets/history/dock-notch.jpg",
         "assets/sprites/ledges-ground.png",
         "assets/sprites/bowl-ground.png",
         "assets/sprites/mesa-ground.png",
         "assets/sprites/crater-ground.png",
         "assets/sprites/methane-ground.png",
+        "assets/sprites/acid-ground.png",
+        "assets/sprites/ring-ground.png",
+        "assets/sprites/pack-ground.png",
+        "assets/sprites/frost-ground.png",
+        "assets/sprites/dock-ground.png",
         "assets/sprites/stage-sky.jpg",
         "assets/sprites/sky-mars.jpg",
         "assets/sprites/sky-moon.jpg",
         "assets/sprites/sky-uranus.jpg",
+        "assets/sprites/sky-venus.jpg",
+        "assets/sprites/sky-saturn.jpg",
+        "assets/sprites/sky-neptune.jpg",
+        "assets/sprites/sky-pluto.jpg",
+        "assets/sprites/sky-asteroid.jpg",
         "assets/icons/bober-yeet-war.ico",
     ):
         if not (ROOT / rel).exists():

@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war3c"
+URL = "http://127.0.0.1:8765/?v=war4"
 
 
 def shot(page, name):
@@ -98,7 +98,7 @@ def assert_chrome_fits(page, vp_w, vp_h, landscape=False):
     assert dock["y"] + dock["height"] <= vp_h + 1
     if landscape:
         assert dock["height"] / vp_h <= 0.28 + 0.02
-    ids = ["w-stick", "w-snow", "w-dynamite", "w-sap", "w-mortar", "w-ice"]
+    ids = ["w-stick", "w-snow", "w-dynamite", "w-sap", "w-mortar", "w-ice", "w-pine", "w-mine", "w-buckler"]
     for wid in ids:
         loc = page.locator("#" + wid)
         loc.scroll_into_view_if_needed()
@@ -151,13 +151,21 @@ def main():
         assert "team17" not in low
         assert page.locator("#btn-play").inner_text() == "START"
         assert page.locator("#btn-howto").inner_text() == "HOW TO PLAY"
-        assert page.locator("#splash-maps .map-card").count() == 5
+        assert page.locator("#splash-maps .map-card").count() == 10
         splash_maps = page.locator("#splash-maps").inner_text()
-        assert "Lodge Bowl" in splash_maps
-        assert "Twin Ledges" in splash_maps
-        assert "Red Mesa" in splash_maps
-        assert "Crater Rim" in splash_maps
-        assert "Methane Shelf" in splash_maps
+        for name in (
+            "Lodge Bowl",
+            "Twin Ledges",
+            "Red Mesa",
+            "Crater Rim",
+            "Methane Shelf",
+            "Acid Vents",
+            "Ring Span",
+            "Deep Pack",
+            "Frost Pit",
+            "Dock Notch",
+        ):
+            assert name in splash_maps
         shot(page, "test-splash.png")
 
         page.click("#btn-howto")
@@ -167,14 +175,16 @@ def main():
         assert "HP" in how
         assert "out" in how.lower()
         assert "crate" in how.lower()
-        assert "landscape" in how.lower()
+        assert "chevron" in how.lower() or "◀" in how or "▶" in how
+        assert "tilt" not in how.lower()
+        assert "Pinecone" in how
         assert "Red Mesa" in how
         shot(page, "test-howto.png")
         page.click("#howto-close")
 
         page.click("#btn-history")
         page.wait_for_timeout(250)
-        assert page.locator("#history .museum-card").count() >= 5
+        assert page.locator("#history .museum-card").count() >= 10
         page.locator("#history .museum-card").nth(0).click()
         page.wait_for_timeout(200)
         det = page.locator("#history-detail").inner_text()
@@ -185,7 +195,7 @@ def main():
 
         page.click("#btn-museum")
         page.wait_for_timeout(200)
-        assert page.locator("#museum .museum-card").count() >= 12
+        assert page.locator("#museum .museum-card").count() >= 18
         shot(page, "test-museum.png")
         page.click("#museum-close")
 
@@ -347,16 +357,30 @@ def main():
         assert "35 $BOBER" in shop
         assert "45 $BOBER" in shop
         assert "28 $BOBER" in shop
+        assert "40 $BOBER" in shop
+        assert "32 $BOBER" in shop
+        assert "26 $BOBER" in shop
         assert "cannot buy a win" in shop.lower()
         shot(page, "test-shop.png")
+        page.evaluate("() => window.__yeetWar.setCoins(10)")
+        page.wait_for_timeout(80)
+        need = page.locator("#buy-mortar").inner_text()
+        print("NEED BTN", need)
+        assert "NEED" in need and "MORE $BOBER" in need
         page.evaluate("() => window.__yeetWar.setCoins(200)")
         page.wait_for_timeout(80)
         page.click("#buy-mortar")
         page.click("#buy-ice")
+        page.click("#buy-pine")
+        page.click("#buy-mine")
+        page.click("#buy-buckler")
         s = snap(page)
         print("BUY", s["coins"], s["ammo"])
         assert s["ammo"]["lodge"]["mortar"] >= 1
         assert s["ammo"]["lodge"]["ice"] >= 1
+        assert s["ammo"]["lodge"]["pine"] >= 1
+        assert s["ammo"]["lodge"]["mine"] >= 1
+        assert s["ammo"]["lodge"]["buckler"] >= 1
         page.click("#shop-play")
         wait_phase(page, "aim", timeout=8000)
         page.evaluate(
@@ -382,6 +406,11 @@ def main():
             ("mesa", "test-map-mesa.png"),
             ("crater", "test-map-crater.png"),
             ("methane", "test-map-methane.png"),
+            ("acid", "test-map-acid.png"),
+            ("ring", "test-map-ring.png"),
+            ("pack", "test-map-pack.png"),
+            ("frost", "test-map-frost.png"),
+            ("dock", "test-map-dock.png"),
         ):
             page.evaluate("(id) => window.__yeetWar.setMap(id)", mid)
             page.evaluate("() => window.__yeetWar.startMatch()")
@@ -402,12 +431,8 @@ def main():
         page.wait_for_timeout(400)
         app_cls = page.locator("#app").get_attribute("class") or ""
         print("PORTRAIT APP", app_cls)
-        assert "portrait-block" in app_cls
-        assert "hidden" not in (page.locator("#tilt-play").get_attribute("class") or "")
-        shot(page, "test-tilt-mobile.png")
-        page.click("#tilt-anyway")
-        page.wait_for_timeout(200)
-        assert "portrait-block" not in (page.locator("#app").get_attribute("class") or "")
+        assert "portrait-block" not in app_cls
+        assert page.locator("#tilt-play").count() == 0
         fire = page.locator("#btn-fire").bounding_box()
         stage = page.locator("#stage").bounding_box()
         vp_h = 844
@@ -452,7 +477,9 @@ def main():
             page.evaluate("() => window.__yeetWar.startMatch()")
             wait_phase(page, "aim", timeout=10000)
             page.wait_for_timeout(500)
-            assert "portrait-block" not in (page.locator("#app").get_attribute("class") or "")
+            assert page.locator("#tilt-play").count() == 0
+            assert page.locator("#tray-l").count() == 1
+            assert page.locator("#tray-r").count() == 1
             stage = page.locator("#stage").bounding_box()
             print("LAND STAGE", map_id, stage)
             assert stage and stage["height"] / 390 >= 0.62
@@ -483,6 +510,9 @@ def main():
             assert snap(page)["phase"] == "aim"
             page.click("#shop-play")
             wait_phase(page, "aim", timeout=5000)
+            page.click("#tray-r")
+            page.wait_for_timeout(80)
+            page.click("#tray-r")
             page.locator("#w-mortar").scroll_into_view_if_needed()
             page.click("#w-mortar")
             page.wait_for_timeout(80)

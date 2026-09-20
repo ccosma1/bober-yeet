@@ -26,6 +26,7 @@
           <div class="chip" id="phase-chip">AIM</div>
           <div class="chip" id="map-chip">LODGE BOWL</div>
           <button type="button" class="chip coin-chip" id="coin-chip" title="Shop">$BOBER 0</button>
+          <div class="chip" id="wep-chip">YEET STICK</div>
           <button class="btn shop-hud" id="btn-shop" title="Shop" aria-label="Shop">SHOP</button>
         </div>
         <div class="btns">
@@ -40,38 +41,51 @@
         <p>Drag back to aim. Tap a Lodge Bober to switch. Tap the bank to take a short step. Fire when ready.</p>
         <button type="button" id="aim-tut-ok">GOT IT</button>
       </div>
-      <div id="tilt-play" class="hidden">
-        <p>Tilt the phone — full bank</p>
-        <button type="button" id="tilt-anyway">PLAY ANYWAY</button>
-      </div>
     </div>
     <div id="dock" class="hidden">
-      <div class="weapons">
-        <button type="button" class="wep on" id="w-stick" data-w="stick">
-          <img src="assets/sprites/yeet-stick.png" alt="" />
-          <span>Yeet Stick <small>INF</small></span>
-        </button>
-        <button type="button" class="wep" id="w-snow" data-w="snow">
-          <img src="assets/sprites/snowball.png" alt="" />
-          <span>Snowball <small>INF</small></span>
-        </button>
-        <button type="button" class="wep" id="w-dynamite" data-w="dynamite">
-          <img src="assets/sprites/dynamite.png" alt="" />
-          <span>Dynamite <small id="ammo-dynamite">0</small></span>
-        </button>
-        <button type="button" class="wep" id="w-sap" data-w="sap">
-          <img src="assets/sprites/sap-bomb.png" alt="" />
-          <span>Sap Bomb <small id="ammo-sap">0</small></span>
-        </button>
-        <button type="button" class="wep" id="w-mortar" data-w="mortar">
-          <img src="assets/sprites/mortar.png" alt="" />
-          <span>Lodge Mortar <small id="ammo-mortar">0</small></span>
-        </button>
-        <button type="button" class="wep" id="w-ice" data-w="ice">
-          <img src="assets/sprites/ice-brace.png" alt="" />
-          <span>Ice Brace <small id="ammo-ice">0</small></span>
-        </button>
+      <div class="tray">
+        <button type="button" class="tray-chev" id="tray-l" aria-label="Scroll weapons left">◀</button>
+        <div class="weapons" id="weapons">
+          <button type="button" class="wep on" id="w-stick" data-w="stick">
+            <img src="assets/sprites/yeet-stick.png" alt="" />
+            <span>Yeet Stick <small>INF</small></span>
+          </button>
+          <button type="button" class="wep" id="w-snow" data-w="snow">
+            <img src="assets/sprites/snowball.png" alt="" />
+            <span>Snowball <small>INF</small></span>
+          </button>
+          <button type="button" class="wep" id="w-dynamite" data-w="dynamite">
+            <img src="assets/sprites/dynamite.png" alt="" />
+            <span>Dynamite <small id="ammo-dynamite">0</small></span>
+          </button>
+          <button type="button" class="wep" id="w-sap" data-w="sap">
+            <img src="assets/sprites/sap-bomb.png" alt="" />
+            <span>Sap Bomb <small id="ammo-sap">0</small></span>
+          </button>
+          <button type="button" class="wep" id="w-mortar" data-w="mortar">
+            <img src="assets/sprites/mortar.png" alt="" />
+            <span>Lodge Mortar <small id="ammo-mortar">0</small></span>
+          </button>
+          <button type="button" class="wep" id="w-ice" data-w="ice">
+            <img src="assets/sprites/ice-brace.png" alt="" />
+            <span>Ice Brace <small id="ammo-ice">0</small></span>
+          </button>
+          <button type="button" class="wep" id="w-pine" data-w="pine">
+            <img src="assets/sprites/pinecone.png" alt="" />
+            <span>Pinecone Cluster <small id="ammo-pine">0</small></span>
+          </button>
+          <button type="button" class="wep" id="w-mine" data-w="mine">
+            <img src="assets/sprites/woodchip-mine.png" alt="" />
+            <span>Woodchip Mine <small id="ammo-mine">0</small></span>
+          </button>
+          <button type="button" class="wep" id="w-buckler" data-w="buckler">
+            <img src="assets/sprites/bark-buckler.png" alt="" />
+            <span>Bark Buckler <small id="ammo-buckler">0</small></span>
+          </button>
+        </div>
+        <button type="button" class="tray-chev" id="tray-r" aria-label="Scroll weapons right">▶</button>
       </div>
+      <div class="wep-now" id="wep-now">Yeet Stick</div>
       <div class="aim-row">
         <button type="button" class="btn fat" id="ang-l" aria-label="Angle left">◄</button>
         <button type="button" class="btn fat" id="ang-r" aria-label="Angle right">►</button>
@@ -113,6 +127,26 @@
           <img src="assets/history/methane-shelf.jpg" alt="" />
           <span>Methane Shelf</span>
         </button>
+        <button type="button" class="map-card" data-map="acid">
+          <img src="assets/history/acid-vents.jpg" alt="" />
+          <span>Acid Vents</span>
+        </button>
+        <button type="button" class="map-card" data-map="ring">
+          <img src="assets/history/ring-span.jpg" alt="" />
+          <span>Ring Span</span>
+        </button>
+        <button type="button" class="map-card" data-map="pack">
+          <img src="assets/history/deep-pack.jpg" alt="" />
+          <span>Deep Pack</span>
+        </button>
+        <button type="button" class="map-card" data-map="frost">
+          <img src="assets/history/frost-pit.jpg" alt="" />
+          <span>Frost Pit</span>
+        </button>
+        <button type="button" class="map-card" data-map="dock">
+          <img src="assets/history/dock-notch.jpg" alt="" />
+          <span>Dock Notch</span>
+        </button>
       </div>
       <div class="end-actions">
         <button class="play" id="btn-play" type="button">START</button>
@@ -131,10 +165,9 @@
       <h2>HOW TO PLAY</h2>
       <div class="howto-body">
         <p>Drag back to set <strong>angle</strong>. Charge <strong>power</strong> 0–100. Read the <strong>wind flag</strong>. Fire.</p>
-        <p>Hits dig cover and hurt <strong>HP</strong>. Falloff at the blast edge. Creek, dust pit, void, or methane below = out. Last beaver standing wins.</p>
-        <p><strong>Crates</strong> drop every 3 turns. Walk onto one for Dynamite, Sap, Lodge Mortar, Ice Brace, or $BOBER. Tap <strong>SHOP</strong> mid-match to buy charges.</p>
-        <p>Five maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf. Stick and Snowball stay infinite. You cannot buy a win.</p>
-        <p class="howto-tilt">On a phone, <strong>tilt to landscape</strong> so the whole bank fills the screen.</p>
+        <p>Hits dig cover and hurt <strong>HP</strong>. Falloff at the blast edge. Creek, dust, void, methane, or acid below = out. Last beaver standing wins.</p>
+        <p><strong>Crates</strong> drop every 3 turns. Walk onto one for gear or $BOBER. Tap <strong>SHOP</strong> mid-match to buy charges. If you are short, the shop says how many more $BOBER you need.</p>
+        <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Stick and Snowball stay infinite. Use the tray <strong>◀ ▶</strong> chevrons (or swipe) to reach Lodge Mortar, Pinecone Cluster, Woodchip Mine, and Bark Buckler. You cannot buy a win.</p>
       </div>
       <button class="play" id="howto-close" type="button">GOT IT</button>
     </div>
@@ -178,6 +211,33 @@
           </div>
           <button type="button" class="play play-sm" id="buy-ice">BUY</button>
         </div>
+        <div class="shop-row">
+          <img src="assets/sprites/pinecone.png" alt="" />
+          <div>
+            <strong>Pinecone Cluster</strong>
+            <span>12 dmg × 3 · blast 22 each · splits after apex</span>
+            <span class="shop-cost">40 $BOBER · owned <b id="shop-pine-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-pine">BUY</button>
+        </div>
+        <div class="shop-row">
+          <img src="assets/sprites/woodchip-mine.png" alt="" />
+          <div>
+            <strong>Woodchip Mine</strong>
+            <span>40 dmg · blast 30 · arms next turn</span>
+            <span class="shop-cost">32 $BOBER · owned <b id="shop-mine-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-mine">BUY</button>
+        </div>
+        <div class="shop-row">
+          <img src="assets/sprites/bark-buckler.png" alt="" />
+          <div>
+            <strong>Bark Buckler</strong>
+            <span>0 dmg · +35 shield · 2 turns</span>
+            <span class="shop-cost">26 $BOBER · owned <b id="shop-buck-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-buckler">BUY</button>
+        </div>
       </div>
       <p class="shop-note">Charges only. You cannot buy a win. No wallet.</p>
       <div class="end-actions">
@@ -210,6 +270,26 @@
           <img src="assets/history/methane-shelf.jpg" alt="" />
           <span>Methane Shelf</span>
         </button>
+        <button type="button" class="map-card" data-map="acid">
+          <img src="assets/history/acid-vents.jpg" alt="" />
+          <span>Acid Vents</span>
+        </button>
+        <button type="button" class="map-card" data-map="ring">
+          <img src="assets/history/ring-span.jpg" alt="" />
+          <span>Ring Span</span>
+        </button>
+        <button type="button" class="map-card" data-map="pack">
+          <img src="assets/history/deep-pack.jpg" alt="" />
+          <span>Deep Pack</span>
+        </button>
+        <button type="button" class="map-card" data-map="frost">
+          <img src="assets/history/frost-pit.jpg" alt="" />
+          <span>Frost Pit</span>
+        </button>
+        <button type="button" class="map-card" data-map="dock">
+          <img src="assets/history/dock-notch.jpg" alt="" />
+          <span>Dock Notch</span>
+        </button>
       </div>
       <div class="end-actions">
         <button class="play" id="end-restart" type="button">REMATCH</button>
@@ -235,7 +315,6 @@
       <div id="history-detail" class="museum-detail hidden"></div>
       <button class="play" id="history-close" type="button">CLOSE</button>
     </div>
-    <div id="rotate-tip">Tip: landscape shows the whole bank</div>
   </div>
   <script src="js/audio.js"></script>
   <script src="js/lore.js"></script>

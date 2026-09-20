@@ -18,6 +18,9 @@
   const SAP_COST = 30;
   const MORTAR_COST = 45;
   const ICE_COST = 28;
+  const PINE_COST = 40;
+  const MINE_COST = 32;
+  const BUCK_COST = 26;
   const START_COINS = 80;
   const CRATE_EVERY = 3;
   const FUSE_SEC = 2;
@@ -25,7 +28,8 @@
   const SAP_TICKS = 2;
   const MAP_KEY = "bober-yeet-war-map";
   const GRANT_KEY = "bober-yeet-war-p2grant";
-  const PAID = ["dynamite", "sap", "mortar", "ice"];
+  const PAID = ["dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler"];
+  const WEP_IDS = ["stick", "snow", "dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler"];
   const LEDGES_PAD = 140;
   const BOWL_PAD = 80;
 
@@ -36,6 +40,9 @@
     sap: { id: "sap", name: "Sap Bomb", dmg: 30, blast: 40, r: 9, dot: SAP_DOT, ticks: SAP_TICKS, cost: SAP_COST },
     mortar: { id: "mortar", name: "Lodge Mortar", dmg: 38, blast: 42, r: 9, cost: MORTAR_COST, lob: true },
     ice: { id: "ice", name: "Ice Brace", dmg: 0, blast: 8, r: 8, cost: ICE_COST, wall: true },
+    pine: { id: "pine", name: "Pinecone Cluster", dmg: 12, blast: 22, r: 7, cost: PINE_COST, cluster: 3 },
+    mine: { id: "mine", name: "Woodchip Mine", dmg: 40, blast: 30, r: 8, cost: MINE_COST, mine: true },
+    buckler: { id: "buckler", name: "Bark Buckler", dmg: 0, blast: 0, r: 6, cost: BUCK_COST, shield: 35 },
   };
 
   const MAPS = {
@@ -109,6 +116,76 @@
       hazardColor: "#6ad4c8",
       under: "#0a2830",
       washFrom: 470,
+    },
+    acid: {
+      id: "acid",
+      name: "Acid Vents",
+      spawn: { lodge: [120, 200, 320], creek: [960, 1100, 1200] },
+      pad: 80,
+      plate: "acid",
+      sky: "skyVenus",
+      hazard: "acid",
+      hazardY: 660,
+      hazardWord: "COOKED",
+      hazardColor: "#c8e040",
+      under: "#5a4010",
+      washFrom: 520,
+    },
+    ring: {
+      id: "ring",
+      name: "Ring Span",
+      spawn: { lodge: [80, 160, 240], creek: [1000, 1100, 1180] },
+      pad: 70,
+      plate: "ring",
+      sky: "skySaturn",
+      hazard: "void",
+      hazardY: 680,
+      hazardWord: "VOID",
+      hazardColor: "#c8c0e0",
+      under: "#3a3018",
+      washFrom: 500,
+    },
+    pack: {
+      id: "pack",
+      name: "Deep Pack",
+      spawn: { lodge: [80, 160, 280], creek: [960, 1100, 1200] },
+      pad: 90,
+      plate: "pack",
+      sky: "skyNeptune",
+      hazard: "water",
+      hazardY: 670,
+      hazardWord: "SPLASH",
+      hazardColor: "#8ad4ff",
+      under: "#1a3048",
+      washFrom: 560,
+    },
+    frost: {
+      id: "frost",
+      name: "Frost Pit",
+      spawn: { lodge: [80, 160, 240], creek: [1000, 1100, 1200] },
+      pad: 40,
+      plate: "frost",
+      sky: "skyPluto",
+      hazard: "water",
+      hazardY: 690,
+      hazardWord: "SPLASH",
+      hazardColor: "#a8c4e8",
+      under: "#2a3040",
+      washFrom: 520,
+    },
+    dock: {
+      id: "dock",
+      name: "Dock Notch",
+      spawn: { lodge: [160, 220, 280], creek: [980, 1080, 1160] },
+      pad: 40,
+      plate: "dock",
+      sky: "skyAsteroid",
+      hazard: "void",
+      hazardY: 670,
+      hazardWord: "VOID",
+      hazardColor: "#c8c0e0",
+      under: "#1a1a1e",
+      washFrom: 480,
     },
   };
 
@@ -203,17 +280,18 @@
   let coins = 0;
   let matchCoins = 0;
   let ammo = {
-    lodge: { dynamite: 0, sap: 0, mortar: 0, ice: 0 },
-    creek: { dynamite: 0, sap: 0, mortar: 0, ice: 0 },
+    lodge: { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0 },
+    creek: { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0 },
   };
   let crates = [];
   let fuses = [];
   let walls = [];
+  let mines = [];
+  let pellets = [];
   let mapId = "bowl";
   let shopFrom = "splash";
   let howtoFrom = "splash";
   let shopOpen = false;
-  let tiltDismissed = false;
   let lastPortrait = null;
 
   function $(id) {
@@ -234,7 +312,7 @@
   }
 
   function emptyAmmo() {
-    return { dynamite: 0, sap: 0, mortar: 0, ice: 0 };
+    return { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0 };
   }
 
   function loadCoins() {
@@ -261,6 +339,9 @@
       sap: ammo.lodge.sap,
       mortar: ammo.lodge.mortar,
       ice: ammo.lodge.ice,
+      pine: ammo.lodge.pine,
+      mine: ammo.lodge.mine,
+      buckler: ammo.lodge.buckler,
     }));
     localStorage.setItem(MAP_KEY, mapId);
   }
@@ -630,6 +711,8 @@
           walkDir: 0,
           sapTicks: 0,
           sapT: 0,
+          shield: 0,
+          shieldTurns: 0,
         });
       });
     });
@@ -648,10 +731,15 @@
     if (!WEAPONS[id]) return false;
     if (!WEAPONS[id].inf && teamAmmo(turn, id) <= 0) return false;
     weapon = id;
-    ["stick", "snow", "dynamite", "sap", "mortar", "ice"].forEach((w) => {
+    WEP_IDS.forEach((w) => {
       const el = $("w-" + w);
       if (el) el.classList.toggle("on", w === id);
     });
+    const nm = WEAPONS[id].name;
+    const chip = $("wep-chip");
+    if (chip) chip.textContent = nm.toUpperCase();
+    const now = $("wep-now");
+    if (now) now.textContent = nm;
     return true;
   }
 
@@ -691,8 +779,14 @@
       const showTip = (phase === "aim" || phase === "cpu") && turnN <= 2;
       tipStrip.classList.toggle("hidden", !showTip);
     }
+    const nm = (WEAPONS[weapon] || WEAPONS.stick).name;
+    const chip = $("wep-chip");
+    if (chip) chip.textContent = nm.toUpperCase();
+    const now = $("wep-now");
+    if (now) now.textContent = nm;
     hudAim();
     hudShop();
+    syncTrayChevs();
   }
 
   function hudShop() {
@@ -703,12 +797,23 @@
       ["shop-sap-n", "sap", "buy-sap", SAP_COST],
       ["shop-mortar-n", "mortar", "buy-mortar", MORTAR_COST],
       ["shop-ice-n", "ice", "buy-ice", ICE_COST],
+      ["shop-pine-n", "pine", "buy-pine", PINE_COST],
+      ["shop-mine-n", "mine", "buy-mine", MINE_COST],
+      ["shop-buck-n", "buckler", "buy-buckler", BUCK_COST],
     ];
     ids.forEach((row) => {
       const nEl = $(row[0]);
       if (nEl) nEl.textContent = String(ammo.lodge[row[1]] || 0);
       const b = $(row[2]);
-      if (b) b.disabled = coins < row[3];
+      if (!b) return;
+      const need = row[3] - coins;
+      if (need > 0) {
+        b.disabled = true;
+        b.textContent = "NEED " + need + " MORE $BOBER";
+      } else {
+        b.disabled = false;
+        b.textContent = "BUY";
+      }
     });
     syncMapCards();
   }
@@ -734,16 +839,12 @@
   }
 
   function rollCrateKind() {
-    const r = Math.random();
-    if (r < 0.2) return "mortar";
-    if (r < 0.45) return "ice";
-    if (r < 0.75) return "dynamite";
-    if (r < 0.95) return "sap";
-    return "coin";
+    const bag = ["dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler", "coin", "dynamite", "ice"];
+    return bag[(Math.random() * bag.length) | 0];
   }
 
   function spawnCrate(kind, x) {
-    const kinds = ["dynamite", "sap", "coin", "mortar", "ice"];
+    const kinds = ["dynamite", "sap", "coin", "mortar", "ice", "pine", "mine", "buckler"];
     const k = kind && kinds.indexOf(kind) >= 0 ? kind : rollCrateKind();
     let cx = x;
     if (cx == null) {
@@ -781,7 +882,15 @@
       } else {
         ammo[b.team][c.kind] = (ammo[b.team][c.kind] || 0) + 1;
         saveCoins();
-        const tag = { sap: "SAP +1", dynamite: "DYN +1", mortar: "MORTAR +1", ice: "ICE +1" };
+        const tag = {
+          sap: "SAP +1",
+          dynamite: "DYN +1",
+          mortar: "MORTAR +1",
+          ice: "ICE +1",
+          pine: "PINE +1",
+          mine: "MINE +1",
+          buckler: "BUCKLER +1",
+        };
         pop(c.x, c.y, tag[c.kind] || "+1", "#ffe566");
       }
       hud();
@@ -795,6 +904,8 @@
     shot = null;
     dragging = false;
     meltOldWalls();
+    armMines();
+    tickShields();
     if (turnN > 0 && turnN % CRATE_EVERY === 0) spawnCrate();
     if (team === "lodge") {
       phase = "aim";
@@ -866,6 +977,16 @@
       ammo[b.team][wpn.id] -= 1;
       saveCoins();
     }
+    if (wpn.id === "buckler") {
+      b.shield = 35;
+      b.shieldTurns = 2;
+      pop(b.x, b.y - 28, "SHIELD +35", "#c8a060");
+      BoberSfx.pop();
+      phase = "settle";
+      settleT = 0.25;
+      hud();
+      return true;
+    }
     const nose = BOBER_R + 10;
     const vel = launchVel(angle, power, wpn.id);
     shot = {
@@ -879,6 +1000,7 @@
       owner: b.id,
       team: b.team,
       age: 0,
+      split: false,
     };
     phase = "fly";
     dragging = false;
@@ -923,7 +1045,14 @@
       const dist = Math.hypot(b.x - x, b.y - y);
       if (dist >= r + BOBER_R * 0.35) return;
       const fall = clamp(1 - dist / r, 0, 1);
-      const dmg = Math.max(1, Math.round(dmgMax * fall));
+      let dmg = Math.max(1, Math.round(dmgMax * fall));
+      if (b.shield > 0) {
+        const abs = Math.min(b.shield, dmg);
+        b.shield -= abs;
+        dmg -= abs;
+        pop(b.x, b.y - 40, "SHIELD -" + abs, "#c8a060");
+      }
+      if (dmg <= 0) return;
       b.hp -= dmg;
       hits.push({ id: b.id, name: b.name, dmg });
       pop(b.x, b.y - 28, "-" + dmg, "#ffe566");
@@ -946,9 +1075,13 @@
       }
     });
     lastBlast = { x, y, r, dmg: dmgMax, weapon: wpn.id, hits };
-    shot = null;
-    phase = "settle";
-    settleT = 0;
+    if (shot && Math.hypot(shot.x - x, shot.y - y) < 22) shot = null;
+    if (!shot && pellets.length === 0) {
+      phase = "settle";
+      settleT = 0;
+    } else {
+      phase = "fly";
+    }
     hud();
     maybeEnd();
   }
@@ -968,57 +1101,172 @@
       BoberSfx.splash();
     }
     shot = null;
-    phase = "settle";
-    settleT = 0.35;
+    if (!pellets.length) {
+      phase = "settle";
+      settleT = 0.35;
+    }
     hud();
   }
 
-  function onShotHit(x, y) {
-    if (!shot) return;
-    if (shot.weapon === "dynamite") plantFuse(x, y, "dynamite", shot.team);
-    else if (shot.weapon === "ice") {
+  function onShotHit(x, y, src) {
+    const s = src || shot;
+    if (!s) return;
+    bumpMines(x, y);
+    if (s.weapon === "dynamite") plantFuse(x, y, "dynamite", s.team);
+    else if (s.weapon === "ice") {
       placeIceWall(x, y);
-      shot = null;
+      if (s === shot) shot = null;
       phase = "settle";
       settleT = 0.2;
       hud();
-    } else explode(x, y, shot.weapon, shot.team);
+    } else if (s.weapon === "mine") {
+      plantMine(x, y, s.team);
+      if (s === shot) shot = null;
+      phase = "settle";
+      settleT = 0.2;
+      hud();
+    } else explode(x, y, s.weapon, s.team);
+    if (s !== shot && pellets.indexOf(s) >= 0) pellets.splice(pellets.indexOf(s), 1);
   }
 
-  function stepShot() {
-    if (!shot) return;
-    shot.vx += wind * WIND_K;
-    shot.vy += shot.grav || GRAV;
-    const steps = Math.max(1, Math.ceil(Math.hypot(shot.vx, shot.vy) / 4));
+  function flyOne(s, isMain) {
+    s.vx += wind * WIND_K;
+    s.vy += s.grav || GRAV;
+    const steps = Math.max(1, Math.ceil(Math.hypot(s.vx, s.vy) / 4));
     for (let i = 0; i < steps; i++) {
-      shot.x += shot.vx / steps;
-      shot.y += shot.vy / steps;
-      shot.age += 1 / steps;
-      if (shot.y >= hazardY()) {
-        splashShot();
-        return;
+      s.x += s.vx / steps;
+      s.y += s.vy / steps;
+      s.age += 1 / steps;
+      if (s.weapon === "pine" && !s.split && s.vy > 0 && s.age > 10) {
+        splitPine(s);
+        return "ok";
       }
-      if (shot.x < -40 || shot.x > WORLD_W + 40 || shot.y < -120) {
-        shot = null;
-        phase = "settle";
-        settleT = 0.25;
-        hud();
-        return;
+      if (s.y >= hazardY()) {
+        if (isMain) splashShot();
+        return "dead";
       }
-      if (solid(shot.x, shot.y)) {
-        onShotHit(shot.x, shot.y);
-        return;
+      if (s.x < -40 || s.x > WORLD_W + 40 || s.y < -120) {
+        if (isMain) {
+          shot = null;
+          phase = "settle";
+          settleT = 0.25;
+          hud();
+        }
+        return "dead";
+      }
+      if (solid(s.x, s.y)) {
+        onShotHit(s.x, s.y, s);
+        return "hit";
       }
       for (let k = 0; k < bobers.length; k++) {
         const b = bobers[k];
         if (!b.alive) continue;
-        if (shot.age < 6 && b.id === shot.owner) continue;
-        if (Math.hypot(b.x - shot.x, b.y - shot.y) < BOBER_R + shot.r) {
-          onShotHit(shot.x, shot.y);
-          return;
+        if (s.age < 6 && b.id === s.owner) continue;
+        if (Math.hypot(b.x - s.x, b.y - s.y) < BOBER_R + s.r) {
+          onShotHit(s.x, s.y, s);
+          return "hit";
         }
       }
     }
+    return "ok";
+  }
+
+  function splitPine(s) {
+    s.split = true;
+    const spd = Math.hypot(s.vx, s.vy) || 6;
+    const base = Math.atan2(s.vy, s.vx);
+    [-0.42, 0, 0.42].forEach((da, i) => {
+      const p = {
+        x: s.x,
+        y: s.y,
+        vx: Math.cos(base + da) * spd,
+        vy: Math.sin(base + da) * spd,
+        grav: s.grav,
+        r: 7,
+        weapon: "pine",
+        owner: s.owner,
+        team: s.team,
+        age: s.age,
+        split: true,
+      };
+      if (i === 1) {
+        s.vx = p.vx;
+        s.vy = p.vy;
+      } else pellets.push(p);
+    });
+    pop(s.x, s.y, "SPLIT", "#c08040");
+  }
+
+  function stepShot() {
+    if (shot) flyOne(shot, true);
+    for (let i = pellets.length - 1; i >= 0; i--) {
+      const st = flyOne(pellets[i], false);
+      if (st !== "ok") pellets.splice(i, 1);
+    }
+    if (!shot && !pellets.length && phase === "fly") {
+      phase = "settle";
+      settleT = 0.2;
+      hud();
+    }
+  }
+
+  function plantMine(x, y, team) {
+    const gy = surfaceY(x);
+    const mine = {
+      x: clamp(x | 0, 12, WORLD_W - 12),
+      y: clamp((gy - 10) | 0, 20, hazardY() - 12),
+      team: team || "lodge",
+      armed: false,
+      bornTurn: turnN,
+    };
+    mines.push(mine);
+    pop(mine.x, mine.y - 16, "MINE", "#c08040");
+    BoberSfx.chip();
+    return mine;
+  }
+
+  function armMines() {
+    mines.forEach((m) => {
+      if (!m.armed && turnN > m.bornTurn) {
+        m.armed = true;
+        pop(m.x, m.y - 14, "ARMED", "#ffe566");
+      }
+    });
+  }
+
+  function tickShields() {
+    bobers.forEach((b) => {
+      if (b.shieldTurns > 0) {
+        b.shieldTurns -= 1;
+        if (b.shieldTurns <= 0) {
+          b.shield = 0;
+          if (b.alive) pop(b.x, b.y - 20, "SHIELD OUT", "#c8a060");
+        }
+      }
+    });
+  }
+
+  function bumpMines(x, y) {
+    for (let i = mines.length - 1; i >= 0; i--) {
+      const m = mines[i];
+      if (!m.armed) continue;
+      if (Math.hypot(m.x - x, m.y - y) > 28) continue;
+      mines.splice(i, 1);
+      explode(m.x, m.y, "mine", m.team);
+    }
+  }
+
+  function stepMines() {
+    bobers.forEach((b) => {
+      if (!b.alive) return;
+      for (let i = mines.length - 1; i >= 0; i--) {
+        const m = mines[i];
+        if (!m.armed) continue;
+        if (Math.hypot(m.x - b.x, m.y - b.y) > 28) continue;
+        mines.splice(i, 1);
+        explode(m.x, m.y, "mine", m.team);
+      }
+    });
   }
 
   function stepFuses(dt) {
@@ -1173,7 +1421,6 @@
     const appEl = $("app");
     if (appEl) {
       appEl.classList.remove("live");
-      appEl.classList.remove("portrait-block");
     }
     dock.classList.add("hidden");
     if (tipStrip) tipStrip.classList.add("hidden");
@@ -1223,6 +1470,9 @@
   }
 
   function cpuPickWeapon() {
+    if (teamAmmo("creek", "buckler") > 0 && Math.random() < 0.12) return "buckler";
+    if (teamAmmo("creek", "pine") > 0 && Math.random() < 0.2) return "pine";
+    if (teamAmmo("creek", "mine") > 0 && Math.random() < 0.16) return "mine";
     if (teamAmmo("creek", "mortar") > 0 && Math.random() < 0.22) return "mortar";
     if (teamAmmo("creek", "ice") > 0 && Math.random() < 0.18) return "ice";
     if (teamAmmo("creek", "dynamite") > 0 && Math.random() < 0.28) return "dynamite";
@@ -1275,6 +1525,7 @@
     if (phase === "fly") stepShot();
     if (fuses.length && phase !== "ending" && phase !== "end") stepFuses(dt);
     bobers.forEach(stepBober);
+    stepMines();
     maybeEnd();
     if (phase === "ending") {
       endDelay -= dt;
@@ -1490,6 +1741,15 @@
         ctx.fillStyle = "#e8a020";
         ctx.fillText("SAP", b.x, b.y + h / 2 + 10);
       }
+      if (b.shield > 0) {
+        ctx.strokeStyle = "#c8a060";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, BOBER_R + 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "#c8a060";
+        ctx.fillText("SH " + b.shield, b.x, b.y + h / 2 + 10);
+      }
     }
     if (b.alive && b.id === activeId && (phase === "aim" || phase === "cpu")) {
       ctx.strokeStyle = b.team === "lodge" ? "#F5C400" : "#A8C4E8";
@@ -1537,6 +1797,9 @@
     if (id === "sap") return img.sap;
     if (id === "mortar") return img.mortar;
     if (id === "ice") return img.ice;
+    if (id === "pine") return img.pine;
+    if (id === "mine") return img.mine;
+    if (id === "buckler") return img.buckler;
     return img.stick;
   }
 
@@ -1564,6 +1827,10 @@
       wg.addColorStop(0, "rgba(180, 90, 40, 0.28)");
       wg.addColorStop(0.45, "rgba(120, 50, 20, 0.7)");
       wg.addColorStop(1, "rgba(50, 18, 8, 0.92)");
+    } else if (s.hazard === "acid") {
+      wg.addColorStop(0, "rgba(180, 200, 40, 0.35)");
+      wg.addColorStop(0.4, "rgba(120, 140, 20, 0.78)");
+      wg.addColorStop(1, "rgba(50, 70, 8, 0.94)");
     } else if (s.hazard === "void") {
       wg.addColorStop(0, "rgba(20, 16, 32, 0.2)");
       wg.addColorStop(0.4, "rgba(8, 8, 14, 0.85)");
@@ -1613,6 +1880,22 @@
         ctx.fillRect(c.x - 12, c.y - 12, 24, 24);
       }
     });
+    mines.forEach((m) => {
+      const spr = img.mine;
+      if (spr) ctx.drawImage(spr, m.x - 14, m.y - 14, 28, 28);
+      else {
+        ctx.fillStyle = m.armed ? "#c08040" : "#6a5030";
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (m.armed) {
+        ctx.fillStyle = "#ffe566";
+        ctx.font = "bold 10px Trebuchet MS, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("ARMED", m.x, m.y - 18);
+      }
+    });
 
     fuses.forEach((f) => {
       const spr = projSprite(f.weapon);
@@ -1660,11 +1943,11 @@
       }
     }
 
-    if (shot) {
-      const spr = projSprite(shot.weapon);
-      const rot = Math.atan2(shot.vy, shot.vx);
+    function drawProj(p) {
+      const spr = projSprite(p.weapon);
+      const rot = Math.atan2(p.vy, p.vx);
       ctx.save();
-      ctx.translate(shot.x, shot.y);
+      ctx.translate(p.x, p.y);
       ctx.rotate(rot);
       if (spr) ctx.drawImage(spr, -16, -16, 32, 32);
       else {
@@ -1675,6 +1958,8 @@
       }
       ctx.restore();
     }
+    if (shot) drawProj(shot);
+    pellets.forEach(drawProj);
 
     bits.forEach((p) => {
       ctx.save();
@@ -1787,7 +2072,7 @@
     const cost = wpn && wpn.cost;
     if (!cost) return false;
     if (coins < cost) {
-      toast("NEED $BOBER", true);
+      toast("NEED " + (cost - coins) + " MORE $BOBER", true);
       return false;
     }
     coins -= cost;
@@ -1811,6 +2096,8 @@
     crates = [];
     fuses = [];
     walls = [];
+    mines = [];
+    pellets = [];
     shopOpen = false;
     craterCount = 0;
     lastBlast = null;
@@ -1824,7 +2111,6 @@
     const appEl = $("app");
     if (appEl) appEl.classList.add("live");
     dock.classList.remove("hidden");
-    tiltDismissed = false;
     lastPortrait = null;
     camS = 1;
     camX = 0;
@@ -1839,7 +2125,7 @@
     beginTurn("lodge");
     showTut();
     hud();
-    syncTilt();
+    syncOrient();
     if (!wasRunning) requestAnimationFrame(loop);
   }
 
@@ -1852,28 +2138,37 @@
     const appEl = $("app");
     if (appEl) {
       appEl.classList.remove("live");
-      appEl.classList.remove("portrait-block");
     }
     dock.classList.add("hidden");
     if (tipStrip) tipStrip.classList.add("hidden");
-    const tilt = $("tilt-play");
-    if (tilt) tilt.classList.add("hidden");
     endcard.classList.add("hidden");
     shopEl.classList.add("hidden");
     howtoEl.classList.add("hidden");
     splash.classList.remove("hidden");
   }
 
-  function syncTilt() {
-    const appEl = $("app");
-    const tilt = $("tilt-play");
-    if (!appEl) return;
+  function syncOrient() {
     const portrait = window.innerHeight > window.innerWidth + 40;
     if (lastPortrait !== null && lastPortrait !== portrait) camInit = false;
     lastPortrait = portrait;
-    const block = running && portrait && !tiltDismissed && phase !== "splash" && phase !== "end";
-    appEl.classList.toggle("portrait-block", block);
-    if (tilt) tilt.classList.toggle("hidden", !block);
+    syncTrayChevs();
+  }
+
+  function syncTrayChevs() {
+    const el = $("weapons");
+    const l = $("tray-l");
+    const r = $("tray-r");
+    if (!el || !l || !r) return;
+    const max = Math.max(0, el.scrollWidth - el.clientWidth);
+    l.disabled = el.scrollLeft <= 4;
+    r.disabled = el.scrollLeft >= max - 4;
+  }
+
+  function scrollTray(dir) {
+    const el = $("weapons");
+    if (!el) return;
+    el.scrollBy({ left: dir * Math.max(96, el.clientWidth * 0.55), behavior: "smooth" });
+    setTimeout(syncTrayChevs, 180);
   }
 
   function onPointerDown(ev) {
@@ -2026,25 +2321,36 @@
       el.addEventListener("pointerdown", (e) => e.stopPropagation());
     });
     if (shopEl) shopEl.addEventListener("pointerdown", (e) => e.stopPropagation());
-    const tiltAnyway = $("tilt-anyway");
-    if (tiltAnyway) {
-      tiltAnyway.addEventListener("click", () => {
-        tiltDismissed = true;
-        syncTilt();
-      });
-    }
-    window.addEventListener("resize", syncTilt);
-    window.addEventListener("orientationchange", () => setTimeout(syncTilt, 80));
+    window.addEventListener("resize", syncOrient);
+    window.addEventListener("orientationchange", () => setTimeout(syncOrient, 80));
+    const wepsEl = $("weapons");
+    if (wepsEl) wepsEl.addEventListener("scroll", syncTrayChevs);
+    const trayL = $("tray-l");
+    const trayR = $("tray-r");
+    if (trayL) trayL.addEventListener("click", () => scrollTray(-1));
+    if (trayR) trayR.addEventListener("click", () => scrollTray(1));
     $("w-mortar").addEventListener("click", () => {
       if (!setWeapon("mortar")) toast("BUY A CHARGE", true);
     });
     $("w-ice").addEventListener("click", () => {
       if (!setWeapon("ice")) toast("BUY A CHARGE", true);
     });
+    $("w-pine").addEventListener("click", () => {
+      if (!setWeapon("pine")) toast("BUY A CHARGE", true);
+    });
+    $("w-mine").addEventListener("click", () => {
+      if (!setWeapon("mine")) toast("BUY A CHARGE", true);
+    });
+    $("w-buckler").addEventListener("click", () => {
+      if (!setWeapon("buckler")) toast("BUY A CHARGE", true);
+    });
     $("buy-dynamite").addEventListener("click", () => buy("dynamite"));
     $("buy-sap").addEventListener("click", () => buy("sap"));
     $("buy-mortar").addEventListener("click", () => buy("mortar"));
     $("buy-ice").addEventListener("click", () => buy("ice"));
+    $("buy-pine").addEventListener("click", () => buy("pine"));
+    $("buy-mine").addEventListener("click", () => buy("mine"));
+    $("buy-buckler").addEventListener("click", () => buy("buckler"));
     $("shop-play").addEventListener("click", () => {
       if (shopFrom === "match") closeShop();
       else startMatch();
@@ -2075,6 +2381,9 @@
       if (ev.key === "4") setWeapon("sap");
       if (ev.key === "5") setWeapon("mortar");
       if (ev.key === "6") setWeapon("ice");
+      if (ev.key === "7") setWeapon("pine");
+      if (ev.key === "8") setWeapon("mine");
+      if (ev.key === "9") setWeapon("buckler");
       if (ev.key === " " || ev.key === "Enter") {
         ev.preventDefault();
         tryFire();
@@ -2102,6 +2411,7 @@
       crates: crates.map((c) => ({ x: c.x, y: c.y, kind: c.kind })),
       fuses: fuses.map((f) => ({ x: f.x, y: f.y, t: f.t, weapon: f.weapon })),
       walls: walls.map((w) => ({ x: w.x, y: w.y, hp: w.hp })),
+      mines: mines.map((m) => ({ x: m.x, y: m.y, armed: m.armed })),
       view: {
         s: view.s,
         camX: view.camX,
@@ -2124,6 +2434,7 @@
         standing: b.standing,
         airborne: b.airborne,
         sapTicks: b.sapTicks,
+        shield: b.shield || 0,
       })),
     };
   }
@@ -2183,6 +2494,9 @@
     loadImage("assets/sprites/sap-bomb.png").then((i) => (img.sap = i)),
     loadImage("assets/sprites/mortar.png").then((i) => (img.mortar = i)),
     loadImage("assets/sprites/ice-brace.png").then((i) => (img.ice = i)),
+    loadImage("assets/sprites/pinecone.png").then((i) => (img.pine = i)),
+    loadImage("assets/sprites/woodchip-mine.png").then((i) => (img.mine = i)),
+    loadImage("assets/sprites/bark-buckler.png").then((i) => (img.buckler = i)),
     loadImage("assets/sprites/crate.png").then((i) => (img.crate = i)),
     loadImage("assets/sprites/stage-sky.jpg").then((i) => (img.skyEarth = i)),
     loadImage("assets/sprites/sky-mars.jpg").then((i) => (img.skyMars = i)),
@@ -2193,6 +2507,16 @@
     loadImage("assets/sprites/mesa-ground.png").then((i) => (img.mesa = i)),
     loadImage("assets/sprites/crater-ground.png").then((i) => (img.crater = i)),
     loadImage("assets/sprites/methane-ground.png").then((i) => (img.methane = i)),
+    loadImage("assets/sprites/acid-ground.png").then((i) => (img.acid = i)),
+    loadImage("assets/sprites/ring-ground.png").then((i) => (img.ring = i)),
+    loadImage("assets/sprites/pack-ground.png").then((i) => (img.pack = i)),
+    loadImage("assets/sprites/frost-ground.png").then((i) => (img.frost = i)),
+    loadImage("assets/sprites/dock-ground.png").then((i) => (img.dock = i)),
+    loadImage("assets/sprites/sky-venus.jpg").then((i) => (img.skyVenus = i)),
+    loadImage("assets/sprites/sky-saturn.jpg").then((i) => (img.skySaturn = i)),
+    loadImage("assets/sprites/sky-neptune.jpg").then((i) => (img.skyNeptune = i)),
+    loadImage("assets/sprites/sky-pluto.jpg").then((i) => (img.skyPluto = i)),
+    loadImage("assets/sprites/sky-asteroid.jpg").then((i) => (img.skyAsteroid = i)),
   ])
     .catch((err) => console.error(err))
     .then(() => {
