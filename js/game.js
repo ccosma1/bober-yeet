@@ -2926,9 +2926,19 @@
         if (js) js.textContent = "Connected. Host picks the map.";
       }
     }
-    if (ev.type === "drop" || ev.type === "error") {
+    if (ev.type === "drop") {
       if (phase !== "splash" && phase !== "end") showNetDrop();
-      else if (ev.type === "error") toast("LINK FAIL", true);
+    }
+    if (ev.type === "error") {
+      const msg = ev.msg || "LINK FAIL";
+      toast(/ICE/i.test(msg) ? "ICE FAIL" : "LINK FAIL", true);
+      if (phase !== "splash" && phase !== "end") showNetDrop();
+      else {
+        const js = $("join-status");
+        if (js && netRole === "guest") js.textContent = msg;
+        const hs = $("host-status");
+        if (hs && netRole === "host") hs.textContent = msg;
+      }
     }
     if (ev.type !== "data" || !ev.msg) return;
     const msg = ev.msg;
@@ -3158,8 +3168,11 @@
         $("host-wait").classList.remove("hidden");
         $("room-code").textContent = "…";
         $("host-status").textContent = "Waiting for friend…";
-        BoberNet.host(onNetEvent).catch(() => {
-          toast("LINK FAIL", true);
+        BoberNet.host(onNetEvent).catch((err) => {
+          const msg = (err && err.message) || "LINK FAIL";
+          toast(/ICE/i.test(msg) ? "ICE FAIL" : "LINK FAIL", true);
+          const st = $("host-status");
+          if (st) st.textContent = msg;
           showLinkPick();
         });
       });
@@ -3183,9 +3196,12 @@
         playMode = "link";
         netRole = "guest";
         $("join-status").textContent = "Connecting…";
-        BoberNet.join(code, onNetEvent).catch(() => {
-          toast("LINK FAIL", true);
-          $("join-status").textContent = "Could not connect. Check the code.";
+        BoberNet.join(code, onNetEvent).catch((err) => {
+          const msg = (err && err.message) || "Could not connect. Check the code.";
+          toast(/ICE/i.test(msg) ? "ICE FAIL" : "LINK FAIL", true);
+          $("join-status").textContent = /ICE/i.test(msg)
+            ? msg
+            : "Could not connect. Check the code. If ICE FAIL, retry on the same Wi-Fi.";
         });
       });
     }
@@ -3220,6 +3236,19 @@
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
     canvas.addEventListener("pointercancel", onPointerUp);
+    const blockSel = (e) => e.preventDefault();
+    [canvas, $("stage"), $("dock"), $("hud-top")].forEach((el) => {
+      if (!el) return;
+      el.addEventListener("contextmenu", blockSel);
+      el.addEventListener("selectstart", blockSel);
+      el.addEventListener("dragstart", blockSel);
+      el.addEventListener("gesturestart", blockSel);
+    });
+    document.addEventListener("selectstart", (e) => {
+      const t = e.target;
+      if (t && t.closest && t.closest("#join-code, input, textarea")) return;
+      if (phase !== "splash" || (hudTop && hudTop.classList.contains("live"))) e.preventDefault();
+    });
     window.addEventListener("keydown", (ev) => {
       if (phase === "splash" && (ev.key === "Enter" || ev.key === " ")) {
         startMatch();

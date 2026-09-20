@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war7"
+URL = "http://127.0.0.1:8765/?v=war7b"
 
 
 def shot(page, name):
@@ -103,7 +103,10 @@ def assert_chrome_fits(page, vp_w, vp_h, landscape=False):
     assert dock["y"] + dock["height"] <= vp_h + 1
     if landscape:
         assert dock["height"] / vp_h <= 0.28 + 0.02
+    else:
+        assert dock["height"] / vp_h <= 0.36
     ids = ["w-stick", "w-snow", "w-dynamite", "w-sap", "w-mortar", "w-ice", "w-pine", "w-mine", "w-buckler", "w-rocket", "w-chain"]
+    ys = []
     for wid in ids:
         loc = page.locator("#" + wid)
         loc.scroll_into_view_if_needed()
@@ -114,6 +117,8 @@ def assert_chrome_fits(page, vp_w, vp_h, landscape=False):
         assert box["y"] >= dock["y"] - 2
         assert box["y"] + box["height"] <= vp_h + 2
         assert box["y"] + box["height"] <= dock["y"] + dock["height"] + 2
+        ys.append(box["y"])
+    assert ys and max(ys) - min(ys) < 20, ys
 
 
 def both_teams_visible(s):
@@ -559,6 +564,50 @@ def main():
         assert_one_top_shop(page, vp_h)
         assert_fat_fire_br(page, 390, vp_h)
         assert_chrome_fits(page, 390, vp_h, landscape=False)
+        page.evaluate("() => window.__yeetWar.setMap('crater')")
+        page.evaluate("() => window.__yeetWar.startMatch()")
+        wait_phase(page, "aim", timeout=10000)
+        page.wait_for_timeout(400)
+        stage = page.locator("#stage").bounding_box()
+        fire = page.locator("#btn-fire").bounding_box()
+        print("CRATER PHONE", stage, fire)
+        assert stage and stage["height"] / vp_h >= 0.55
+        assert fire and fire["y"] >= -1 and fire["y"] + fire["height"] <= vp_h + 1
+        assert_chrome_fits(page, 390, vp_h, landscape=False)
+        page.evaluate("() => { const el = document.querySelector('.weapons'); if (el) el.scrollLeft = 0; }")
+        page.click("#tray-r")
+        page.wait_for_timeout(80)
+        page.locator("#w-chain").scroll_into_view_if_needed()
+        assert page.locator("#w-chain").bounding_box()
+        sel = page.evaluate(
+            """() => {
+              const snow = document.getElementById('w-snow');
+              const game = document.getElementById('game');
+              const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+              const blocked = !snow.dispatchEvent(ev);
+              const canvasBlocked = !game.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+              const cs = getComputedStyle(snow);
+              const cg = getComputedStyle(game);
+              return {
+                blocked,
+                canvasBlocked,
+                text: String(document.getSelection() && document.getSelection().toString() || ''),
+                callout: cs.webkitTouchCallout,
+                user: cs.webkitUserSelect || cs.userSelect,
+                canvasTouch: cg.touchAction,
+                canvasUser: cg.webkitUserSelect || cg.userSelect,
+              };
+            }"""
+        )
+        print("NOSELECT", sel)
+        assert sel["blocked"] is True
+        assert sel["canvasBlocked"] is True
+        assert sel["text"] == ""
+        assert sel["callout"] in ("none", "", None)
+        assert "none" in (sel["user"] or "")
+        assert sel["canvasTouch"] == "none"
+        assert "none" in (sel["canvasUser"] or "")
+        shot(page, "test-match-mobile-crater.png")
         page.click("#btn-shop")
         page.wait_for_timeout(250)
         assert "hidden" not in (page.locator("#shop").get_attribute("class") or "")

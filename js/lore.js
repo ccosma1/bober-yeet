@@ -143,7 +143,7 @@
       cat: "Gear",
       title: "Link Battle",
       img: "assets/history/bank-fight.jpg",
-      blurb: "Two phones. Host gets a 4-letter room code. Join types it. Same Wi-Fi is best; a short PeerJS hop finds the other player. Host is Lodge, Join is Creek. Two devices, no account.",
+      blurb: "Two phones. Host gets a 4-letter room code. Join types it. Same Wi-Fi is best; a short PeerJS hop (STUN, then TURN if needed) finds the other player. Host is Lodge, Join is Creek. Two devices, no account. ICE FAIL means retry on the same Wi-Fi.",
     },
   ];
 

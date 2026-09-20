@@ -23,6 +23,9 @@ html, body {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #app {
@@ -44,6 +47,10 @@ html, body {
   min-height: 55dvh;
   overflow: hidden;
   background: #1a1035;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 #game {
@@ -56,6 +63,10 @@ html, body {
   object-fit: cover;
   object-position: center bottom;
   background: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
 }
 
 #hud-top {
@@ -95,6 +106,9 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .wind-chip {
@@ -135,6 +149,9 @@ html, body {
   place-items: center;
   line-height: 1;
   touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .btn.fat {
   width: 44px;
@@ -152,16 +169,46 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 42dvh;
+  max-height: 34dvh;
   overflow: hidden;
-  padding: 8px max(8px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  padding: 6px max(8px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
   background: rgba(22, 12, 38, 0.94);
   border-top: 3px solid #1a1020;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 #dock.hidden { display: none !important; }
 
-.tray { display: contents; }
-.tray-chev { display: none; }
+.tray {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+}
+.tray-chev {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  min-width: 36px;
+  border: 3px solid #1a1020;
+  border-radius: 12px;
+  background: var(--yellow);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 900;
+  font-size: 16px;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  box-shadow: 0 2px 0 #8a6a00;
+}
+.tray-chev:disabled { opacity: 0.35; }
 .wep-now {
   display: none;
   font-weight: 900;
@@ -171,9 +218,19 @@ html, body {
   letter-spacing: 0.04em;
 }
 .weapons {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
   gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: thin;
+  scroll-snap-type: x proximity;
 }
 .wep small {
   display: inline-block;
@@ -227,11 +284,16 @@ html, body {
 .tip-strip.hidden { display: none !important; }
 .wep {
   pointer-events: auto;
-  touch-action: manipulation;
+  touch-action: pan-x;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 0 0 auto;
   min-height: 48px;
+  min-width: 7.2em;
   padding: 6px 10px;
   border: 3px solid #1a1020;
   border-radius: 14px;
@@ -241,12 +303,18 @@ html, body {
   font-weight: 900;
   font-size: 14px;
   cursor: pointer;
+  scroll-snap-align: start;
 }
+.wep span { white-space: nowrap; }
 .wep img {
   width: 36px;
   height: 36px;
   object-fit: contain;
   filter: drop-shadow(0 2px 0 #0005);
+  pointer-events: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 .wep.on {
   background: var(--yellow);
@@ -295,6 +363,9 @@ html, body {
 .fire {
   pointer-events: auto;
   touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
   flex: 1 1 auto;
   width: 100%;
   min-height: 56px;
@@ -326,21 +397,39 @@ html, body {
 }
 
 @media (max-width: 560px) and (orientation: portrait) {
-  .weapons { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
-  .wep {
-    min-height: 48px;
-    flex-direction: column;
-    justify-content: center;
-    gap: 2px;
-    padding: 3px 2px;
-    font-size: 8px;
+  #app.live #stage {
+    min-height: 55vh;
+    min-height: 62dvh;
   }
-  .wep img { width: 22px; height: 22px; }
-  .wep span { line-height: 1.1; text-align: center; }
-  .wep small { display: block; margin: 0; }
-  #dock { padding: 6px 6px 8px; gap: 4px; max-height: 40dvh; }
-  .wep-now { display: block; font-size: 11px; }
-  .fire { min-height: 52px; font-size: 20px; }
+  #dock,
+  #app.live #dock {
+    padding: 4px max(6px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+    gap: 4px;
+    max-height: 32dvh;
+  }
+  .wep-now { display: none; }
+  .wep {
+    min-height: 44px;
+    max-height: 48px;
+    min-width: 6.6em;
+    flex-direction: row;
+    gap: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .wep img { width: 24px; height: 24px; }
+  .wep span { line-height: 1.1; text-align: left; }
+  .wep small { display: inline; margin-left: 4px; }
+  .tray-chev { flex: 0 0 32px; width: 32px; min-width: 32px; font-size: 14px; }
+  .aim-row { gap: 4px; }
+  .btn.fat { width: 36px; height: 36px; min-width: 36px; }
+  .power-bar { height: 14px; }
+  #power-num { font-size: 13px; }
+  .fire {
+    min-height: 48px;
+    font-size: 18px;
+    margin-bottom: 0;
+  }
 }
 
 @media (max-height: 430px) {
@@ -937,6 +1026,10 @@ h1 {
   border-radius: 14px;
   background: #2a1c4e;
   color: var(--yellow);
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+  touch-action: manipulation;
 }
 .sd-chip {
   color: #ffe566;
