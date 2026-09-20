@@ -6,7 +6,7 @@
   const WIND_K = 0.014;
   const BOBER_R = 24;
   const DRAW_H = 72;
-  const HP_MAX = 100;
+  const HP_MAX = 85;
   const MAX_PULL = 140;
   const TUT_KEY = "bober-yeet-war-tut";
   const COIN_KEY = "bober-yeet-war-coins";
@@ -21,6 +21,8 @@
   const PINE_COST = 40;
   const MINE_COST = 32;
   const BUCK_COST = 26;
+  const ROCKET_COST = 50;
+  const CHAIN_COST = 48;
   const START_COINS = 80;
   const CRATE_EVERY = 3;
   const FUSE_SEC = 2;
@@ -31,25 +33,27 @@
   const GRANT_KEY = "bober-yeet-war-p2grant";
   const SD_TURN = 12;
   const DIFFS = {
-    easy: { ang: 0.58, pwr: 30, mortar: 0.05, dyn: 0.07, sap: 0.08, ice: 0.04, pine: 0.06, mine: 0.04, buck: 0.04, buy: false, cover: 0.2, lowHp: false, coins: 0 },
-    normal: { ang: 0.22, pwr: 12, mortar: 0.28, dyn: 0.3, sap: 0.22, ice: 0.2, pine: 0.18, mine: 0.16, buck: 0.14, buy: true, cover: 0.48, lowHp: false, coins: 60 },
-    hard: { ang: 0.07, pwr: 4, mortar: 0.52, dyn: 0.38, sap: 0.24, ice: 0.34, pine: 0.22, mine: 0.3, buck: 0.3, buy: true, cover: 0.4, lowHp: true, coins: 110 },
+    easy: { ang: 0.58, pwr: 30, mortar: 0.05, dyn: 0.07, sap: 0.08, ice: 0.04, pine: 0.06, mine: 0.04, buck: 0.04, rocket: 0.04, chain: 0.04, buy: false, cover: 0.2, lowHp: false, coins: 0 },
+    normal: { ang: 0.22, pwr: 12, mortar: 0.28, dyn: 0.3, sap: 0.22, ice: 0.2, pine: 0.18, mine: 0.16, buck: 0.14, rocket: 0.22, chain: 0.2, buy: true, cover: 0.48, lowHp: false, coins: 60 },
+    hard: { ang: 0.07, pwr: 4, mortar: 0.52, dyn: 0.38, sap: 0.24, ice: 0.34, pine: 0.22, mine: 0.3, buck: 0.3, rocket: 0.4, chain: 0.36, buy: true, cover: 0.4, lowHp: true, coins: 110 },
   };
-  const PAID = ["dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler"];
-  const WEP_IDS = ["stick", "snow", "dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler"];
+  const PAID = ["dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler", "rocket", "chain"];
+  const WEP_IDS = ["stick", "snow", "dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler", "rocket", "chain"];
   const LEDGES_PAD = 140;
   const BOWL_PAD = 80;
 
   const WEAPONS = {
     stick: { id: "stick", name: "Yeet Stick", dmg: 25, blast: 28, r: 7, inf: true },
     snow: { id: "snow", name: "Snowball", dmg: 15, blast: 36, r: 9, inf: true },
-    dynamite: { id: "dynamite", name: "Dynamite", dmg: 45, blast: 48, r: 10, fuse: FUSE_SEC, cost: DYN_COST },
-    sap: { id: "sap", name: "Sap Bomb", dmg: 30, blast: 40, r: 9, dot: SAP_DOT, ticks: SAP_TICKS, cost: SAP_COST },
-    mortar: { id: "mortar", name: "Lodge Mortar", dmg: 38, blast: 42, r: 9, cost: MORTAR_COST, lob: true },
+    dynamite: { id: "dynamite", name: "Dynamite", dmg: 58, blast: 58, r: 10, fuse: FUSE_SEC, cost: DYN_COST },
+    sap: { id: "sap", name: "Sap Bomb", dmg: 40, blast: 52, r: 9, dot: SAP_DOT, ticks: SAP_TICKS, cost: SAP_COST },
+    mortar: { id: "mortar", name: "Lodge Mortar", dmg: 50, blast: 54, r: 9, cost: MORTAR_COST, lob: true },
     ice: { id: "ice", name: "Ice Brace", dmg: 0, blast: 8, r: 8, cost: ICE_COST, wall: true },
-    pine: { id: "pine", name: "Pinecone Cluster", dmg: 12, blast: 22, r: 7, cost: PINE_COST, cluster: 3 },
-    mine: { id: "mine", name: "Woodchip Mine", dmg: 40, blast: 30, r: 8, cost: MINE_COST, mine: true },
+    pine: { id: "pine", name: "Pinecone Cluster", dmg: 16, blast: 28, r: 7, cost: PINE_COST, cluster: 3 },
+    mine: { id: "mine", name: "Woodchip Mine", dmg: 52, blast: 42, r: 8, cost: MINE_COST, mine: true },
     buckler: { id: "buckler", name: "Bark Buckler", dmg: 0, blast: 0, r: 6, cost: BUCK_COST, shield: 35 },
+    rocket: { id: "rocket", name: "Corkscrew Rocket", dmg: 55, blast: 46, r: 10, cost: ROCKET_COST, twist: true },
+    chain: { id: "chain", name: "Lodge Chaingun", dmg: 14, blast: 12, r: 5, cost: CHAIN_COST, burst: 5 },
   };
 
   const MAPS = {
@@ -287,8 +291,8 @@
   let coins = 0;
   let matchCoins = 0;
   let ammo = {
-    lodge: { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0 },
-    creek: { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0 },
+    lodge: { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0, rocket: 0, chain: 0 },
+    creek: { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0, rocket: 0, chain: 0 },
   };
   let crates = [];
   let fuses = [];
@@ -313,6 +317,10 @@
   let lastNetSend = 0;
   let guestBag = null;
   let netFireLock = false;
+  let shake = 0;
+  let flashes = [];
+  let trails = [];
+  let gunBurst = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -351,7 +359,7 @@
   }
 
   function emptyAmmo() {
-    return { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0 };
+    return { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0, rocket: 0, chain: 0 };
   }
 
   function loadCoins() {
@@ -384,6 +392,8 @@
       pine: ammo.lodge.pine,
       mine: ammo.lodge.mine,
       buckler: ammo.lodge.buckler,
+      rocket: ammo.lodge.rocket,
+      chain: ammo.lodge.chain,
     }));
     localStorage.setItem(MAP_KEY, mapId);
     localStorage.setItem(DIFF_KEY, diff);
@@ -409,21 +419,86 @@
   }
 
   function burst(x, y, kind) {
-    const n = kind === "snow" ? 14 : kind === "sap" ? 12 : 10;
+    const fire = kind === "fire" || kind === "ember" || kind === "mine" || kind === "rocket";
+    const n = kind === "snow" ? 24 : fire ? 38 : kind === "sap" ? 20 : 26;
     for (let i = 0; i < n; i++) {
+      const k = fire
+        ? i % 3 === 0
+          ? "ember"
+          : i % 3 === 1
+            ? "fire"
+            : "smoke"
+        : kind === "sap"
+          ? "sap"
+          : kind === "snow"
+            ? "snow"
+            : i % 2 === 0
+              ? "dirt"
+              : "snow";
       bits.push({
-        x,
-        y,
-        vx: (Math.random() - 0.5) * 9,
-        vy: (Math.random() - 0.8) * 8,
-        w: 5 + Math.random() * 7,
-        h: 4 + Math.random() * 6,
+        x: x + (Math.random() - 0.5) * 22,
+        y: y + (Math.random() - 0.5) * 14,
+        vx: (Math.random() - 0.5) * (fire ? 16 : 12),
+        vy: (Math.random() - 0.85) * (fire ? 16 : 11),
+        w: (fire ? 10 : 7) + Math.random() * (fire ? 16 : 11),
+        h: (fire ? 8 : 6) + Math.random() * (fire ? 14 : 9),
         rot: Math.random() * 6,
-        vr: (Math.random() - 0.5) * 0.4,
-        life: 0.4 + Math.random() * 0.45,
-        kind,
+        vr: (Math.random() - 0.5) * 0.5,
+        life: 0.55 + Math.random() * 0.7,
+        kind: k,
       });
     }
+    if (fire) {
+      for (let j = 0; j < 12; j++) {
+        bits.push({
+          x: x + (Math.random() - 0.5) * 10,
+          y: y - Math.random() * 8,
+          vx: (Math.random() - 0.5) * 5,
+          vy: -5 - Math.random() * 9,
+          w: 14 + Math.random() * 16,
+          h: 18 + Math.random() * 22,
+          rot: Math.random() * 6,
+          vr: (Math.random() - 0.5) * 0.4,
+          life: 0.55 + Math.random() * 0.65,
+          kind: j % 2 ? "fire" : "smoke",
+        });
+      }
+    }
+    for (let i = 0; i < 12; i++) {
+      bits.push({
+        x: x + (Math.random() - 0.5) * 16,
+        y: y + (Math.random() - 0.5) * 8,
+        vx: (Math.random() - 0.5) * 14,
+        vy: -3 - Math.random() * 8,
+        w: 8 + Math.random() * 12,
+        h: 7 + Math.random() * 10,
+        rot: Math.random() * 6,
+        vr: (Math.random() - 0.5) * 0.6,
+        life: 0.45 + Math.random() * 0.5,
+        kind: i % 2 ? "dirt" : "snow",
+      });
+    }
+  }
+
+  function boomShake(r) {
+    shake = Math.max(shake, Math.min(22, 5 + r * 0.22));
+  }
+
+  function flash(x, y, r, color) {
+    flashes.push({ x, y, r: r || 28, color: color || "#ffe566", t: 0.22 });
+  }
+
+  function trailAt(x, y, kind) {
+    const smoke = kind === "smoke";
+    const tracer = kind === "tracer";
+    trails.push({
+      x,
+      y,
+      kind: kind || "smoke",
+      t: smoke ? 0.52 : tracer ? 0.22 : 0.36,
+      w: smoke ? 14 + Math.random() * 14 : tracer ? 6 + Math.random() * 6 : 9 + Math.random() * 10,
+    });
+    if (trails.length > 110) trails.splice(0, trails.length - 110);
   }
 
   function wallAt(x, y) {
@@ -854,7 +929,7 @@
 
   function hudShop() {
     const sc = $("shop-coins");
-    if (sc) sc.textContent = "$BOBER " + coins;
+    if (sc) sc.textContent = "$BOBER " + (myTeam() === "creek" ? cpuCoins : coins);
     const ids = [
       ["shop-dyn-n", "dynamite", "buy-dynamite", DYN_COST],
       ["shop-sap-n", "sap", "buy-sap", SAP_COST],
@@ -863,6 +938,8 @@
       ["shop-pine-n", "pine", "buy-pine", PINE_COST],
       ["shop-mine-n", "mine", "buy-mine", MINE_COST],
       ["shop-buck-n", "buckler", "buy-buckler", BUCK_COST],
+      ["shop-rocket-n", "rocket", "buy-rocket", ROCKET_COST],
+      ["shop-chain-n", "chain", "buy-chain", CHAIN_COST],
     ];
     ids.forEach((row) => {
       const nEl = $(row[0]);
@@ -918,12 +995,12 @@
   }
 
   function rollCrateKind() {
-    const bag = ["dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler", "coin", "dynamite", "ice"];
+    const bag = ["dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler", "rocket", "chain", "coin", "dynamite", "ice"];
     return bag[(Math.random() * bag.length) | 0];
   }
 
   function spawnCrate(kind, x) {
-    const kinds = ["dynamite", "sap", "coin", "mortar", "ice", "pine", "mine", "buckler"];
+    const kinds = ["dynamite", "sap", "coin", "mortar", "ice", "pine", "mine", "buckler", "rocket", "chain"];
     const k = kind && kinds.indexOf(kind) >= 0 ? kind : rollCrateKind();
     let cx = x;
     if (cx == null) {
@@ -972,6 +1049,8 @@
           pine: "PINE +1",
           mine: "MINE +1",
           buckler: "BUCKLER +1",
+          rocket: "ROCKET +1",
+          chain: "CHAIN +1",
         };
         pop(c.x, c.y, tag[c.kind] || "+1", "#ffe566");
       }
@@ -1069,6 +1148,16 @@
       vx = Math.cos(ang) * ispd * 0.72;
       vy = Math.sin(ang) * ispd * 0.88;
       grav = GRAV;
+    } else if (id === "rocket" || weapon === "rocket") {
+      const rspd = 5.2 + pwr * 0.155;
+      vx = Math.cos(ang) * rspd;
+      vy = Math.sin(ang) * rspd;
+      grav = GRAV * 0.72;
+    } else if (id === "chain" || weapon === "chain") {
+      const cspd = 9 + pwr * 0.1;
+      vx = Math.cos(ang) * cspd;
+      vy = Math.sin(ang) * cspd * 0.82;
+      grav = GRAV * 0.55;
     } else {
       vx = Math.cos(ang) * (2.2 + pwr * 0.172);
       vy = Math.sin(ang) * (2.2 + pwr * 0.172);
@@ -1114,6 +1203,29 @@
       return true;
     }
     const nose = BOBER_R + 10;
+    if (wpn.id === "chain") {
+      gunBurst = {
+        n: 5,
+        wait: 0,
+        ang: angle,
+        pwr: power,
+        owner: b.id,
+        team: b.team,
+        x: b.x,
+        y: b.y,
+      };
+      b.vx -= Math.cos(angle) * 2.4;
+      b.standing = false;
+      flash(b.x + Math.cos(angle) * 28, b.y + Math.sin(angle) * 28, 22, "#ffe8a0");
+      spawnChainRound();
+      phase = "fly";
+      dragging = false;
+      BoberSfx.yeet();
+      if (BoberSfx.whoosh) BoberSfx.whoosh();
+      hud();
+      netPush(true);
+      return true;
+    }
     const vel = launchVel(angle, power, wpn.id);
     shot = {
       x: b.x + Math.cos(angle) * nose,
@@ -1127,13 +1239,45 @@
       team: b.team,
       age: 0,
       split: false,
+      spin: 0,
     };
     phase = "fly";
     dragging = false;
     BoberSfx.yeet();
+    if (wpn.id === "rocket" && BoberSfx.whoosh) BoberSfx.whoosh();
+    flash(shot.x, shot.y, 16, "#fff6c4");
     hud();
     netPush(true);
     return true;
+  }
+
+  function spawnChainRound() {
+    const b = bobers.find((x) => x.id === (gunBurst && gunBurst.owner)) || getActive();
+    if (!b || !gunBurst) return;
+    const jitter = (Math.random() - 0.5) * 0.06;
+    const ang = gunBurst.ang + jitter;
+    const vel = launchVel(ang, gunBurst.pwr, "chain");
+    vel.vx += wind * WIND_K * 4;
+    const nose = BOBER_R + 12;
+    pellets.push({
+      x: b.x + Math.cos(ang) * nose,
+      y: b.y + Math.sin(ang) * nose,
+      vx: vel.vx,
+      vy: vel.vy,
+      grav: vel.grav,
+      r: 5,
+      weapon: "chain",
+      owner: b.id,
+      team: gunBurst.team,
+      age: 0,
+      tracer: true,
+    });
+    flash(b.x + Math.cos(ang) * 30, b.y + Math.sin(ang) * 30, 18, "#ffd36a");
+    b.x -= Math.cos(ang) * 3.2;
+    b.vx -= Math.cos(ang) * 1.4;
+    if (BoberSfx.chip) BoberSfx.chip();
+    gunBurst.n -= 1;
+    gunBurst.wait = 0.15;
   }
 
   function drown(b, why) {
@@ -1164,7 +1308,17 @@
     const r = wpn.blast;
     const dmgMax = wpn.dmg;
     carve(x, y, r);
-    burst(x, y, wpn.id === "snow" ? "snow" : wpn.id === "sap" ? "sap" : "dirt");
+    const fx =
+      wpn.id === "snow"
+        ? "snow"
+        : wpn.id === "sap"
+          ? "sap"
+          : wpn.id === "mine" || wpn.id === "dynamite" || wpn.id === "rocket"
+            ? "fire"
+            : "dirt";
+    burst(x, y, fx);
+    flash(x, y, r * 1.15, wpn.id === "mine" || wpn.id === "rocket" || wpn.id === "dynamite" ? "#ff9a3a" : "#ffe566");
+    boomShake(r);
     BoberSfx.boom();
     const hits = [];
     bobers.forEach((b) => {
@@ -1203,7 +1357,8 @@
     });
     lastBlast = { x, y, r, dmg: dmgMax, weapon: wpn.id, hits };
     if (shot && Math.hypot(shot.x - x, shot.y - y) < 22) shot = null;
-    if (!shot && pellets.length === 0) {
+    const bursting = gunBurst && gunBurst.n > 0;
+    if (!shot && pellets.length === 0 && !bursting) {
       phase = "settle";
       settleT = 0;
     } else {
@@ -1264,15 +1419,30 @@
       s.x += s.vx / steps;
       s.y += s.vy / steps;
       s.age += 1 / steps;
+      if (s.weapon === "rocket") {
+        s.spin = (s.spin || 0) + 0.62 / steps;
+        const spd = Math.hypot(s.vx, s.vy) || 1;
+        s.ox = (-s.vy / spd) * Math.sin(s.spin) * 22;
+        s.oy = (s.vx / spd) * Math.sin(s.spin) * 22;
+      } else {
+        s.ox = 0;
+        s.oy = 0;
+      }
+      const hx = s.x + (s.ox || 0);
+      const hy = s.y + (s.oy || 0);
+      if (i === 0) {
+        trailAt(hx, hy, s.weapon === "rocket" ? "smoke" : s.weapon === "chain" ? "tracer" : "puff");
+        if (s.weapon === "rocket") trailAt(s.x, s.y, "smoke");
+      }
       if (s.weapon === "pine" && !s.split && s.vy > 0 && s.age > 10) {
         splitPine(s);
         return "ok";
       }
-      if (s.y >= hazardY()) {
+      if (hy >= hazardY()) {
         if (isMain) splashShot();
         return "dead";
       }
-      if (s.x < -40 || s.x > WORLD_W + 40 || s.y < -120) {
+      if (hx < -40 || hx > WORLD_W + 40 || hy < -120) {
         if (isMain) {
           shot = null;
           phase = "settle";
@@ -1281,16 +1451,16 @@
         }
         return "dead";
       }
-      if (solid(s.x, s.y)) {
-        onShotHit(s.x, s.y, s);
+      if (solid(hx, hy)) {
+        onShotHit(hx, hy, s);
         return "hit";
       }
       for (let k = 0; k < bobers.length; k++) {
         const b = bobers[k];
         if (!b.alive) continue;
         if (s.age < 6 && b.id === s.owner) continue;
-        if (Math.hypot(b.x - s.x, b.y - s.y) < BOBER_R + s.r) {
-          onShotHit(s.x, s.y, s);
+        if (Math.hypot(b.x - hx, b.y - hy) < BOBER_R + s.r) {
+          onShotHit(hx, hy, s);
           return "hit";
         }
       }
@@ -1330,11 +1500,21 @@
       const st = flyOne(pellets[i], false);
       if (st !== "ok") pellets.splice(i, 1);
     }
-    if (!shot && !pellets.length && phase === "fly") {
+    if (!shot && !pellets.length && !(gunBurst && gunBurst.n > 0) && phase === "fly") {
       phase = "settle";
       settleT = 0.2;
       hud();
     }
+  }
+
+  function stepGunBurst(dt) {
+    if (!gunBurst) return;
+    if (gunBurst.n <= 0) {
+      if (!pellets.length && !shot) gunBurst = null;
+      return;
+    }
+    gunBurst.wait -= dt;
+    if (gunBurst.wait <= 0) spawnChainRound();
   }
 
   function plantMine(x, y, team) {
@@ -1630,6 +1810,8 @@
     if (shooter && shooter.hp <= 42 && has("buckler") && Math.random() < d.buck) return "buckler";
     if (target && Math.abs(target.x - (WORLD_W / 2)) < 80 && has("mine") && Math.random() < d.mine) return "mine";
     if (has("ice") && Math.random() < d.ice) return "ice";
+    if (has("rocket") && Math.random() < (d.rocket || 0)) return "rocket";
+    if (has("chain") && Math.random() < (d.chain || 0)) return "chain";
     if (has("mortar") && Math.random() < d.mortar) return "mortar";
     if (has("dynamite") && Math.random() < d.dyn) return "dynamite";
     if (has("sap") && Math.random() < d.sap) return "sap";
@@ -1642,7 +1824,9 @@
   function cpuShop() {
     const d = diffSpec();
     if (!d.buy) return;
-    const order = d.lowHp ? ["mortar", "ice", "mine", "buckler", "dynamite", "pine", "sap"] : ["dynamite", "mortar", "sap", "ice", "pine", "mine", "buckler"];
+    const order = d.lowHp
+      ? ["rocket", "chain", "mortar", "ice", "mine", "buckler", "dynamite", "pine", "sap"]
+      : ["dynamite", "rocket", "chain", "mortar", "sap", "ice", "pine", "mine", "buckler"];
     order.forEach((id) => {
       const wpn = WEAPONS[id];
       if (!wpn || !wpn.cost) return;
@@ -1700,22 +1884,16 @@
       if (toastT <= 0) toastEl.classList.remove("show");
     }
     waveT += dt;
-    if (isGuest()) return;
-    if (shopOpen) return;
-    if (phase === "cpu") stepCpu(dt);
-    if (phase === "fly") stepShot();
-    if (fuses.length && phase !== "ending" && phase !== "end") stepFuses(dt);
-    bobers.forEach(stepBober);
-    stepMines();
-    maybeEnd();
-    if (phase === "ending") {
-      endDelay -= dt;
-      if (endDelay <= 0) endMatch(checkWin() || "draw");
-    } else if (phase === "settle" || phase === "fuse") {
-      settleT += dt;
-      if (phase === "fuse" && fuses.length) return;
-      if (phase === "fuse" && !fuses.length) phase = "settle";
-      if ((allSettled() && settleT > 0.45) || settleT > 3.2) finishSettle();
+    if (shake > 0.15) shake *= 0.86;
+    else shake = 0;
+    for (let i = trails.length - 1; i >= 0; i--) {
+      trails[i].t -= dt;
+      trails[i].w += 22 * dt;
+      if (trails[i].t <= 0) trails.splice(i, 1);
+    }
+    for (let i = flashes.length - 1; i >= 0; i--) {
+      flashes[i].t -= dt;
+      if (flashes[i].t <= 0) flashes.splice(i, 1);
     }
     for (let i = bits.length - 1; i >= 0; i--) {
       const p = bits[i];
@@ -1730,6 +1908,39 @@
       pops[i].t -= dt;
       pops[i].y -= 18 * dt;
       if (pops[i].t <= 0) pops.splice(i, 1);
+    }
+    if (isGuest()) {
+      if (shot) {
+        trailAt(
+          shot.x + (shot.ox || 0),
+          shot.y + (shot.oy || 0),
+          shot.weapon === "rocket" ? "smoke" : shot.weapon === "chain" ? "tracer" : "puff"
+        );
+        if (shot.weapon === "rocket") trailAt(shot.x, shot.y, "smoke");
+      }
+      pellets.forEach((p) => {
+        trailAt(p.x + (p.ox || 0), p.y + (p.oy || 0), p.weapon === "chain" ? "tracer" : p.weapon === "rocket" ? "smoke" : "puff");
+      });
+      return;
+    }
+    if (shopOpen) return;
+    if (phase === "cpu") stepCpu(dt);
+    if (phase === "fly") {
+      stepShot();
+      stepGunBurst(dt);
+    }
+    if (fuses.length && phase !== "ending" && phase !== "end") stepFuses(dt);
+    bobers.forEach(stepBober);
+    stepMines();
+    maybeEnd();
+    if (phase === "ending") {
+      endDelay -= dt;
+      if (endDelay <= 0) endMatch(checkWin() || "draw");
+    } else if (phase === "settle" || phase === "fuse") {
+      settleT += dt;
+      if (phase === "fuse" && fuses.length) return;
+      if (phase === "fuse" && !fuses.length) phase = "settle";
+      if ((allSettled() && settleT > 0.45) || settleT > 3.2) finishSettle();
     }
     netPush(false);
   }
@@ -1983,12 +2194,15 @@
     if (id === "pine") return img.pine;
     if (id === "mine") return img.mine;
     if (id === "buckler") return img.buckler;
+    if (id === "rocket") return img.rocket;
+    if (id === "chain") return img.chain;
     return img.stick;
   }
 
   function draw() {
     layoutCam();
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+    if (shake > 0.2) ctx.translate((Math.random() - 0.5) * shake * 2, (Math.random() - 0.5) * shake * 2);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
     const s = spec();
@@ -2134,17 +2348,74 @@
       }
     }
 
+    trails.forEach((tr) => {
+      ctx.globalAlpha = clamp(tr.t * 3, 0, 0.7);
+      ctx.fillStyle = tr.kind === "tracer" ? "#ffe566" : tr.kind === "smoke" ? "rgba(80,70,90,0.9)" : "#f4e6c3";
+      ctx.beginPath();
+      ctx.arc(tr.x, tr.y, tr.w * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    flashes.forEach((f) => {
+      ctx.globalAlpha = clamp(f.t * 5, 0, 0.9);
+      ctx.fillStyle = f.color;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r * (1.4 - f.t * 2), 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
     function drawProj(p) {
       const spr = projSprite(p.weapon);
-      const rot = Math.atan2(p.vy, p.vx);
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(rot);
-      if (spr) ctx.drawImage(spr, -16, -16, 32, 32);
-      else {
-        ctx.fillStyle = "#F4E6C3";
+      const rot = Math.atan2(p.vy, p.vx) + (p.weapon === "rocket" ? p.spin || 0 : 0);
+      const px = p.x + (p.ox || 0);
+      const py = p.y + (p.oy || 0);
+      if (p.weapon === "mortar") {
+        const gy = surfaceY(px);
+        ctx.save();
+        ctx.globalAlpha = 0.28;
+        ctx.fillStyle = "#1a1020";
         ctx.beginPath();
-        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.ellipse(px, gy + 4, 14, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      if (p.weapon === "rocket") {
+        const spd = Math.hypot(p.vx, p.vy) || 1;
+        ctx.save();
+        ctx.strokeStyle = "rgba(90, 78, 104, 0.55)";
+        ctx.lineWidth = 6;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        for (let k = 0; k < 10; k++) {
+          const t = (p.spin || 0) - k * 0.42;
+          const ox = (-p.vy / spd) * Math.sin(t) * 22;
+          const oy = (p.vx / spd) * Math.sin(t) * 22;
+          const bx = p.x - p.vx * k * 0.32;
+          const by = p.y - p.vy * k * 0.32;
+          if (k === 0) ctx.moveTo(bx + ox, by + oy);
+          else ctx.lineTo(bx + ox, by + oy);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (p.tracer || p.weapon === "chain") {
+        ctx.strokeStyle = "#ffe566";
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(px - Math.cos(rot) * 26, py - Math.sin(rot) * 26);
+        ctx.lineTo(px, py);
+        ctx.stroke();
+      }
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(rot);
+      const sz = p.weapon === "rocket" ? 26 : p.weapon === "chain" ? 12 : 16;
+      if (spr) ctx.drawImage(spr, -sz, -sz, sz * 2, sz * 2);
+      else {
+        ctx.fillStyle = p.weapon === "chain" ? "#ffe566" : "#F4E6C3";
+        ctx.beginPath();
+        ctx.arc(0, 0, p.weapon === "chain" ? 5 : 8, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
@@ -2157,7 +2428,18 @@
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rot);
       ctx.globalAlpha = clamp(p.life * 2, 0, 1);
-      ctx.fillStyle = p.kind === "snow" ? "#F4E6C3" : p.kind === "sap" ? "#e8a020" : "#8B5A2B";
+      ctx.fillStyle =
+        p.kind === "snow"
+          ? "#F4E6C3"
+          : p.kind === "sap"
+            ? "#e8a020"
+            : p.kind === "fire"
+              ? "#ff6a1a"
+              : p.kind === "ember"
+                ? "#ffd36a"
+                : p.kind === "smoke"
+                  ? "#5a4a62"
+                  : "#8B5A2B";
       ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
       ctx.restore();
     });
@@ -2299,6 +2581,13 @@
     walls = [];
     mines = [];
     pellets = [];
+    bits.length = 0;
+    pops.length = 0;
+    flashes.length = 0;
+    trails.length = 0;
+    gunBurst = null;
+    shake = 0;
+    shot = null;
     carveLog = [];
     carveN = 0;
     shopOpen = false;
@@ -2510,6 +2799,7 @@
       mines: mines.map((m) => ({ x: m.x, y: m.y, armed: m.armed, bornTurn: m.bornTurn, team: m.team })),
       shot: shot ? { ...shot } : null,
       pellets: pellets.map((p) => ({ ...p })),
+      gunBurst: gunBurst ? { ...gunBurst } : null,
       carveN,
       lastCarve: carveLog.length ? carveLog[carveLog.length - 1] : null,
     };
@@ -2557,9 +2847,15 @@
     mines = (s.mines || []).map((m) => ({ ...m }));
     shot = s.shot ? { ...s.shot } : null;
     pellets = (s.pellets || []).map((p) => ({ ...p }));
+    gunBurst = s.gunBurst ? { ...s.gunBurst } : null;
     if (s.lastCarve && s.carveN > carveN) {
-      carve(s.lastCarve.x, s.lastCarve.y, s.lastCarve.r, true);
+      const lc = s.lastCarve;
+      carve(lc.x, lc.y, lc.r, true);
       carveN = s.carveN;
+      const fire = lc.r >= 40;
+      burst(lc.x, lc.y, fire ? "fire" : "dirt");
+      flash(lc.x, lc.y, lc.r * 1.1, fire ? "#ff9a3a" : "#ffe566");
+      boomShake(lc.r);
     }
     hud();
     if (s.phase !== "aim") netFireLock = false;
@@ -2821,6 +3117,12 @@
     $("w-buckler").addEventListener("click", () => {
       if (!setWeapon("buckler")) toast("BUY A CHARGE", true);
     });
+    $("w-rocket").addEventListener("click", () => {
+      if (!setWeapon("rocket")) toast("BUY A CHARGE", true);
+    });
+    $("w-chain").addEventListener("click", () => {
+      if (!setWeapon("chain")) toast("BUY A CHARGE", true);
+    });
     $("buy-dynamite").addEventListener("click", () => buy("dynamite"));
     $("buy-sap").addEventListener("click", () => buy("sap"));
     $("buy-mortar").addEventListener("click", () => buy("mortar"));
@@ -2828,6 +3130,8 @@
     $("buy-pine").addEventListener("click", () => buy("pine"));
     $("buy-mine").addEventListener("click", () => buy("mine"));
     $("buy-buckler").addEventListener("click", () => buy("buckler"));
+    $("buy-rocket").addEventListener("click", () => buy("rocket"));
+    $("buy-chain").addEventListener("click", () => buy("chain"));
     $("shop-play").addEventListener("click", () => {
       if (shopFrom === "match") closeShop();
       else startMatch();
@@ -2937,6 +3241,8 @@
       if (ev.key === "7") setWeapon("pine");
       if (ev.key === "8") setWeapon("mine");
       if (ev.key === "9") setWeapon("buckler");
+      if (ev.key === "0") setWeapon("rocket");
+      if (ev.key === "-" || ev.key === "c" || ev.key === "C") setWeapon("chain");
       if (ev.key === " " || ev.key === "Enter") {
         ev.preventDefault();
         tryFire();
@@ -3079,6 +3385,8 @@
     loadImage("assets/sprites/pinecone.png").then((i) => (img.pine = i)),
     loadImage("assets/sprites/woodchip-mine.png").then((i) => (img.mine = i)),
     loadImage("assets/sprites/bark-buckler.png").then((i) => (img.buckler = i)),
+    loadImage("assets/sprites/corkscrew-rocket.png").then((i) => (img.rocket = i)),
+    loadImage("assets/sprites/lodge-chaingun.png").then((i) => (img.chain = i)),
     loadImage("assets/sprites/crate.png").then((i) => (img.crate = i)),
     loadImage("assets/sprites/stage-sky.jpg").then((i) => (img.skyEarth = i)),
     loadImage("assets/sprites/sky-mars.jpg").then((i) => (img.skyMars = i)),

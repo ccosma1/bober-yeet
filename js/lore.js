@@ -83,19 +83,19 @@
       cat: "Gun",
       title: "Dynamite",
       img: "assets/sprites/dynamite.png",
-      blurb: "Forty-five sting, blast 48, fuse about two seconds. Buy a charge with $BOBER, or find a crate.",
+      blurb: "Fifty-eight sting, blast 58, fuse about two seconds. Paid guns hit harder now. Buy a charge with $BOBER, or find a crate.",
     },
     {
       cat: "Gun",
       title: "Sap Bomb",
       img: "assets/sprites/sap-bomb.png",
-      blurb: "Thirty sting, blast 40, sticky two ticks. Lodge sap. Charges only.",
+      blurb: "Forty sting, blast 52, sticky two ticks. Lodge sap. Charges only.",
     },
     {
       cat: "Gun",
       title: "Lodge Mortar",
       img: "assets/sprites/mortar.png",
-      blurb: "Thirty-eight sting, blast 42, a high lob. One charge. Soft preview. Not a win button.",
+      blurb: "Fifty sting, blast 54, a high lob with a ground shadow. One charge. Soft preview. Not a win button.",
     },
     {
       cat: "Gun",
@@ -107,13 +107,13 @@
       cat: "Gun",
       title: "Pinecone Cluster",
       img: "assets/sprites/pinecone.png",
-      blurb: "Twelve sting three times, blast 22 each. Splits after the apex. One charge.",
+      blurb: "Sixteen sting three times, blast 28 each. Splits after the apex. One charge.",
     },
     {
       cat: "Gun",
       title: "Woodchip Mine",
       img: "assets/sprites/woodchip-mine.png",
-      blurb: "Forty sting, blast 30. Plants on hit. Arms next turn. Step on it and it pops.",
+      blurb: "Fifty-two sting, blast 42. Plants on hit. Arms next turn. Boom is a flame burst with embers, not a quiet puff.",
     },
     {
       cat: "Gun",
@@ -122,10 +122,22 @@
       blurb: "No sting. Thirty-five temp shield on the active Bober, two turns. One charge.",
     },
     {
+      cat: "Gun",
+      title: "Corkscrew Rocket",
+      img: "assets/sprites/corkscrew-rocket.png",
+      blurb: "Fifty-five sting, blast 46. One charge, fifty $BOBER. Flies with a visible twist smoke trail and a whoosh. Big crater.",
+    },
+    {
+      cat: "Gun",
+      title: "Lodge Chaingun",
+      img: "assets/sprites/lodge-chaingun.png",
+      blurb: "Fourteen sting five times, blast 12 each. One charge, forty-eight $BOBER. Short burst, muzzle flash, tracers, recoil kick. Wind tugs each round.",
+    },
+    {
       cat: "Gear",
       title: "Crates and shop",
       img: "assets/history/crate-gear.jpg",
-      blurb: "Every three turns a crate lands on solid ground. Tap SHOP mid-match to buy charges with $BOBER. Short on coins? The shop says how many more you need.",
+      blurb: "Every three turns a crate lands on solid ground. Tap SHOP mid-match to buy charges with $BOBER, including Corkscrew Rocket and Lodge Chaingun. Paid loadout is stronger; Bobers start at 85 HP. Short on coins? The shop says how many more you need.",
     },
     {
       cat: "Gear",

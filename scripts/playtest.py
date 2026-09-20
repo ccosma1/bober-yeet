@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war6"
+URL = "http://127.0.0.1:8765/?v=war7"
 
 
 def shot(page, name):
@@ -103,7 +103,7 @@ def assert_chrome_fits(page, vp_w, vp_h, landscape=False):
     assert dock["y"] + dock["height"] <= vp_h + 1
     if landscape:
         assert dock["height"] / vp_h <= 0.28 + 0.02
-    ids = ["w-stick", "w-snow", "w-dynamite", "w-sap", "w-mortar", "w-ice", "w-pine", "w-mine", "w-buckler"]
+    ids = ["w-stick", "w-snow", "w-dynamite", "w-sap", "w-mortar", "w-ice", "w-pine", "w-mine", "w-buckler", "w-rocket", "w-chain"]
     for wid in ids:
         loc = page.locator("#" + wid)
         loc.scroll_into_view_if_needed()
@@ -198,6 +198,9 @@ def main():
         assert "chevron" in how.lower() or "◀" in how or "▶" in how
         assert "tilt" not in how.lower()
         assert "Pinecone" in how
+        assert "Corkscrew Rocket" in how
+        assert "Lodge Chaingun" in how
+        assert "85" in how
         assert "Red Mesa" in how
         assert "Sudden Death" in how
         assert "Easy" in how and "Hard" in how
@@ -220,7 +223,7 @@ def main():
 
         page.click("#btn-museum")
         page.wait_for_timeout(200)
-        assert page.locator("#museum .museum-card").count() >= 18
+        assert page.locator("#museum .museum-card").count() >= 20
         shot(page, "test-museum.png")
         page.click("#museum-close")
 
@@ -246,8 +249,10 @@ def main():
         assert "hidden" not in (tip.get_attribute("class") or "")
         assert "angle" in tip.inner_text().lower()
         assert page.locator("#coin-chip").inner_text().startswith("$BOBER")
+        assert page.evaluate("() => window.__yeetWar.HP_MAX") == 85
         for b in s["bobers"]:
             if b["alive"]:
+                assert b["hp"] == 85
                 assert b["y"] > 300
         shot(page, "test-match.png")
         assert page.locator("#btn-shop").inner_text() == "SHOP"
@@ -279,7 +284,7 @@ def main():
         )
         s = snap(page)
         print("MIDSHOP MORTAR", s["lastBlast"], "ammo", s["ammo"]["lodge"])
-        assert s["lastBlast"]["dmg"] == 38
+        assert s["lastBlast"]["dmg"] == 50
         wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
         if snap(page)["phase"] == "cpu":
             wait_phase(page, ["aim", "end"], timeout=20000)
@@ -320,8 +325,8 @@ def main():
             )
             s = snap(page)
             print("DYN BLAST", s["lastBlast"])
-            assert s["lastBlast"]["r"] == 48
-            assert s["lastBlast"]["dmg"] == 45
+            assert s["lastBlast"]["r"] == 58
+            assert s["lastBlast"]["dmg"] == 58
             wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
             if snap(page)["phase"] == "cpu":
                 wait_phase(page, ["aim", "end"], timeout=20000)
@@ -342,7 +347,7 @@ def main():
             )
             s = snap(page)
             print("SAP", s["lastBlast"])
-            assert s["lastBlast"]["r"] == 40
+            assert s["lastBlast"]["r"] == 52
             shot(page, "test-sap.png")
             wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
 
@@ -385,6 +390,10 @@ def main():
         assert "40 $BOBER" in shop
         assert "32 $BOBER" in shop
         assert "26 $BOBER" in shop
+        assert "50 $BOBER" in shop
+        assert "48 $BOBER" in shop
+        assert "Corkscrew Rocket" in shop
+        assert "Lodge Chaingun" in shop
         assert "cannot buy a win" in shop.lower()
         shot(page, "test-shop.png")
         page.evaluate("() => window.__yeetWar.setCoins(10)")
@@ -392,13 +401,15 @@ def main():
         need = page.locator("#buy-mortar").inner_text()
         print("NEED BTN", need)
         assert "NEED" in need and "MORE $BOBER" in need
-        page.evaluate("() => window.__yeetWar.setCoins(200)")
+        page.evaluate("() => window.__yeetWar.setCoins(500)")
         page.wait_for_timeout(80)
         page.click("#buy-mortar")
         page.click("#buy-ice")
         page.click("#buy-pine")
         page.click("#buy-mine")
         page.click("#buy-buckler")
+        page.click("#buy-rocket")
+        page.click("#buy-chain")
         s = snap(page)
         print("BUY", s["coins"], s["ammo"])
         assert s["ammo"]["lodge"]["mortar"] >= 1
@@ -406,6 +417,8 @@ def main():
         assert s["ammo"]["lodge"]["pine"] >= 1
         assert s["ammo"]["lodge"]["mine"] >= 1
         assert s["ammo"]["lodge"]["buckler"] >= 1
+        assert s["ammo"]["lodge"]["rocket"] >= 1
+        assert s["ammo"]["lodge"]["chain"] >= 1
         page.click("#shop-play")
         wait_phase(page, "aim", timeout=8000)
         page.evaluate(
@@ -444,6 +457,56 @@ def main():
         page.evaluate("() => window.__yeetWar.spawnCrate('mortar', 80)")
         page.wait_for_timeout(80)
         assert any(c["kind"] == "mortar" for c in snap(page)["crates"])
+        page.evaluate("() => window.__yeetWar.spawnCrate('rocket', 200)")
+        page.evaluate("() => window.__yeetWar.spawnCrate('chain', 320)")
+        page.wait_for_timeout(80)
+        kinds = [c["kind"] for c in snap(page)["crates"]]
+        assert "rocket" in kinds and "chain" in kinds
+
+        page.evaluate("() => window.__yeetWar.startMatch()")
+        wait_phase(page, "aim", timeout=8000)
+        page.evaluate(
+            """() => {
+              const w = window.__yeetWar;
+              w.giveAmmo('lodge', 'rocket', 1);
+              w.setWeapon('rocket');
+              w.setAim(90, 28);
+              w.fire();
+            }"""
+        )
+        page.wait_for_function(
+            "() => window.__yeetWar.lastBlast && window.__yeetWar.lastBlast.weapon === 'rocket'",
+            timeout=8000,
+        )
+        s = snap(page)
+        print("ROCKET", s["lastBlast"])
+        assert s["lastBlast"]["dmg"] == 55
+        assert s["lastBlast"]["r"] == 46
+        shot(page, "test-rocket.png")
+        wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
+        if snap(page)["phase"] == "cpu":
+            wait_phase(page, ["aim", "end"], timeout=20000)
+
+        if snap(page)["phase"] == "aim":
+            page.evaluate(
+                """() => {
+                  const w = window.__yeetWar;
+                  w.giveAmmo('lodge', 'chain', 1);
+                  w.setWeapon('chain');
+                  w.setAim(85, 32);
+                  w.fire();
+                }"""
+            )
+            page.wait_for_function(
+                "() => window.__yeetWar.lastBlast && window.__yeetWar.lastBlast.weapon === 'chain'",
+                timeout=8000,
+            )
+            s = snap(page)
+            print("CHAIN", s["lastBlast"])
+            assert s["lastBlast"]["dmg"] == 14
+            assert s["lastBlast"]["r"] == 12
+            shot(page, "test-chain.png")
+            wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
 
         for mid, fname in (
             ("bowl", "test-map-bowl.png"),
@@ -576,7 +639,7 @@ def main():
             s = snap(page)
             print("LAND MORTAR", map_id, s.get("lastBlast"), s.get("phase"))
             assert s["lastBlast"]["weapon"] == "mortar"
-            assert s["lastBlast"]["dmg"] == 38
+            assert s["lastBlast"]["dmg"] == 50
 
         page = browser.new_page(viewport={"width": 844, "height": 390}, is_mobile=True, has_touch=True)
         page.goto(URL, wait_until="networkidle", timeout=30000)

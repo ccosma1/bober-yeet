@@ -6,7 +6,7 @@ Fan game by a holder.
 
 Aim, power, wind. Dig cover. Last beaver standing.
 
-Turn-based stick fights vs AI (Easy / Normal / Hard) or Link Battle 1v1. Host a 4-letter room code; a friend joins on the same Wi-Fi (a short PeerJS hop finds them). Host is Lodge, Join is Creek. Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Yeet Stick and Snowball stay infinite. Spend $BOBER (not a wallet) on Dynamite, Sap Bomb, Lodge Mortar, Ice Brace, Pinecone Cluster, Woodchip Mine, and Bark Buckler. Crates drop every 3 turns. Tap SHOP mid-match. Use the tray chevrons to reach every gun. After turn 12 — or when two Bobers remain — Sudden Death raises the hazard. Vs AI works offline. Not pass-the-phone.
+Turn-based stick fights vs AI (Easy / Normal / Hard) or Link Battle 1v1. Host a 4-letter room code; a friend joins on the same Wi-Fi (a short PeerJS hop finds them). Host is Lodge, Join is Creek. Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Yeet Stick and Snowball stay infinite. Bobers start at 85 HP. Spend $BOBER (not a wallet) on Dynamite, Sap Bomb, Lodge Mortar, Ice Brace, Pinecone Cluster, Woodchip Mine, Bark Buckler, Corkscrew Rocket, and Lodge Chaingun. Paid guns hit harder. Crates drop every 3 turns. Tap SHOP mid-match. Use the tray chevrons to reach every gun. After turn 12 — or when two Bobers remain — Sudden Death raises the hazard. Vs AI works offline. Not pass-the-phone.
 
 Bank fights from the Green Home to deep space. Portrait and landscape both play.
 

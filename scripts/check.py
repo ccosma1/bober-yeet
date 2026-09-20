@@ -57,6 +57,14 @@ def main() -> int:
     must(html, "Pinecone Cluster", "index.html")
     must(html, "Woodchip Mine", "index.html")
     must(html, "Bark Buckler", "index.html")
+    must(html, "Corkscrew Rocket", "index.html")
+    must(html, "Lodge Chaingun", "index.html")
+    must(html, 'id="w-rocket"', "index.html")
+    must(html, 'id="w-chain"', "index.html")
+    must(html, 'id="buy-rocket"', "index.html")
+    must(html, 'id="buy-chain"', "index.html")
+    must(html, "50 $BOBER", "index.html")
+    must(html, "48 $BOBER", "index.html")
     must(html, "Lodge Bowl", "index.html")
     must(html, "Twin Ledges", "index.html")
     must(html, "Red Mesa", "index.html")
@@ -107,16 +115,24 @@ def main() -> int:
     must(css, "tray-chev", "game.css")
     forbid(css, "portrait-block", "game.css")
 
-    must(game, "const HP_MAX = 100", "game.js")
+    must(game, "const HP_MAX = 85", "game.js")
     must(game, 'name: "Yeet Stick", dmg: 25, blast: 28', "game.js")
     must(game, 'name: "Snowball", dmg: 15, blast: 36', "game.js")
-    must(game, 'name: "Dynamite", dmg: 45, blast: 48', "game.js")
-    must(game, 'name: "Sap Bomb", dmg: 30, blast: 40', "game.js")
-    must(game, 'name: "Lodge Mortar", dmg: 38, blast: 42', "game.js")
+    must(game, 'name: "Dynamite", dmg: 58, blast: 58', "game.js")
+    must(game, 'name: "Sap Bomb", dmg: 40, blast: 52', "game.js")
+    must(game, 'name: "Lodge Mortar", dmg: 50, blast: 54', "game.js")
     must(game, 'name: "Ice Brace", dmg: 0', "game.js")
-    must(game, 'name: "Pinecone Cluster", dmg: 12, blast: 22', "game.js")
-    must(game, 'name: "Woodchip Mine", dmg: 40, blast: 30', "game.js")
+    must(game, 'name: "Pinecone Cluster", dmg: 16, blast: 28', "game.js")
+    must(game, 'name: "Woodchip Mine", dmg: 52, blast: 42', "game.js")
     must(game, 'name: "Bark Buckler", dmg: 0', "game.js")
+    must(game, 'name: "Corkscrew Rocket", dmg: 55, blast: 46', "game.js")
+    must(game, 'name: "Lodge Chaingun", dmg: 14, blast: 12', "game.js")
+    must(game, "const ROCKET_COST = 50", "game.js")
+    must(game, "const CHAIN_COST = 48", "game.js")
+    must(game, "function spawnChainRound(", "game.js")
+    must(game, "gunBurst", "game.js")
+    must(game, "corkscrew-rocket.png", "game.js")
+    must(game, "lodge-chaingun.png", "game.js")
     must(game, "const FUSE_SEC = 2", "game.js")
     must(game, "const SAP_TICKS = 2", "game.js")
     must(game, "const CRATE_EVERY = 3", "game.js")
@@ -210,6 +226,8 @@ def main() -> int:
     must(lore, "Pinecone Cluster", "lore.js")
     must(lore, "Woodchip Mine", "lore.js")
     must(lore, "Bark Buckler", "lore.js")
+    must(lore, "Corkscrew Rocket", "lore.js")
+    must(lore, "Lodge Chaingun", "lore.js")
     must(lore, "Link Battle", "lore.js")
     must(lore, "room code", "lore.js")
     must(lore, "assets/history/twin-ledges.jpg", "lore.js")
@@ -219,6 +237,8 @@ def main() -> int:
     must(readme, "Sudden Death", "README.md")
     must(readme, "Easy", "README.md")
     must(readme, "Link Battle", "README.md")
+    must(readme, "Corkscrew Rocket", "README.md")
+    must(readme, "Lodge Chaingun", "README.md")
     must(html, "js/net.js", "index.html")
 
     for path, text in (
@@ -250,6 +270,8 @@ def main() -> int:
         "assets/sprites/pinecone.png",
         "assets/sprites/woodchip-mine.png",
         "assets/sprites/bark-buckler.png",
+        "assets/sprites/corkscrew-rocket.png",
+        "assets/sprites/lodge-chaingun.png",
         "assets/sprites/crate.png",
         "assets/sprites/splash-hero.png",
         "assets/sprites/bober-idle.png",

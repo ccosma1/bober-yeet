@@ -943,7 +943,7 @@ h1 {
   border-color: #8a6a00;
 }
 .shop-list {
-  max-height: min(42vh, 320px);
+  max-height: min(48vh, 360px);
   overflow-y: auto;
   touch-action: pan-y;
 }

@@ -83,6 +83,14 @@
             <img src="assets/sprites/bark-buckler.png" alt="" />
             <span>Bark Buckler <small id="ammo-buckler">0</small></span>
           </button>
+          <button type="button" class="wep" id="w-rocket" data-w="rocket">
+            <img src="assets/sprites/corkscrew-rocket.png" alt="" />
+            <span>Corkscrew Rocket <small id="ammo-rocket">0</small></span>
+          </button>
+          <button type="button" class="wep" id="w-chain" data-w="chain">
+            <img src="assets/sprites/lodge-chaingun.png" alt="" />
+            <span>Lodge Chaingun <small id="ammo-chain">0</small></span>
+          </button>
         </div>
         <button type="button" class="tray-chev" id="tray-r" aria-label="Scroll weapons right">▶</button>
       </div>
@@ -197,9 +205,9 @@
       <h2>HOW TO PLAY</h2>
       <div class="howto-body">
         <p>Drag back to set <strong>angle</strong>. Charge <strong>power</strong> 0–100. Read the <strong>wind flag</strong>. Fire.</p>
-        <p>Hits dig cover and hurt <strong>HP</strong>. Falloff at the blast edge. Creek, dust, void, methane, or acid below = out. Last beaver standing wins.</p>
+        <p>Hits dig cover and hurt <strong>HP</strong> (Bobers start at 85). Falloff at the blast edge. Creek, dust, void, methane, or acid below = out. Last beaver standing wins.</p>
         <p><strong>Crates</strong> drop every 3 turns. Walk onto one for gear or $BOBER. Tap <strong>SHOP</strong> mid-match to buy charges. If you are short, the shop says how many more $BOBER you need.</p>
-        <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Stick and Snowball stay infinite. Use the tray <strong>◀ ▶</strong> chevrons (or swipe) to reach Lodge Mortar, Pinecone Cluster, Woodchip Mine, and Bark Buckler. You cannot buy a win.</p>
+        <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Stick and Snowball stay infinite. Paid guns hit harder. Use the tray <strong>◀ ▶</strong> chevrons (or swipe) to reach Lodge Mortar, Pinecone Cluster, Woodchip Mine, Bark Buckler, Corkscrew Rocket, and Lodge Chaingun. You cannot buy a win.</p>
         <p>Pick <strong>Easy</strong>, <strong>Normal</strong>, or <strong>Hard</strong>. After turn 12 — or when two Bobers remain — <strong>Sudden Death</strong> raises the hazard every 2 turns so the match ends.</p>
         <p><strong>Link Battle:</strong> Host gets a 4-letter room code. Friend taps Join and types it. Same Wi-Fi is best. Finding each other uses a short PeerJS internet hop — no account, no lobby. Host is Lodge, Join is Creek. Two devices.</p>
       </div>
@@ -213,7 +221,7 @@
           <img src="assets/sprites/dynamite.png" alt="" />
           <div>
             <strong>Dynamite</strong>
-            <span>45 dmg · blast 48 · fuse ~2s</span>
+            <span>58 dmg · blast 58 · fuse ~2s</span>
             <span class="shop-cost">35 $BOBER · owned <b id="shop-dyn-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-dynamite">BUY</button>
@@ -222,7 +230,7 @@
           <img src="assets/sprites/sap-bomb.png" alt="" />
           <div>
             <strong>Sap Bomb</strong>
-            <span>30 dmg · blast 40 · sticky 2 ticks</span>
+            <span>40 dmg · blast 52 · sticky 2 ticks</span>
             <span class="shop-cost">30 $BOBER · owned <b id="shop-sap-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-sap">BUY</button>
@@ -231,7 +239,7 @@
           <img src="assets/sprites/mortar.png" alt="" />
           <div>
             <strong>Lodge Mortar</strong>
-            <span>38 dmg · blast 42 · high lob</span>
+            <span>50 dmg · blast 54 · high lob</span>
             <span class="shop-cost">45 $BOBER · owned <b id="shop-mortar-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-mortar">BUY</button>
@@ -249,7 +257,7 @@
           <img src="assets/sprites/pinecone.png" alt="" />
           <div>
             <strong>Pinecone Cluster</strong>
-            <span>12 dmg × 3 · blast 22 each · splits after apex</span>
+            <span>16 dmg × 3 · blast 28 each · splits after apex</span>
             <span class="shop-cost">40 $BOBER · owned <b id="shop-pine-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-pine">BUY</button>
@@ -258,7 +266,7 @@
           <img src="assets/sprites/woodchip-mine.png" alt="" />
           <div>
             <strong>Woodchip Mine</strong>
-            <span>40 dmg · blast 30 · arms next turn</span>
+            <span>52 dmg · blast 42 · arms next turn · flame burst</span>
             <span class="shop-cost">32 $BOBER · owned <b id="shop-mine-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-mine">BUY</button>
@@ -271,6 +279,24 @@
             <span class="shop-cost">26 $BOBER · owned <b id="shop-buck-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-buckler">BUY</button>
+        </div>
+        <div class="shop-row">
+          <img src="assets/sprites/corkscrew-rocket.png" alt="" />
+          <div>
+            <strong>Corkscrew Rocket</strong>
+            <span>55 dmg · blast 46 · twist trail · whoosh</span>
+            <span class="shop-cost">50 $BOBER · owned <b id="shop-rocket-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-rocket">BUY</button>
+        </div>
+        <div class="shop-row">
+          <img src="assets/sprites/lodge-chaingun.png" alt="" />
+          <div>
+            <strong>Lodge Chaingun</strong>
+            <span>14 dmg × 5 · blast 12 · tracers · recoil</span>
+            <span class="shop-cost">48 $BOBER · owned <b id="shop-chain-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-chain">BUY</button>
         </div>
       </div>
       <p class="shop-note">Charges only. You cannot buy a win. No wallet.</p>

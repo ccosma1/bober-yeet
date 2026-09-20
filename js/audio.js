@@ -89,6 +89,11 @@
     pop() {
       this.beep(700, 0.06, "square", 0.05, 400);
     },
+    whoosh() {
+      this.noise(0.3, 0.18);
+      this.beep(480, 0.24, "sawtooth", 0.07, 90);
+      this.beep(160, 0.2, "triangle", 0.05, 55);
+    },
     turn() {
       this.beep(520, 0.08, "square", 0.05);
       this.beep(660, 0.1, "square", 0.04);
