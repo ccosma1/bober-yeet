@@ -102,6 +102,11 @@
   let view = { s: 1, camX: 0, camY: 0, cssW: 1, cssH: 1 };
   let winner = null;
   let aimTutOn = false;
+  let endDelay = 0;
+  let userPanX = 0;
+  let panning = false;
+  let panLast = null;
+  let aimDrag = false;
   let coins = 0;
   let matchCoins = 0;
   let ammo = { lodge: { dynamite: 0, sap: 0 }, creek: { dynamite: 0, sap: 0 } };
@@ -363,7 +368,7 @@
     const wtxt = wind === 0 ? "WIND 0" : wind > 0 ? "WIND +" + wind : "WIND " + wind;
     windVal.textContent = wtxt;
     windFlag.className = wind === 0 ? "calm" : wind < 0 ? "left" : "right";
-    const labels = { aim: "AIM", fly: "YEET", settle: "SETTLE", cpu: "CPU", end: "END", fuse: "FUSE" };
+    const labels = { aim: "AIM", fly: "YEET", settle: "SETTLE", cpu: "CPU", end: "END", fuse: "FUSE", ending: "END" };
     phaseChip.textContent = labels[phase] || phase.toUpperCase();
     if (coinChip) coinChip.textContent = "$BOBER " + coins;
     const dynN = teamAmmo("lodge", "dynamite");
@@ -530,6 +535,7 @@
     b.airborne = false;
     BoberSfx.splash();
     pop(b.x, b.y, why || "SPLASH", "#8ad4ff");
+    maybeEnd();
   }
 
   function kill(b) {
@@ -540,6 +546,7 @@
     b.airborne = false;
     BoberSfx.splat();
     pop(b.x, b.y - 20, "YEETED", "#ff8ad0");
+    maybeEnd();
   }
 
   function explode(x, y, wpnId, fromTeam) {
@@ -582,6 +589,7 @@
     phase = "settle";
     settleT = 0;
     hud();
+    maybeEnd();
   }
 
   function plantFuse(x, y, wpnId, team) {
@@ -772,27 +780,42 @@
     return "creek";
   }
 
+  function maybeEnd() {
+    if (phase === "end" || phase === "splash" || phase === "ending") return false;
+    const who = checkWin();
+    if (!who) return false;
+    phase = "ending";
+    endDelay = 0.4;
+    shot = null;
+    fuses.length = 0;
+    dragging = false;
+    hud();
+    return true;
+  }
+
   function endMatch(who) {
+    if (phase === "end") return;
     winner = who;
     phase = "end";
     shot = null;
     fuses.length = 0;
+    running = true;
     hudTop.classList.remove("live");
     dock.classList.add("hidden");
     if (tipStrip) tipStrip.classList.add("hidden");
     if (who === "lodge") {
       addCoins(20);
-      endTitle.textContent = "BANK CLEARED";
-      endMsg.textContent = "Lodge still standing. The creek crew got yeeted.";
+      endTitle.textContent = "YOU WIN";
+      endMsg.textContent = "Bank cleared. Lodge still standing.";
       BoberSfx.win();
     } else if (who === "creek") {
       addCoins(4);
-      endTitle.textContent = "CREW DOWN";
-      endMsg.textContent = "Creek took the bank. Shake it off. Spend $BOBER, play again.";
+      endTitle.textContent = "YOU LOSE";
+      endMsg.textContent = "Crew down. Creek took the bank.";
       BoberSfx.fail();
     } else {
-      endTitle.textContent = "EVERYBODY YEETED";
-      endMsg.textContent = "The bank is empty. Draw.";
+      endTitle.textContent = "DRAW";
+      endMsg.textContent = "Everybody yeeted. The bank is empty.";
       BoberSfx.fail();
     }
     const ec = $("end-coins");
@@ -807,6 +830,7 @@
       endMatch(who);
       return;
     }
+    userPanX = 0;
     beginTurn(turn === "lodge" ? "creek" : "lodge");
   }
 
@@ -872,13 +896,17 @@
     waveT += dt;
     if (phase === "cpu") stepCpu(dt);
     if (phase === "fly") stepShot();
-    if (fuses.length) stepFuses(dt);
+    if (fuses.length && phase !== "ending" && phase !== "end") stepFuses(dt);
     bobers.forEach(stepBober);
-    if (phase === "settle" || phase === "fuse") {
+    maybeEnd();
+    if (phase === "ending") {
+      endDelay -= dt;
+      if (endDelay <= 0) endMatch(checkWin() || "draw");
+    } else if (phase === "settle" || phase === "fuse") {
       settleT += dt;
       if (phase === "fuse" && fuses.length) return;
       if (phase === "fuse" && !fuses.length) phase = "settle";
-      if ((allSettled() && settleT > 0.45) || settleT > 4.2) finishSettle();
+      if ((allSettled() && settleT > 0.45) || settleT > 3.2) finishSettle();
     }
     for (let i = bits.length - 1; i >= 0; i--) {
       const p = bits[i];
@@ -952,6 +980,35 @@
     return dots;
   }
 
+  function fightSpan() {
+    const live = living();
+    let x0 = 70;
+    let x1 = WORLD_W - 70;
+    let y0 = 240;
+    let y1 = WORLD_H;
+    if (live.length) {
+      x0 = WORLD_W;
+      x1 = 0;
+      y0 = WORLD_H;
+      y1 = 0;
+      live.forEach((b) => {
+        x0 = Math.min(x0, b.x);
+        x1 = Math.max(x1, b.x);
+        y0 = Math.min(y0, b.y);
+        y1 = Math.max(y1, b.y);
+      });
+      if (living("lodge").length && living("creek").length) {
+        x0 = Math.min(x0, 90);
+        x1 = Math.max(x1, 1190);
+      }
+      x0 = Math.max(0, x0 - 80);
+      x1 = Math.min(WORLD_W, x1 + 80);
+      y0 = Math.max(0, Math.min(y0, 260) - 50);
+      y1 = WORLD_H;
+    }
+    return { x0, x1, y0, y1, w: Math.max(280, x1 - x0), h: Math.max(300, y1 - y0) };
+  }
+
   function layoutCam() {
     const r = canvas.getBoundingClientRect();
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -963,13 +1020,14 @@
       canvas.width = bw;
       canvas.height = bh;
     }
-    const minBober = 36;
+    const span = fightSpan();
+    const sFit = Math.min(cssW / span.w, cssH / span.h);
     const sContain = Math.min(cssW / WORLD_W, cssH / WORLD_H);
     let s;
     let tx = 0;
     let ty = 0;
-    let focusX = WORLD_W / 2;
-    let focusY = WORLD_H * 0.58;
+    let focusX = (span.x0 + span.x1) / 2;
+    let focusY = (span.y0 + span.y1) / 2;
     const active = getActive();
     if (shot) {
       focusX = shot.x;
@@ -977,35 +1035,51 @@
     } else if (fuses.length) {
       focusX = fuses[0].x;
       focusY = fuses[0].y;
-    } else if (lastBlast && phase === "settle" && settleT < 0.7) {
+    } else if (lastBlast && phase === "settle" && settleT < 0.55) {
       focusX = lastBlast.x;
       focusY = lastBlast.y;
     } else if (active) {
-      focusX = active.x;
-      focusY = active.y - 20;
+      focusY = active.y - 10;
     }
-    if (sContain * DRAW_H >= minBober) {
-      s = sContain;
-      tx = (WORLD_W - cssW / s) / 2;
-      ty = (WORLD_H - cssH / s) / 2;
+    if (sFit * DRAW_H >= 20) {
+      s = sFit;
+      tx = span.x0 - (cssW / s - span.w) / 2;
+      ty = span.y0 - (cssH / s - span.h) / 2;
     } else {
-      s = Math.max(cssW / WORLD_W, minBober / DRAW_H);
+      s = Math.max(sContain, 22 / DRAW_H);
       const visW = cssW / s;
       const visH = cssH / s;
       tx = visW >= WORLD_W ? (WORLD_W - visW) / 2 : clamp(focusX - visW / 2, 0, WORLD_W - visW);
-      ty = visH >= WORLD_H ? (WORLD_H - visH) / 2 : clamp(focusY - visH * 0.62, 0, WORLD_H - visH);
+      ty = visH >= WORLD_H ? (WORLD_H - visH) / 2 : clamp(focusY - visH * 0.58, 0, WORLD_H - visH);
     }
+    tx += userPanX;
+    const visW = cssW / s;
+    const visH = cssH / s;
+    const minTx = visW >= WORLD_W ? (WORLD_W - visW) / 2 : 0;
+    const maxTx = visW >= WORLD_W ? minTx : WORLD_W - visW;
+    const minTy = visH >= WORLD_H ? (WORLD_H - visH) / 2 : 0;
+    const maxTy = visH >= WORLD_H ? minTy : WORLD_H - visH;
+    tx = clamp(tx, minTx, maxTx);
+    ty = clamp(ty, minTy, maxTy);
     if (!camInit) {
       camS = s;
       camX = tx;
       camY = ty;
       camInit = true;
     } else {
-      camS += (s - camS) * 0.2;
-      camX += (tx - camX) * 0.14;
-      camY += (ty - camY) * 0.14;
+      camS += (s - camS) * 0.18;
+      camX += (tx - camX) * 0.16;
+      camY += (ty - camY) * 0.16;
     }
-    view = { s: camS, camX, camY, cssW, cssH, dpr, showRadar: cssW / s < WORLD_W - 40 };
+    view = {
+      s: camS,
+      camX,
+      camY,
+      cssW,
+      cssH,
+      dpr,
+      showRadar: cssW / camS < WORLD_W - 80,
+    };
   }
 
   function drawBober(b) {
@@ -1319,6 +1393,8 @@
     camX = 0;
     camY = 0;
     camInit = false;
+    userPanX = 0;
+    endDelay = 0;
     const wasRunning = running;
     running = true;
     lastTs = performance.now();
@@ -1344,43 +1420,65 @@
   }
 
   function onPointerDown(ev) {
-    if (phase !== "aim" || turn !== "lodge" || aimTutOn) return;
+    if (phase === "end" || phase === "splash" || phase === "ending") return;
     ev.preventDefault();
     const w = worldFromEvent(ev);
     dragStart = w;
-    const tapped = boberAt(w.x, w.y, "lodge");
-    if (tapped) {
-      activeId = tapped.id;
-      BoberSfx.pop();
+    panLast = { x: ev.clientX, y: ev.clientY };
+    aimDrag = false;
+    panning = false;
+    dragging = false;
+    if (phase === "aim" && turn === "lodge" && !aimTutOn) {
+      const tapped = boberAt(w.x, w.y, "lodge");
+      if (tapped) {
+        activeId = tapped.id;
+        BoberSfx.pop();
+        aimDrag = true;
+        dragging = true;
+        dragPos = w;
+        aimFromDrag();
+      } else {
+        panning = true;
+      }
+    } else {
+      panning = true;
     }
-    dragging = true;
-    dragPos = w;
-    aimFromDrag();
     try {
       canvas.setPointerCapture(ev.pointerId);
     } catch (_) {}
   }
 
   function onPointerMove(ev) {
-    if (!dragging) return;
-    dragPos = worldFromEvent(ev);
-    aimFromDrag();
+    if (aimDrag && dragging) {
+      dragPos = worldFromEvent(ev);
+      aimFromDrag();
+      return;
+    }
+    if (panning && panLast) {
+      const dx = ev.clientX - panLast.x;
+      userPanX -= dx / (view.s || 1);
+      panLast = { x: ev.clientX, y: ev.clientY };
+    }
   }
 
   function onPointerUp(ev) {
-    if (!dragging) return;
-    dragging = false;
     const w = worldFromEvent(ev);
     try {
       canvas.releasePointerCapture(ev.pointerId);
     } catch (_) {}
-    if (dragStart && Math.hypot(w.x - dragStart.x, w.y - dragStart.y) < 14) {
-      const tapped = boberAt(w.x, w.y, "lodge");
-      if (!tapped) {
-        const b = getActive();
-        if (b && Math.abs(w.x - b.x) > 12) walkActive(w.x < b.x ? -1 : 1);
+    if (panning && dragStart && Math.hypot(w.x - dragStart.x, w.y - dragStart.y) < 16) {
+      if (phase === "aim" && turn === "lodge" && !aimTutOn) {
+        const tapped = boberAt(w.x, w.y, "lodge");
+        if (!tapped) {
+          const b = getActive();
+          if (b && Math.abs(w.x - b.x) > 12) walkActive(w.x < b.x ? -1 : 1);
+        }
       }
     }
+    dragging = false;
+    aimDrag = false;
+    panning = false;
+    panLast = null;
     dragStart = null;
   }
 
@@ -1403,7 +1501,9 @@
     loadCoins();
     hud();
     playBtn.addEventListener("click", startMatch);
-    endRestart.addEventListener("click", () => openShop("end"));
+    endRestart.addEventListener("click", startMatch);
+    const endSplash = $("end-splash");
+    if (endSplash) endSplash.addEventListener("click", leaveToSplash);
     fireBtn.addEventListener("click", () => {
       BoberSfx.ensure();
       tryFire();
@@ -1504,6 +1604,7 @@
       ammo: { lodge: { ...ammo.lodge }, creek: { ...ammo.creek } },
       crates: crates.map((c) => ({ x: c.x, y: c.y, kind: c.kind })),
       fuses: fuses.map((f) => ({ x: f.x, y: f.y, t: f.t, weapon: f.weapon })),
+      view: { s: view.s, camX: view.camX, camY: view.camY, cssW: view.cssW, cssH: view.cssH },
       bobers: bobers.map((b) => ({
         id: b.id,
         name: b.name,
@@ -1543,10 +1644,7 @@
     },
     killTeam(team) {
       living(team).forEach((b) => kill(b));
-      if (phase === "aim" || phase === "cpu" || phase === "fuse") {
-        phase = "settle";
-        settleT = 0.5;
-      }
+      maybeEnd();
     },
     setWind(v) {
       wind = clamp(v | 0, -4, 4);

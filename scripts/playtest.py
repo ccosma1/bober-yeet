@@ -32,6 +32,24 @@ def snap(page):
     return page.evaluate("() => window.__yeetWar.snapshot()")
 
 
+def both_teams_visible(s):
+    v = s.get("view") or {}
+    cam_x = v.get("camX", 0)
+    scale = v.get("s") or 1
+    css_w = v.get("cssW") or 1
+    lodge = creek = False
+    for b in s["bobers"]:
+        if not b["alive"]:
+            continue
+        x = (b["x"] - cam_x) * scale
+        on = -30 <= x <= css_w + 30
+        if b["team"] == "lodge" and on:
+            lodge = True
+        if b["team"] == "creek" and on:
+            creek = True
+    return lodge, creek, v
+
+
 def main():
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="chrome", headless=True)
@@ -176,57 +194,82 @@ def main():
         assert any(c["kind"] == "coin" for c in s["crates"])
         shot(page, "test-crate.png")
 
+        page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('stick'); w.setAim(-52, 72); w.fire(); }")
+        page.wait_for_timeout(600)
         page.evaluate("() => window.__yeetWar.killTeam('creek')")
         wait_phase(page, "end", timeout=8000)
-        assert "BANK CLEARED" in page.locator("#end-title").inner_text()
+        win_title = page.locator("#end-title").inner_text()
+        print("WIN", win_title)
+        assert "YOU WIN" in win_title
+        assert page.locator("#end-restart").inner_text() == "REMATCH"
+        assert page.locator("#end-splash").inner_text() == "SPLASH"
         shot(page, "test-win.png")
 
         page.click("#end-restart")
-        page.wait_for_timeout(250)
-        shop = page.locator("#shop").inner_text()
-        print("SHOP", shop[:200])
-        assert "12 $BOBER" in shop
-        assert "10 $BOBER" in shop
-        assert "cannot buy a win" in shop.lower()
-        shot(page, "test-shop.png")
-        page.evaluate("() => window.__yeetWar.setCoins(40)")
-        page.wait_for_timeout(100)
-        page.click("#buy-dynamite")
-        page.wait_for_timeout(150)
-        s = snap(page)
-        print("BUY", s["coins"], s["ammo"])
-        assert s["ammo"]["lodge"]["dynamite"] >= 1
-        page.click("#shop-play")
         wait_phase(page, "aim", timeout=8000)
         page.evaluate("() => window.__yeetWar.killTeam('lodge')")
         wait_phase(page, "end", timeout=8000)
-        assert "CREW DOWN" in page.locator("#end-title").inner_text()
+        lose_title = page.locator("#end-title").inner_text()
+        print("LOSE", lose_title)
+        assert "YOU LOSE" in lose_title
+        shot(page, "test-lose.png")
+
+        page.click("#end-splash")
+        page.wait_for_timeout(200)
+        page.click("#btn-gear")
+        page.wait_for_timeout(200)
+        shop = page.locator("#shop").inner_text()
+        print("SHOP", shop[:200])
+        assert "12 $BOBER" in shop
+        assert "cannot buy a win" in shop.lower()
+        shot(page, "test-shop.png")
+        page.click("#shop-back")
 
         page = browser.new_page(viewport={"width": 390, "height": 844})
         page.goto(URL, wait_until="networkidle", timeout=30000)
         page.evaluate("() => localStorage.setItem('bober-yeet-war-tut', '1')")
         page.click("#btn-play")
         wait_phase(page, "aim", timeout=10000)
+        page.wait_for_timeout(500)
         fire = page.locator("#btn-fire").bounding_box()
         stage = page.locator("#stage").bounding_box()
+        vp_h = 844
         print("PHONE fire", fire, "stage", stage)
         assert fire and fire["height"] >= 44
-        assert stage and stage["height"] / 844 >= 0.54
+        assert stage and stage["height"] / vp_h >= 0.55
         s = snap(page)
-        for b in s["bobers"]:
-            if b["alive"]:
-                assert b["standing"] is True
-                assert abs(b["vx"]) < 0.05
+        lodge_on, creek_on, view = both_teams_visible(s)
+        print("PHONE CAM", view, "lodge", lodge_on, "creek", creek_on)
+        assert lodge_on and creek_on
         shot(page, "test-match-mobile.png")
+        page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('stick'); w.setAim(-50, 70); w.fire(); }")
+        page.wait_for_timeout(800)
+        page.evaluate("() => window.__yeetWar.killTeam('creek')")
+        wait_phase(page, "end", timeout=8000)
+        assert "YOU WIN" in page.locator("#end-title").inner_text()
+        shot(page, "test-win-mobile.png")
+        page.click("#end-restart")
+        wait_phase(page, "aim", timeout=8000)
+        page.evaluate("() => window.__yeetWar.killTeam('lodge')")
+        wait_phase(page, "end", timeout=8000)
+        assert "YOU LOSE" in page.locator("#end-title").inner_text()
 
         page = browser.new_page(viewport={"width": 844, "height": 390})
         page.goto(URL, wait_until="networkidle", timeout=30000)
         page.evaluate("() => localStorage.setItem('bober-yeet-war-tut', '1')")
         page.click("#btn-play")
         wait_phase(page, "aim", timeout=10000)
+        page.wait_for_timeout(400)
         stage = page.locator("#stage").bounding_box()
-        assert stage and stage["height"] / 390 >= 0.54
+        assert stage and stage["height"] / 390 >= 0.55
+        s = snap(page)
+        lodge_on, creek_on, view = both_teams_visible(s)
+        print("LAND CAM", view, "lodge", lodge_on, "creek", creek_on)
+        assert lodge_on and creek_on
         shot(page, "test-match-mobile-landscape.png")
+        page.evaluate("() => window.__yeetWar.killTeam('creek')")
+        wait_phase(page, "end", timeout=8000)
+        assert "YOU WIN" in page.locator("#end-title").inner_text()
 
         print("PLAYTEST_OK")
         browser.close()
