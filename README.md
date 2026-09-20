@@ -6,7 +6,7 @@ Fan game by a holder.
 
 Aim, power, wind. Dig cover. Last beaver standing.
 
-Turn-based stick fights vs AI. Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Yeet Stick and Snowball stay infinite. Spend $BOBER (not a wallet) on Dynamite, Sap Bomb, Lodge Mortar, Ice Brace, Pinecone Cluster, Woodchip Mine, and Bark Buckler. Crates drop every 3 turns. Tap SHOP mid-match. Use the tray chevrons to reach every gun.
+Turn-based stick fights vs AI (Easy / Normal / Hard). Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Yeet Stick and Snowball stay infinite. Spend $BOBER (not a wallet) on Dynamite, Sap Bomb, Lodge Mortar, Ice Brace, Pinecone Cluster, Woodchip Mine, and Bark Buckler. Crates drop every 3 turns. Tap SHOP mid-match. Use the tray chevrons to reach every gun. After turn 12 — or when two Bobers remain — Sudden Death raises the hazard.
 
 Bank fights from the Green Home to deep space. Portrait and landscape both play.
 

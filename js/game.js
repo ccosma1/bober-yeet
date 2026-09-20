@@ -27,7 +27,14 @@
   const SAP_DOT = 8;
   const SAP_TICKS = 2;
   const MAP_KEY = "bober-yeet-war-map";
+  const DIFF_KEY = "bober-yeet-war-diff";
   const GRANT_KEY = "bober-yeet-war-p2grant";
+  const SD_TURN = 12;
+  const DIFFS = {
+    easy: { ang: 0.58, pwr: 30, mortar: 0.05, dyn: 0.07, sap: 0.08, ice: 0.04, pine: 0.06, mine: 0.04, buck: 0.04, buy: false, cover: 0.2, lowHp: false, coins: 0 },
+    normal: { ang: 0.22, pwr: 12, mortar: 0.28, dyn: 0.3, sap: 0.22, ice: 0.2, pine: 0.18, mine: 0.16, buck: 0.14, buy: true, cover: 0.48, lowHp: false, coins: 60 },
+    hard: { ang: 0.07, pwr: 4, mortar: 0.52, dyn: 0.38, sap: 0.24, ice: 0.34, pine: 0.22, mine: 0.3, buck: 0.3, buy: true, cover: 0.4, lowHp: true, coins: 110 },
+  };
   const PAID = ["dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler"];
   const WEP_IDS = ["stick", "snow", "dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler"];
   const LEDGES_PAD = 140;
@@ -195,7 +202,7 @@
 
   function hazardY() {
     const y = spec().hazardY;
-    return y == null ? WATER_Y : y;
+    return (y == null ? WATER_Y : y) - sdRise;
   }
 
   const LODGE_NAMES = ["Pip", "Nibs", "Paddle"];
@@ -289,6 +296,11 @@
   let mines = [];
   let pellets = [];
   let mapId = "bowl";
+  let diff = "normal";
+  let sudden = false;
+  let sdRise = 0;
+  let sdTickAt = 0;
+  let cpuCoins = 0;
   let shopFrom = "splash";
   let howtoFrom = "splash";
   let shopOpen = false;
@@ -330,6 +342,8 @@
     } catch (_) {}
     const m = localStorage.getItem(MAP_KEY);
     if (m && MAPS[m]) mapId = m;
+    const d = localStorage.getItem(DIFF_KEY);
+    if (d && DIFFS[d]) diff = d;
   }
 
   function saveCoins() {
@@ -344,6 +358,7 @@
       buckler: ammo.lodge.buckler,
     }));
     localStorage.setItem(MAP_KEY, mapId);
+    localStorage.setItem(DIFF_KEY, diff);
   }
 
   function addCoins(n) {
@@ -762,6 +777,8 @@
     windFlag.className = wind === 0 ? "calm" : wind < 0 ? "left" : "right";
     const labels = { aim: "AIM", fly: "YEET", settle: "SETTLE", cpu: "CPU", end: "END", fuse: "FUSE", ending: "END" };
     phaseChip.textContent = labels[phase] || phase.toUpperCase();
+    const sdChip = $("sd-chip");
+    if (sdChip) sdChip.classList.toggle("hidden", !sudden);
     if (coinChip) coinChip.textContent = "$BOBER " + coins;
     const mapChip = $("map-chip");
     if (mapChip) mapChip.textContent = (MAPS[mapId] || MAPS.bowl).name.toUpperCase();
@@ -816,12 +833,27 @@
       }
     });
     syncMapCards();
+    syncDiffCards();
   }
 
   function syncMapCards() {
     document.querySelectorAll(".map-card").forEach((el) => {
       el.classList.toggle("on", el.getAttribute("data-map") === mapId);
     });
+  }
+
+  function syncDiffCards() {
+    document.querySelectorAll(".diff-card").forEach((el) => {
+      el.classList.toggle("on", el.getAttribute("data-diff") === diff);
+    });
+  }
+
+  function setDiff(id) {
+    if (!DIFFS[id]) return;
+    diff = id;
+    localStorage.setItem(DIFF_KEY, diff);
+    syncDiffCards();
+    hud();
   }
 
   function setMap(id) {
@@ -878,7 +910,10 @@
         if (b.team === "lodge") {
           addCoins(10);
           pop(c.x, c.y, "+10 $BOBER", "#ffe566");
-        } else pop(c.x, c.y, "NICKED", "#a8c4e8");
+        } else {
+          cpuCoins += 10;
+          pop(c.x, c.y, "NICKED", "#a8c4e8");
+        }
       } else {
         ammo[b.team][c.kind] = (ammo[b.team][c.kind] || 0) + 1;
         saveCoins();
@@ -906,6 +941,7 @@
     meltOldWalls();
     armMines();
     tickShields();
+    tickSuddenDeath();
     if (turnN > 0 && turnN % CRATE_EVERY === 0) spawnCrate();
     if (team === "lodge") {
       phase = "aim";
@@ -926,9 +962,41 @@
       pickActive("creek");
       cpuT = 0;
       cpuReady = false;
+      cpuShop();
       toast("CREEK TURN");
     }
     hud();
+  }
+
+  function tickSuddenDeath() {
+    const twoLeft = living().length <= 2;
+    if (!sudden && (turnN >= SD_TURN || twoLeft)) {
+      sudden = true;
+      sdTickAt = turnN;
+      toast("SUDDEN DEATH");
+      pop(WORLD_W / 2, hazardY() - 40, "SUDDEN DEATH", "#ffe566");
+      riseSudden();
+      return;
+    }
+    if (sudden && turnN - sdTickAt >= 2) {
+      sdTickAt = turnN;
+      riseSudden();
+    }
+  }
+
+  function riseSudden() {
+    sdRise += 32;
+    shrinkMidTerrain();
+    living().forEach((b) => {
+      if (b.y + BOBER_R >= hazardY()) drown(b, spec().hazardWord);
+    });
+    hud();
+  }
+
+  function shrinkMidTerrain() {
+    const hy = hazardY();
+    const r = 34 + Math.min(40, sdRise * 0.2);
+    carve(WORLD_W / 2, hy - 36, r);
   }
 
   function speedFromPower() {
@@ -1400,7 +1468,10 @@
   function maybeEnd() {
     if (phase === "end" || phase === "splash" || phase === "ending") return false;
     const who = checkWin();
-    if (!who) return false;
+    if (!who) {
+      if (!sudden && living().length <= 2) tickSuddenDeath();
+      return false;
+    }
     phase = "ending";
     endDelay = 0.4;
     shot = null;
@@ -1455,39 +1526,75 @@
     beginTurn(turn === "lodge" ? "creek" : "lodge");
   }
 
+  function diffSpec() {
+    return DIFFS[diff] || DIFFS.normal;
+  }
+
+  function cpuTarget() {
+    const foes = living("lodge");
+    if (!foes.length) return null;
+    const d = diffSpec();
+    if (d.lowHp) {
+      foes.sort((a, b) => a.hp - b.hp || a.x - b.x);
+      return foes[0];
+    }
+    return foes[(Math.random() * foes.length) | 0];
+  }
+
   function guessCpuAim(me, target) {
+    const d = diffSpec();
     const dx = target.x - me.x;
     const dy = target.y - me.y;
     const dist = Math.hypot(dx, dy);
-    let ang = Math.atan2(dy - 130, dx);
-    let pwr = 30 + dist * 0.052 + Math.abs(wind) * 2.2;
-    if (wind * Math.sign(dx) < 0) pwr += 8;
-    if (wind * Math.sign(dx) > 0) pwr -= 3;
-    ang += (Math.random() - 0.5) * 0.3;
-    pwr += (Math.random() - 0.5) * 16;
+    const lob = weapon === "mortar";
+    let ang = Math.atan2(dy - (lob ? 190 : 130), dx);
+    let pwr = (lob ? 40 : 30) + dist * (lob ? 0.038 : 0.052) + Math.abs(wind) * (lob ? 1.4 : 2.2);
+    if (wind * Math.sign(dx) < 0) pwr += lob ? 4 : 8;
+    if (wind * Math.sign(dx) > 0) pwr -= lob ? 2 : 3;
+    ang += (Math.random() - 0.5) * d.ang;
+    pwr += (Math.random() - 0.5) * d.pwr;
     if (ang > 0) ang = -Math.abs(ang);
-    return { angle: ang, power: clamp(pwr, 22, 86) };
+    return { angle: ang, power: clamp(pwr, 18, 92) };
   }
 
-  function cpuPickWeapon() {
-    if (teamAmmo("creek", "buckler") > 0 && Math.random() < 0.12) return "buckler";
-    if (teamAmmo("creek", "pine") > 0 && Math.random() < 0.2) return "pine";
-    if (teamAmmo("creek", "mine") > 0 && Math.random() < 0.16) return "mine";
-    if (teamAmmo("creek", "mortar") > 0 && Math.random() < 0.22) return "mortar";
-    if (teamAmmo("creek", "ice") > 0 && Math.random() < 0.18) return "ice";
-    if (teamAmmo("creek", "dynamite") > 0 && Math.random() < 0.28) return "dynamite";
-    if (teamAmmo("creek", "sap") > 0 && Math.random() < 0.28) return "sap";
-    return Math.random() < 0.45 ? "snow" : "stick";
+  function cpuPickWeapon(shooter, target) {
+    const d = diffSpec();
+    const has = (id) => teamAmmo("creek", id) > 0;
+    if (shooter && shooter.hp <= 42 && has("buckler") && Math.random() < d.buck) return "buckler";
+    if (target && Math.abs(target.x - (WORLD_W / 2)) < 80 && has("mine") && Math.random() < d.mine) return "mine";
+    if (has("ice") && Math.random() < d.ice) return "ice";
+    if (has("mortar") && Math.random() < d.mortar) return "mortar";
+    if (has("dynamite") && Math.random() < d.dyn) return "dynamite";
+    if (has("sap") && Math.random() < d.sap) return "sap";
+    if (has("pine") && Math.random() < d.pine) return "pine";
+    if (has("mine") && Math.random() < d.mine) return "mine";
+    if (d.cover && Math.random() < d.cover) return "snow";
+    return Math.random() < 0.4 ? "snow" : "stick";
+  }
+
+  function cpuShop() {
+    const d = diffSpec();
+    if (!d.buy) return;
+    const order = d.lowHp ? ["mortar", "ice", "mine", "buckler", "dynamite", "pine", "sap"] : ["dynamite", "mortar", "sap", "ice", "pine", "mine", "buckler"];
+    order.forEach((id) => {
+      const wpn = WEAPONS[id];
+      if (!wpn || !wpn.cost) return;
+      if (teamAmmo("creek", id) > 0) return;
+      if (cpuCoins < wpn.cost) return;
+      cpuCoins -= wpn.cost;
+      ammo.creek[id] = (ammo.creek[id] || 0) + 1;
+    });
   }
 
   function stepCpu(dt) {
     cpuT += dt * 1000;
+    const cap = FAST ? 700 : 2800;
     const me = getActive();
     if (!me || !me.alive) pickActive("creek");
     const shooter = getActive();
     if (shooter) pickupCrates(shooter);
     if (!cpuReady && cpuT >= CPU_THINK) {
-      if (!shooter) {
+      if (!shooter || !shooter.alive) {
         finishSettle();
         return;
       }
@@ -1497,21 +1604,27 @@
         shooter.walkT = 0.3;
         shooter.facing = shooter.walkDir;
       }
-      const foes = living("lodge");
-      if (!foes.length) {
+      const target = cpuTarget();
+      if (!target) {
         finishSettle();
         return;
       }
-      const target = foes[(Math.random() * foes.length) | 0];
+      const pick = cpuPickWeapon(shooter, target);
+      if (!setWeapon(pick)) setWeapon("stick");
       const g = guessCpuAim(shooter, target);
       angle = g.angle;
       power = g.power;
       shooter.facing = Math.cos(angle) >= 0 ? 1 : -1;
-      setWeapon(cpuPickWeapon());
       cpuReady = true;
       hud();
     }
-    if (cpuReady && cpuT >= CPU_THINK + CPU_SHOW) tryFire();
+    if (cpuReady && cpuT >= CPU_THINK + CPU_SHOW) {
+      if (!tryFire()) finishSettle();
+      return;
+    }
+    if (cpuT >= cap) {
+      if (!tryFire()) finishSettle();
+    }
   }
 
   function step(dt) {
@@ -1829,7 +1942,7 @@
       ctx.fillStyle = "#24143c";
       ctx.fillRect(view.camX, view.camY, view.cssW / view.s, view.cssH / view.s);
     }
-    const waterTop = s.washFrom || 500;
+    const waterTop = (s.washFrom || 500) - sdRise;
     const hy = hazardY();
     const wg = ctx.createLinearGradient(0, waterTop, 0, WORLD_H);
     if (s.hazard === "dust") {
@@ -2113,6 +2226,10 @@
     winner = null;
     matchCoins = 0;
     turnN = 0;
+    sudden = false;
+    sdRise = 0;
+    sdTickAt = 0;
+    cpuCoins = diffSpec().coins;
     ammo.creek = emptyAmmo();
     weapon = "stick";
     setWeapon("stick");
@@ -2375,6 +2492,10 @@
     document.querySelectorAll(".map-card").forEach((el) => {
       el.addEventListener("click", () => setMap(el.getAttribute("data-map")));
     });
+    document.querySelectorAll(".diff-card").forEach((el) => {
+      el.addEventListener("click", () => setDiff(el.getAttribute("data-diff")));
+    });
+    syncDiffCards();
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
@@ -2424,6 +2545,10 @@
       coins,
       ammo: { lodge: { ...ammo.lodge }, creek: { ...ammo.creek } },
       mapId,
+      diff,
+      sudden,
+      sdRise,
+      cpuCoins,
       crates: crates.map((c) => ({ x: c.x, y: c.y, kind: c.kind })),
       fuses: fuses.map((f) => ({ x: f.x, y: f.y, t: f.t, weapon: f.weapon })),
       walls: walls.map((w) => ({ x: w.x, y: w.y, hp: w.hp })),
@@ -2481,7 +2606,29 @@
       maybeEnd();
     },
     setMap,
+    setDiff,
     MAPS,
+    DIFFS,
+    get diff() {
+      return diff;
+    },
+    get sudden() {
+      return sudden;
+    },
+    get sdRise() {
+      return sdRise;
+    },
+    hazardY,
+    forceSudden() {
+      turnN = Math.max(turnN, SD_TURN);
+      tickSuddenDeath();
+      hud();
+    },
+    setTurnN(n) {
+      turnN = Math.max(0, n | 0);
+      tickSuddenDeath();
+      hud();
+    },
     openShop,
     shopAllowed,
     setWind(v) {

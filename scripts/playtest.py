@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war4b"
+URL = "http://127.0.0.1:8765/?v=war5"
 
 
 def shot(page, name):
@@ -157,6 +157,8 @@ def main():
         assert page.locator("#btn-play").inner_text() == "START"
         assert page.locator("#btn-howto").inner_text() == "HOW TO PLAY"
         assert page.locator("#splash-maps .map-card").count() == 10
+        assert page.locator("#splash-diff .diff-card").count() == 3
+        assert page.locator("#splash-diff .diff-card.on").inner_text() == "NORMAL"
         splash_maps = page.locator("#splash-maps").inner_text()
         for name in (
             "Lodge Bowl",
@@ -184,6 +186,8 @@ def main():
         assert "tilt" not in how.lower()
         assert "Pinecone" in how
         assert "Red Mesa" in how
+        assert "Sudden Death" in how
+        assert "Easy" in how and "Hard" in how
         shot(page, "test-howto.png")
         page.click("#howto-close")
 
@@ -402,6 +406,25 @@ def main():
         print("ICE", s["walls"])
         assert s["walls"][0]["hp"] == 60
         shot(page, "test-ice.png")
+        diffs = page.evaluate("() => window.__yeetWar.DIFFS")
+        assert diffs["easy"]["ang"] > diffs["hard"]["ang"] * 4
+        assert diffs["easy"]["mortar"] < diffs["normal"]["mortar"] < diffs["hard"]["mortar"]
+        page.evaluate("() => window.__yeetWar.setDiff('easy')")
+        assert snap(page)["diff"] == "easy"
+        page.evaluate("() => window.__yeetWar.setDiff('hard')")
+        assert snap(page)["diff"] == "hard"
+        hy0 = page.evaluate("() => window.__yeetWar.hazardY()")
+        page.evaluate("() => window.__yeetWar.forceSudden()")
+        s = snap(page)
+        print("SUDDEN", s["sudden"], s["sdRise"], "hy", hy0, page.evaluate("() => window.__yeetWar.hazardY()"))
+        assert s["sudden"] is True
+        assert s["sdRise"] >= 32
+        assert "hidden" not in (page.locator("#sd-chip").get_attribute("class") or "")
+        assert "SUDDEN DEATH" in page.locator("#sd-chip").inner_text()
+        assert page.evaluate("() => window.__yeetWar.hazardY()") < hy0
+        shot(page, "test-sudden.png")
+        page.evaluate("() => window.__yeetWar.startMatch()")
+        wait_phase(page, "aim", timeout=8000)
         page.evaluate("() => window.__yeetWar.spawnCrate('mortar', 80)")
         page.wait_for_timeout(80)
         assert any(c["kind"] == "mortar" for c in snap(page)["crates"])

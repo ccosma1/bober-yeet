@@ -867,6 +867,36 @@ h1 {
   background: var(--yellow);
   color: var(--ink);
 }
+.diff-pick {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: min(96%, 420px);
+  margin: 0 auto 10px;
+}
+.diff-card {
+  pointer-events: auto;
+  touch-action: manipulation;
+  flex: 1;
+  border: 3px solid #1a1020;
+  border-radius: 14px;
+  background: #2a1c4e;
+  color: var(--cream);
+  font: inherit;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.diff-card.on {
+  background: var(--yellow);
+  color: var(--ink);
+}
+.sd-chip {
+  color: #ffe566;
+  border-color: #8a6a00;
+}
 .shop-list {
   max-height: min(42vh, 320px);
   overflow-y: auto;

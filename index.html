@@ -24,6 +24,7 @@
             <span id="wind-val">WIND 0</span>
           </div>
           <div class="chip" id="phase-chip">AIM</div>
+          <div class="chip sd-chip hidden" id="sd-chip">SUDDEN DEATH</div>
           <div class="chip" id="map-chip">LODGE BOWL</div>
           <button type="button" class="chip coin-chip" id="coin-chip" title="$BOBER">$BOBER 0</button>
           <div class="chip" id="wep-chip">YEET STICK</div>
@@ -148,6 +149,11 @@
           <span>Dock Notch</span>
         </button>
       </div>
+      <div class="diff-pick" id="splash-diff">
+        <button type="button" class="diff-card" data-diff="easy">EASY</button>
+        <button type="button" class="diff-card on" data-diff="normal">NORMAL</button>
+        <button type="button" class="diff-card" data-diff="hard">HARD</button>
+      </div>
       <div class="end-actions">
         <button class="play" id="btn-play" type="button">START</button>
       </div>
@@ -168,6 +174,7 @@
         <p>Hits dig cover and hurt <strong>HP</strong>. Falloff at the blast edge. Creek, dust, void, methane, or acid below = out. Last beaver standing wins.</p>
         <p><strong>Crates</strong> drop every 3 turns. Walk onto one for gear or $BOBER. Tap <strong>SHOP</strong> mid-match to buy charges. If you are short, the shop says how many more $BOBER you need.</p>
         <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Stick and Snowball stay infinite. Use the tray <strong>◀ ▶</strong> chevrons (or swipe) to reach Lodge Mortar, Pinecone Cluster, Woodchip Mine, and Bark Buckler. You cannot buy a win.</p>
+        <p>Pick <strong>Easy</strong>, <strong>Normal</strong>, or <strong>Hard</strong>. After turn 12 — or when two Bobers remain — <strong>Sudden Death</strong> raises the hazard every 2 turns so the match ends.</p>
       </div>
       <button class="play" id="howto-close" type="button">GOT IT</button>
     </div>
@@ -290,6 +297,11 @@
           <img src="assets/history/dock-notch.jpg" alt="" />
           <span>Dock Notch</span>
         </button>
+      </div>
+      <div class="diff-pick" id="end-diff">
+        <button type="button" class="diff-card" data-diff="easy">EASY</button>
+        <button type="button" class="diff-card on" data-diff="normal">NORMAL</button>
+        <button type="button" class="diff-card" data-diff="hard">HARD</button>
       </div>
       <div class="end-actions">
         <button class="play" id="end-restart" type="button">REMATCH</button>
