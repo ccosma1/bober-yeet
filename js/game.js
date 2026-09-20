@@ -1,117 +1,99 @@
 (() => {
-  const W = 1280;
-  const H = 720;
-  const GROUND_TOP = 640;
-  const SLING = { x: 188, y: 528 };
-  const MAX_PULL = 150;
-  const POWER = 0.185;
-  const SHOTS = 3;
-  const LEVEL_TIME = 20;
-  const LEVEL_COUNT = BoberLevels.COUNT;
+  const WORLD_W = 1280;
+  const WORLD_H = 720;
+  const WATER_Y = 676;
+  const GRAV = 0.2;
+  const WIND_K = 0.014;
+  const BOBER_R = 24;
+  const DRAW_H = 72;
+  const HP_MAX = 100;
+  const MAX_PULL = 140;
+  const TUT_KEY = "bober-yeet-war-tut";
+  const FAST = /(?:\?|&)selftest=1(?:&|$)/.test(location.search);
+  const CPU_THINK = FAST ? 180 : 900;
+  const CPU_SHOW = FAST ? 220 : 800;
 
-  if (typeof Matter === "undefined") {
-    const b = document.getElementById("btn-play");
-    if (b) {
-      b.disabled = false;
-      b.textContent = "YEET";
-    }
-    console.error("Matter.js failed to load");
-    return;
-  }
-  const { Engine, World, Bodies, Body, Events } = Matter;
+  const WEAPONS = {
+    stick: { id: "stick", name: "Yeet Stick", dmg: 25, blast: 28, r: 7 },
+    snow: { id: "snow", name: "Snowball", dmg: 15, blast: 36, r: 9 },
+  };
+
+  const LODGE_NAMES = ["Pip", "Nibs", "Paddle"];
+  const CREEK_NAMES = ["Rime", "Chip", "Gnaw"];
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
-  canvas.width = W;
-  canvas.height = H;
-
   const splash = document.getElementById("splash");
   const endcard = document.getElementById("endcard");
   const toastEl = document.getElementById("toast");
-  const hintEl = document.getElementById("hint");
-  const scoreEl = document.getElementById("score");
-  const levelEl = document.getElementById("level");
-  const timeEl = document.getElementById("time");
-  const ammoEl = document.getElementById("ammo");
+  const hudTop = document.getElementById("hud-top");
+  const dock = document.getElementById("dock");
+  const turnChip = document.getElementById("turn-chip");
+  const windFlag = document.getElementById("wind-flag");
+  const windVal = document.getElementById("wind-val");
+  const phaseChip = document.getElementById("phase-chip");
   const muteBtn = document.getElementById("btn-mute");
-  const restartBtn = document.getElementById("btn-restart");
-  const nextBtn = document.getElementById("btn-next");
+  const leaveBtn = document.getElementById("btn-leave");
   const playBtn = document.getElementById("btn-play");
+  const fireBtn = document.getElementById("btn-fire");
+  const powerFill = document.getElementById("power-fill");
+  const powerNum = document.getElementById("power-num");
   const endTitle = document.getElementById("end-title");
   const endMsg = document.getElementById("end-msg");
-  const endQuote = document.getElementById("end-quote");
   const endRestart = document.getElementById("end-restart");
-  const endNext = document.getElementById("end-next");
-  const nameInput = document.getElementById("player-name");
-  const nameErr = document.getElementById("name-err");
-  const playerChip = document.getElementById("player-chip");
-  const boardEl = document.getElementById("board");
-  const boardList = document.getElementById("board-list");
-  const boardClose = document.getElementById("board-close");
-  const btnBoard = document.getElementById("btn-board");
-  const btnSplashBoard = document.getElementById("btn-splash-board");
-  const endBoard = document.getElementById("end-board");
-
-  const img = {};
-  const pops = [];
-  const bits = [];
-
-  let engine, world;
-  let state = "splash";
-  let levelIndex = 0;
-  let shotsLeft = SHOTS;
-  let score = 0;
-  let levelScore = 0;
-  let scoreAtLevelStart = 0;
-  let timeLeft = LEVEL_TIME;
-  let lastTs = 0;
-  let tickAcc = 0;
-  let bober = null;
-  let blocks = [];
-  let starBodies = [];
-  let starGot = false;
-  let charge = 0;
-  let chargedYeet = 0;
-  let currentTheme = BoberLevels.themeFor(0);
-  let dragging = false;
-  let dragPos = null;
-  let flight = false;
-  let flightAge = 0;
-  let levelAge = 0;
-  let settleT = 0;
-  let splatT = 0;
-  let splatted = false;
-  let toastT = 0;
-  let shownHint = false;
-  let hintT = 0;
-  let structureLive = false;
-  let unfreezeGrace = 0;
-  let hitBlockThisShot = false;
-  let uranusA = 0;
-  let clouds = [];
-  let skyFx = [];
-  let pointerAim = { x: W * 0.5, y: H * 0.4 };
-  let playerName = "";
-  let boardOpen = false;
-  let timeUpAge = 0;
-  let aimTutOn = false;
-  const TUT_KEY = "bober-yeet-aim-tut";
-  const starChip = document.getElementById("star-chip");
   const aimTutEl = document.getElementById("aim-tut");
   const aimTutOk = document.getElementById("aim-tut-ok");
 
-  const FACEPLANTS = [
-    "FACEPLANT!",
-    "Bóbr down.",
-    "That's not a dam.",
-    "Uranus saw that.",
-    "Teeth first. Bold.",
-    "Holder down!",
-    "Yeet... adjacent.",
-    "Let that sink in.",
-    "The bird is not freed.",
-    "Mars can wait.",
-  ];
+  const img = {};
+  const bits = [];
+  const pops = [];
+
+  const terrain = document.createElement("canvas");
+  terrain.width = WORLD_W;
+  terrain.height = WORLD_H;
+  const tctx = terrain.getContext("2d", { willReadFrequently: true });
+  const under = document.createElement("canvas");
+  under.width = WORLD_W;
+  under.height = WORLD_H;
+  const uctx = under.getContext("2d");
+  const mask = new Uint8Array(WORLD_W * WORLD_H);
+
+  let phase = "splash";
+  let turn = "lodge";
+  let wind = 0;
+  let weapon = "stick";
+  let angle = -0.95;
+  let power = 50;
+  let activeId = 0;
+  let bobers = [];
+  let shot = null;
+  let lastBlast = null;
+  let craterCount = 0;
+  let settleT = 0;
+  let cpuT = 0;
+  let cpuReady = false;
+  let dragging = false;
+  let dragPos = null;
+  let toastT = 0;
+  let waveT = 0;
+  let acc = 0;
+  let lastTs = 0;
+  let running = false;
+  let camX = 0;
+  let camY = 0;
+  let camS = 1;
+  let camInit = false;
+  let view = { s: 1, camX: 0, camY: 0, cssW: 1, cssH: 1 };
+  let winner = null;
+  let aimTutOn = false;
+
+  function $(id) {
+    return document.getElementById(id);
+  }
+
+  function clamp(v, a, b) {
+    return v < a ? a : v > b ? b : v;
+  }
 
   function loadImage(src) {
     return new Promise((resolve, reject) => {
@@ -122,42 +104,211 @@
     });
   }
 
-  function worldFromEvent(ev) {
-    const r = canvas.getBoundingClientRect();
-    return {
-      x: ((ev.clientX - r.left) / r.width) * W,
-      y: ((ev.clientY - r.top) / r.height) * H,
-    };
-  }
-
   function toast(text, fail) {
     toastEl.textContent = text;
     toastEl.classList.toggle("fail", !!fail);
     toastEl.classList.add("show");
-    toastT = 1.25;
+    toastT = 1.2;
   }
 
   function pop(x, y, text, color) {
-    pops.push({ x, y, text, color, t: 0.7 });
-    window.__lastPop = text;
+    pops.push({ x, y, text, color, t: 0.8 });
   }
 
   function burst(x, y, kind) {
-    const n = kind === "stone" ? 8 : 12;
+    const n = kind === "snow" ? 14 : 10;
     for (let i = 0; i < n; i++) {
       bits.push({
         x,
         y,
         vx: (Math.random() - 0.5) * 9,
         vy: (Math.random() - 0.8) * 8,
-        w: 6 + Math.random() * 8,
-        h: 5 + Math.random() * 7,
+        w: 5 + Math.random() * 7,
+        h: 4 + Math.random() * 6,
         rot: Math.random() * 6,
         vr: (Math.random() - 0.5) * 0.4,
-        life: 0.45 + Math.random() * 0.4,
+        life: 0.4 + Math.random() * 0.45,
         kind,
       });
     }
+  }
+
+  function solid(x, y) {
+    const ix = x | 0;
+    const iy = y | 0;
+    if (ix < 0 || iy < 0 || ix >= WORLD_W || iy >= WORLD_H) return false;
+    return mask[iy * WORLD_W + ix] === 1;
+  }
+
+  function rebuildMask() {
+    const data = tctx.getImageData(0, 0, WORLD_W, WORLD_H).data;
+    for (let i = 0, p = 0; i < mask.length; i++, p += 4) {
+      mask[i] = data[p + 3] > 40 ? 1 : 0;
+    }
+  }
+
+  function smooth(t, a, b) {
+    const x = clamp((t - a) / (b - a), 0, 1);
+    return x * x * (3 - 2 * x);
+  }
+
+  function heightAt(x) {
+    const cx = ((x / 5) | 0) * 5;
+    const u = cx / WORLD_W;
+    const left = 358 + 26 * Math.sin(cx * 0.02) + 12 * Math.sin(cx * 0.07);
+    const right = 350 + 30 * Math.sin(cx * 0.017 + 2) + 10 * Math.sin(cx * 0.053);
+    let y = WATER_Y + 24;
+    if (u < 0.44) {
+      const k = smooth(u, 0.015, 0.09) * (1 - smooth(u, 0.34, 0.45));
+      y = WATER_Y + 24 - k * (WATER_Y + 24 - left);
+    }
+    if (u > 0.56) {
+      const k = smooth(u, 0.55, 0.66) * (1 - smooth(u, 0.91, 0.985));
+      y = WATER_Y + 24 - k * (WATER_Y + 24 - right);
+    }
+    return (y / 4) * 4;
+  }
+
+  function makeTerrain() {
+    tctx.clearRect(0, 0, WORLD_W, WORLD_H);
+    const im = tctx.createImageData(WORLD_W, WORLD_H);
+    const d = im.data;
+    const SNOW = [244, 230, 195];
+    const SNOW2 = [255, 248, 230];
+    const ICE = [168, 196, 232];
+    const DIRT = [139, 90, 43];
+    const DIRT2 = [110, 68, 32];
+    const DIRT3 = [84, 52, 28];
+    for (let x = 0; x < WORLD_W; x++) {
+      const gy = heightAt(x) | 0;
+      for (let y = gy; y < WORLD_H; y++) {
+        const i = (y * WORLD_W + x) * 4;
+        const depth = y - gy;
+        let c;
+        if (depth < 11) c = (x + y) % 7 === 0 ? SNOW2 : SNOW;
+        else if (depth < 16) c = ICE;
+        else if (depth < 78) c = (Math.sin(x * 0.18) + Math.sin(y * 0.14) > 0.35) ? DIRT : DIRT2;
+        else c = DIRT3;
+        d[i] = c[0];
+        d[i + 1] = c[1];
+        d[i + 2] = c[2];
+        d[i + 3] = 255;
+      }
+    }
+    tctx.putImageData(im, 0, 0);
+    uctx.clearRect(0, 0, WORLD_W, WORLD_H);
+    uctx.fillStyle = "#1a1028";
+    uctx.fillRect(0, 0, WORLD_W, WORLD_H);
+    uctx.globalCompositeOperation = "destination-in";
+    uctx.drawImage(terrain, 0, 0);
+    uctx.globalCompositeOperation = "source-over";
+    rebuildMask();
+  }
+
+  function surfaceY(x) {
+    const x0 = clamp(x | 0, 0, WORLD_W - 1);
+    for (let y = 0; y < WATER_Y; y++) {
+      if (solid(x0, y)) return y;
+    }
+    return WATER_Y;
+  }
+
+  function carve(cx, cy, r) {
+    tctx.save();
+    tctx.globalCompositeOperation = "destination-out";
+    tctx.beginPath();
+    tctx.arc(cx, cy, r, 0, Math.PI * 2);
+    tctx.fill();
+    for (let i = 0; i < 6; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const rr = r * (0.28 + Math.random() * 0.42);
+      tctx.beginPath();
+      tctx.arc(cx + Math.cos(a) * r * 0.62, cy + Math.sin(a) * r * 0.62, rr, 0, Math.PI * 2);
+      tctx.fill();
+    }
+    tctx.restore();
+    rebuildMask();
+    craterCount += 1;
+  }
+
+  function living(team) {
+    return bobers.filter((b) => b.alive && (!team || b.team === team));
+  }
+
+  function getActive() {
+    return bobers.find((b) => b.id === activeId) || living(turn)[0] || null;
+  }
+
+  function pickActive(team) {
+    const list = living(team);
+    if (!list.length) return;
+    const keep = list.find((b) => b.id === activeId);
+    const b = keep || list[0];
+    activeId = b.id;
+    b.facing = team === "lodge" ? 1 : -1;
+  }
+
+  function spawnCrew() {
+    bobers = [];
+    const spots = [
+      { team: "lodge", xs: [108, 236, 364], names: LODGE_NAMES, facing: 1 },
+      { team: "creek", xs: [916, 1044, 1172], names: CREEK_NAMES, facing: -1 },
+    ];
+    let id = 0;
+    spots.forEach((side) => {
+      side.xs.forEach((x, i) => {
+        const y = surfaceY(x) - BOBER_R;
+        bobers.push({
+          id: id++,
+          name: side.names[i],
+          team: side.team,
+          x,
+          y,
+          vx: 0,
+          vy: 0,
+          hp: HP_MAX,
+          alive: true,
+          facing: side.facing,
+          standing: true,
+        });
+      });
+    });
+  }
+
+  function randWind() {
+    return (Math.random() * 9 | 0) - 4;
+  }
+
+  function setWeapon(id) {
+    if (!WEAPONS[id]) return;
+    weapon = id;
+    $("w-stick").classList.toggle("on", id === "stick");
+    $("w-snow").classList.toggle("on", id === "snow");
+  }
+
+  function setAim(rad, pwr) {
+    angle = rad;
+    power = clamp(pwr, 0, 100);
+    hudAim();
+  }
+
+  function hudAim() {
+    if (powerFill) powerFill.style.width = power + "%";
+    if (powerNum) powerNum.textContent = String(Math.round(power));
+  }
+
+  function hud() {
+    const cpu = turn === "creek";
+    turnChip.textContent = cpu ? "CREEK" : "LODGE";
+    const wtxt = wind === 0 ? "WIND 0" : wind > 0 ? "WIND +" + wind : "WIND " + wind;
+    windVal.textContent = wtxt;
+    windFlag.className = wind === 0 ? "calm" : wind < 0 ? "left" : "right";
+    const labels = { aim: "AIM", fly: "YEET", settle: "SETTLE", cpu: "CPU", end: "END" };
+    phaseChip.textContent = labels[phase] || phase.toUpperCase();
+    const canFire = phase === "aim" && turn === "lodge" && !aimTutOn;
+    fireBtn.disabled = !canFire;
+    fireBtn.textContent = phase === "cpu" ? "CPU…" : phase === "fly" ? "YEET" : "FIRE";
+    hudAim();
   }
 
   function updateMuteBtn() {
@@ -166,1384 +317,835 @@
     muteBtn.title = BoberSfx.muted ? "Unmute" : "Mute";
   }
 
-  function renderAmmo() {
-    ammoEl.innerHTML = "";
-    for (let i = 0; i < SHOTS; i++) {
-      const el = document.createElement("img");
-      el.src = "assets/sprites/bober-idle.png";
-      el.alt = "";
-      if (i >= shotsLeft) el.classList.add("used");
-      ammoEl.appendChild(el);
-    }
-  }
-
-  function hud() {
-    scoreEl.textContent = "$BOBER " + score;
-    levelEl.textContent = "LV " + (levelIndex + 1) + "/" + LEVEL_COUNT;
-    playerChip.textContent = playerName || BoberScores.defaultName;
-    const ch = document.getElementById("charge-chip");
-    if (ch) {
-      ch.textContent = charge ? "⚡".repeat(charge) + " CHARGE" : "CHARGE";
-      ch.classList.toggle("got", charge > 0);
-      ch.classList.remove("hidden");
-    }
-    const s = Math.max(0, Math.ceil(timeLeft));
-    timeEl.textContent = "0:" + String(s).padStart(2, "0");
-    timeEl.classList.toggle("warn", s <= 5);
-    renderAmmo();
-  }
-
-  function makeClouds() {
-    clouds = [
-      { x: 320, y: 90, s: 1 },
-      { x: 540, y: 140, s: 0.7 },
-      { x: 980, y: 80, s: 1.1 },
-      { x: 1100, y: 180, s: 0.6 },
-    ];
-  }
-
-  function makeSkyFx() {
-    const id = (currentTheme && currentTheme.id) || "uranus";
-    const n = 18 + Math.min(24, Math.floor(levelIndex / 8));
-    skyFx = [];
-    for (let i = 0; i < n; i++) {
-      skyFx.push({
-        kind: id,
-        x: Math.random() * W,
-        y: 40 + Math.random() * (GROUND_TOP - 80),
-        vx: (Math.random() - 0.5) * (0.4 + levelIndex * 0.01),
-        vy: (Math.random() - 0.7) * 0.35,
-        r: 2 + Math.random() * 5,
-        a: Math.random() * Math.PI * 2,
-        va: 0.02 + Math.random() * 0.04,
-        life: 1,
-      });
-    }
-  }
-
-  function clearWorld() {
-    if (engine) {
-      World.clear(world, false);
-      Engine.clear(engine);
-    }
-    engine = Engine.create({ enableSleeping: true });
-    engine.gravity.y = 1.15;
-    world = engine.world;
-    blocks = [];
-    starBodies = [];
-    starGot = false;
-    chargedYeet = 0;
-    bober = null;
-    flight = false;
+  function beginTurn(team) {
+    turn = team;
+    wind = randWind();
+    shot = null;
     dragging = false;
-    dragPos = null;
-    settleT = 0;
-    splatT = 0;
-    splatted = false;
-    structureLive = false;
-    unfreezeGrace = 0;
-    hitBlockThisShot = false;
-    bits.length = 0;
-    pops.length = 0;
-
-    const ground = Bodies.rectangle(W / 2, GROUND_TOP + 48, W + 200, 96, {
-      isStatic: true,
-      friction: 0.9,
-      label: "ground",
-    });
-    const left = Bodies.rectangle(-40, H / 2, 80, H * 2, { isStatic: true, label: "wall" });
-    World.add(world, [ground, left]);
-
-    Events.on(engine, "collisionStart", onCollision);
-  }
-
-  const BLOCK_STATS = {
-    wood: { d: 0.0009, hp: 2, rest: 0.08 },
-    stone: { d: 0.003, hp: 2, rest: 0.02 },
-    truck: { d: 0.0045, hp: 4, rest: 0.04 },
-    rocket: { d: 0.0022, hp: 3, rest: 0.05 },
-    xblock: { d: 0.0032, hp: 3, rest: 0.03 },
-    sink: { d: 0.0026, hp: 3, rest: 0.06 },
-    doge: { d: 0.0014, hp: 2, rest: 0.12 },
-  };
-
-  function addBlock(spec) {
-    const st = BLOCK_STATS[spec.kind] || BLOCK_STATS.wood;
-    const body = Bodies.rectangle(spec.x, spec.y, spec.w, spec.h, {
-      isStatic: true,
-      density: st.d,
-      friction: 0.85,
-      frictionStatic: 1.2,
-      restitution: st.rest,
-      frictionAir: 0.018,
-      chamfer: { radius: 3 },
-      sleepThreshold: 12,
-    });
-    body.kind = spec.kind;
-    body.maxHp = spec.hp != null ? spec.hp : st.hp;
-    body.hp = body.maxHp;
-    body.flash = 0;
-    body.hpPulse = 0;
-    body.bw = spec.w;
-    body.bh = spec.h;
-    body.label = spec.kind;
-    World.add(world, body);
-    blocks.push(body);
-    return body;
-  }
-
-  function unfreezeStructure() {
-    if (structureLive) return;
-    structureLive = true;
-    unfreezeGrace = 0.22;
-    for (const b of blocks) {
-      if (b._dead) continue;
-      Body.setStatic(b, false);
-      Body.setVelocity(b, { x: 0, y: 0 });
-      Body.setAngularVelocity(b, 0);
-      b.frictionAir = 0.028;
-    }
-  }
-
-  function spawnBober() {
-    if (bober) {
-      World.remove(world, bober);
-    }
-    bober = Bodies.circle(SLING.x, SLING.y - 6, 28, {
-      density: 0.0036,
-      restitution: 0.38,
-      friction: 0.35,
-      frictionAir: 0.006,
-      label: "bober",
-      sleepThreshold: 30,
-    });
-    Body.setStatic(bober, true);
-    World.add(world, bober);
-    flight = false;
-    flightAge = 0;
-    splatted = false;
-    splatT = 0;
-  }
-
-  function loadLevel(i) {
-    levelIndex = i;
-    shotsLeft = SHOTS;
-    levelScore = 0;
-    scoreAtLevelStart = score;
-    const L = BoberLevels.get(i);
-    currentTheme = L.theme || BoberLevels.themeFor(i);
-    timeLeft = L.time || LEVEL_TIME;
-    timeUpAge = 0;
-    levelAge = 0;
-    tickAcc = 0;
-    shownHint = true;
-    hintT = 3.4;
-    hintEl.textContent = L.hint || (i === 0 ? "PULL BACK" : "");
-    hintEl.classList.toggle("hidden", !hintEl.textContent);
-    starChip.classList.toggle("hidden", !(L.stars && L.stars.length));
-    starChip.classList.remove("got");
-    clearWorld();
-    L.blocks.forEach(addBlock);
-    starBodies = (L.stars || []).map((s) => {
-      const b = Bodies.circle(s.x, s.y, s.r || 16, {
-        isStatic: true,
-        isSensor: true,
-        label: "star",
-      });
-      World.add(world, b);
-      return b;
-    });
-    spawnBober();
-    makeSkyFx();
-    hud();
-    document.getElementById("hud").classList.add("live");
-    endcard.classList.add("hidden");
-    state = "play";
-    maybeShowAimTut(i);
-  }
-
-  function aimTutSeen() {
-    try {
-      return localStorage.getItem(TUT_KEY) === "1";
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function dismissAimTut() {
-    aimTutOn = false;
-    if (aimTutEl) aimTutEl.classList.add("hidden");
-    try {
-      localStorage.setItem(TUT_KEY, "1");
-    } catch (_) {}
-  }
-
-  function maybeShowAimTut(i) {
-    if (i === 0 && !aimTutSeen()) {
-      aimTutOn = true;
-      if (aimTutEl) aimTutEl.classList.remove("hidden");
+    if (team === "lodge") {
+      phase = "aim";
+      pickActive("lodge");
+      const a = getActive();
+      if (a) {
+        angle = -0.95;
+        a.facing = 1;
+      }
+      power = 50;
+      BoberSfx.turn();
+      toast("LODGE TURN");
     } else {
-      aimTutOn = false;
-      if (aimTutEl) aimTutEl.classList.add("hidden");
+      phase = "cpu";
+      pickActive("creek");
+      cpuT = 0;
+      cpuReady = false;
+      toast("CREEK TURN");
     }
-  }
-
-  function applyDamage(body, dmg) {
-    if (!body || body._dead || dmg <= 0) return;
-    body.hp -= dmg;
-    body.flash = 0.28;
-    body.hpPulse = 0.45;
-    if (body.hp <= 0) {
-      smash(body);
-      return;
-    }
-    pop(body.position.x, body.position.y - 16, "HIT", "#fff6c4");
-    if (body.kind === "stone") BoberSfx.stone();
-    else if (BoberSfx.chip) BoberSfx.chip();
-    else BoberSfx.wood();
-  }
-
-  function smash(body) {
-    if (!body || body._dead) return;
-    body._dead = true;
-    burst(body.position.x, body.position.y, body.kind);
-    pop(body.position.x, body.position.y - 20, "+1 $BOBER", "#f5c400");
-    score += 1;
-    levelScore += 1;
-    if (body.kind === "stone") BoberSfx.stone();
-    else BoberSfx.wood();
-    World.remove(world, body);
-    blocks = blocks.filter((b) => b !== body);
-    hud();
-    if (structureCleared()) winLevel();
-  }
-
-  function collectStar(at, body) {
-    if (!body || body._dead) return;
-    body._dead = true;
-    World.remove(world, body);
-    starBodies = starBodies.filter((s) => s !== body);
-    starGot = true;
-    charge = Math.min(3, charge + 1);
-    score += 3;
-    levelScore += 3;
-    pop(at.x, at.y, "+3 $BOBER", "#ffe566");
-    toast(charge === 1 ? "CHARGED!" : "CHARGE x" + charge + "!");
-    BoberSfx.star();
-    starChip.classList.add("got");
     hud();
   }
 
-  function isKeyKind(kind) {
-    return !!(BoberLevels.KEYS && BoberLevels.KEYS[kind]);
+  function speedFromPower() {
+    return 2.2 + power * 0.172;
   }
 
-  function structureCleared() {
-    if (blocks.some((b) => isKeyKind(b.kind))) return false;
-    const standing = blocks.filter((b) => {
-      const reach = Math.max(b.bw, b.bh) * 0.5;
-      const onFloor = b.position.y + reach >= GROUND_TOP - 16;
-      const gone = b.position.x > W + 30 || b.position.x < -20 || b.position.y > H + 40;
-      return !onFloor && !gone;
-    });
-    return standing.length === 0;
-  }
-
-  function failWhy() {
-    const keys = blocks.filter((b) => isKeyKind(b.kind)).length;
-    if (keys) return keys + " heavy bit" + (keys === 1 ? "" : "s") + " still holding.";
-    if (blocks.length) return "Still stacked. Hit the base or CHARGE a star.";
-    return "The dam is still standing.";
-  }
-
-  function relSpeed(a, b) {
-    return Math.hypot(a.velocity.x - b.velocity.x, a.velocity.y - b.velocity.y);
-  }
-
-  function onCollision(ev) {
-    for (const pair of ev.pairs) {
-      const A = pair.bodyA;
-      const B = pair.bodyB;
-      const kinds = [A.label, B.label];
-
-      if (kinds.includes("star") && flight) {
-        const star = A.label === "star" ? A : B;
-        const other = star === A ? B : A;
-        const byBober = other.label === "bober";
-        const byDebris = other.kind && structureLive && other.speed > 7;
-        if (byBober || byDebris) collectStar(star.position, star);
-      }
-
-      const speed = relSpeed(A, B);
-      for (const body of [A, B]) {
-        if (!body.kind || body._dead) continue;
-        const other = body === A ? B : A;
-        const hitByBober = other.label === "bober" && flight;
-        if (hitByBober) {
-          hitBlockThisShot = true;
-          unfreezeStructure();
-          const easy = levelIndex === 0;
-          let dmg = speed >= 13 ? 2 : speed >= (easy ? 4.5 : 7) ? 1 : 0;
-          dmg += chargedYeet;
-          const need = isKeyKind(body.kind) ? (chargedYeet ? 6 : 9) : easy ? 3.2 : 6;
-          if (speed < need && chargedYeet === 0) continue;
-          if (dmg) applyDamage(body, dmg);
-          continue;
-        }
-        if (!structureLive || unfreezeGrace > 0) continue;
-        if (isKeyKind(body.kind)) {
-          if (isKeyKind(other.kind) && speed >= 14) applyDamage(body, 1);
-          continue;
-        }
-        if (speed >= 11) applyDamage(body, 1);
-      }
-
-      if (state === "play" && flight && !splatted && !hitBlockThisShot) {
-        const groundHit =
-          (A.label === "bober" && B.label === "ground") ||
-          (B.label === "bober" && A.label === "ground");
-        if (groundHit && bober) {
-          const spd = bober.speed;
-          const faceDown = Math.abs(Math.sin(bober.angle)) > 0.72;
-          if (spd > 6 && (faceDown || bober.velocity.y > 9)) {
-            splatted = true;
-            splatT = 1.4;
-            toast(FACEPLANTS[(Math.random() * FACEPLANTS.length) | 0], true);
-            BoberSfx.splat();
-          }
-        }
-      }
-    }
-  }
-
-  function clampPull(p) {
-    const dx = p.x - SLING.x;
-    const dy = p.y - SLING.y;
-    const d = Math.hypot(dx, dy) || 1;
-    const m = Math.min(d, MAX_PULL);
-    return { x: SLING.x + (dx / d) * m, y: SLING.y + (dy / d) * m };
-  }
-
-  function launch() {
-    if (!bober || !dragPos) return;
-    const p = dragPos;
-    chargedYeet = charge;
-    charge = 0;
-    const boost = 1 + chargedYeet * 0.32;
-    const vx = (SLING.x - p.x) * POWER * boost;
-    const vy = (SLING.y - p.y) * POWER * boost;
-    World.remove(world, bober);
-    bober = Bodies.circle(p.x, p.y, 28 + chargedYeet * 5, {
-      density: 0.004 * (1 + chargedYeet * 0.45),
-      restitution: 0.38,
-      friction: 0.35,
-      frictionAir: 0.004,
-      label: "bober",
-      sleepThreshold: Infinity,
-    });
-    World.add(world, bober);
-    Body.setVelocity(bober, { x: vx, y: vy });
-    Body.setAngularVelocity(bober, (p.x - SLING.x) * 0.003);
-    flight = true;
-    flightAge = 0;
-    hitBlockThisShot = false;
+  function tryFire() {
+    if (phase !== "aim" && phase !== "cpu") return false;
+    if (phase === "aim" && turn !== "lodge") return false;
+    const b = getActive();
+    if (!b || !b.alive) return false;
+    const wpn = WEAPONS[weapon];
+    const spd = speedFromPower();
+    const nose = BOBER_R + 10;
+    shot = {
+      x: b.x + Math.cos(angle) * nose,
+      y: b.y + Math.sin(angle) * nose,
+      vx: Math.cos(angle) * spd,
+      vy: Math.sin(angle) * spd,
+      r: wpn.r,
+      weapon: wpn.id,
+      owner: b.id,
+      age: 0,
+    };
+    phase = "fly";
     dragging = false;
-    dragPos = null;
-    shotsLeft -= 1;
-    shownHint = false;
-    hintEl.classList.add("hidden");
-    if (aimTutOn) dismissAimTut();
-    if (chargedYeet) toast(chargedYeet >= 2 ? "SUPER YEET!" : "CHARGED YEET!");
-    BoberSfx.twang();
+    BoberSfx.yeet();
     hud();
-    for (const f of skyFx) {
-      f.vx += vx * 0.012;
-      f.vy += vy * 0.008;
-    }
+    return true;
   }
 
-  function remainingBlocksOnscreen() {
-    return blocks.filter((b) => {
-      const { x, y } = b.position;
-      return x > -30 && x < W + 40 && y < H + 60;
+  function drown(b, why) {
+    if (!b.alive) return;
+    b.alive = false;
+    b.hp = 0;
+    b.vx = 0;
+    b.vy = 0;
+    BoberSfx.splash();
+    pop(b.x, b.y, why || "SPLASH", "#8ad4ff");
+  }
+
+  function kill(b) {
+    if (!b.alive) return;
+    b.alive = false;
+    b.hp = 0;
+    BoberSfx.splat();
+    pop(b.x, b.y - 20, "YEETED", "#ff8ad0");
+  }
+
+  function explode(x, y) {
+    const wpn = WEAPONS[shot ? shot.weapon : weapon];
+    const r = wpn.blast;
+    const dmgMax = wpn.dmg;
+    carve(x, y, r);
+    burst(x, y, wpn.id === "snow" ? "snow" : "dirt");
+    BoberSfx.boom();
+    const hits = [];
+    bobers.forEach((b) => {
+      if (!b.alive) return;
+      const dist = Math.hypot(b.x - x, b.y - y);
+      if (dist >= r + BOBER_R * 0.35) return;
+      const fall = clamp(1 - dist / r, 0, 1);
+      const dmg = Math.max(1, Math.round(dmgMax * fall));
+      b.hp -= dmg;
+      hits.push({ id: b.id, name: b.name, dmg });
+      pop(b.x, b.y - 28, "-" + dmg, "#ffe566");
+      BoberSfx.hurt();
+      const ang = Math.atan2(b.y - y, b.x - x);
+      const k = fall;
+      b.vx += Math.cos(ang) * k * 6.2;
+      b.vy += Math.sin(ang) * k * 4.4 - 2.2;
+      b.standing = false;
+      if (b.hp <= 0) kill(b);
     });
-  }
-
-  function sweepOffscreen() {
-    for (const b of [...blocks]) {
-      const { x, y } = b.position;
-      if (x < -40 || x > W + 80 || y > H + 80) smash(b);
-    }
-  }
-
-  function bodiesQuiet() {
-    if (!bober) return true;
-    const bobSlow =
-      bober.speed < 0.9 ||
-      bober.position.x > W + 20 ||
-      bober.position.x < -40 ||
-      bober.position.y > H + 20;
-    const pileSlow = remainingBlocksOnscreen().every((b) => b.speed < 0.75 || b.isSleeping);
-    return bobSlow && pileSlow;
-  }
-
-  function isSpinning() {
-    if (flight) return true;
-    if (structureLive && !bodiesQuiet()) return true;
-    return false;
-  }
-
-  function dampSpin(hard) {
-    const av = hard ? 0.72 : 0.86;
-    const lin = hard ? 0.88 : 0.95;
-    for (const b of blocks) {
-      if (!b || b._dead || b.isStatic) continue;
-      Body.setAngularVelocity(b, b.angularVelocity * av);
-      Body.setVelocity(b, { x: b.velocity.x * lin, y: b.velocity.y * (hard ? 0.96 : 0.99) });
-      if (b.speed < 1.1 && Math.abs(b.angularVelocity) < 0.18) {
-        Body.setAngularVelocity(b, 0);
-        Body.setVelocity(b, { x: b.velocity.x * 0.4, y: b.velocity.y * 0.55 });
-      }
-    }
-    if (bober && flight && (hard || hitBlockThisShot || flightAge > 0.45)) {
-      Body.setAngularVelocity(bober, bober.angularVelocity * (hard ? 0.7 : 0.88));
-    }
-  }
-
-  function freezeMotion() {
-    for (const b of blocks) {
-      if (!b || b._dead) continue;
-      Body.setVelocity(b, { x: 0, y: 0 });
-      Body.setAngularVelocity(b, 0);
-    }
-    if (bober) {
-      Body.setVelocity(bober, { x: 0, y: 0 });
-      Body.setAngularVelocity(bober, 0);
-    }
-    flight = false;
-  }
-
-  function resolveTimeUp() {
-    if (state !== "play") return;
-    sweepOffscreen();
-    if (structureCleared()) winLevel();
-    else failLevel();
-  }
-
-  function winLevel() {
-    if (state !== "play") return;
-    const bonus = shotsLeft;
-    score += bonus;
-    if (levelIndex >= LEVEL_COUNT - 1) {
-      finishGame();
-      return;
-    }
-    state = "win";
-    BoberSfx.win();
-    if (endQuote) endQuote.classList.add("hidden");
-    endTitle.textContent = "YEET!";
-    endMsg.textContent =
-      BoberLevels.get(levelIndex).name +
-      " smashed. +" +
-      (levelScore + bonus) +
-      " $BOBER" +
-      (starGot ? ". Charged." : ".");
-    endNext.textContent = "NEXT LEVEL";
-    endcard.classList.remove("hidden");
+    lastBlast = { x, y, r, dmg: dmgMax, weapon: wpn.id, hits };
+    shot = null;
+    phase = "settle";
+    settleT = 0;
     hud();
-    submitRun();
   }
 
-  function failLevel() {
-    if (state !== "play") return;
-    state = "fail";
-    BoberSfx.fail();
-    if (endQuote) endQuote.classList.add("hidden");
-    endTitle.textContent = timeLeft <= 0 ? "TIME'S UP" : "NO BOBER LEFT";
-    endMsg.textContent = failWhy() + " Restart or skip.";
-    endNext.textContent = levelIndex >= LEVEL_COUNT - 1 ? "DONE" : "NEXT LEVEL";
-    endcard.classList.remove("hidden");
-    submitRun();
-  }
-
-  function finishGame() {
-    state = "done";
-    BoberSfx.win();
-    endcard.classList.remove("hidden");
-    endTitle.textContent = "MARS IS FULL";
-    endMsg.textContent =
-      (playerName || "online player") +
-      " cleared all 100 dams. $BOBER " +
-      score +
-      ".";
-    if (endQuote) {
-      endQuote.classList.remove("hidden");
-      endQuote.innerHTML =
-        "bober is now a multiplanetary species.\n" +
-        "100 dams. zero ads. the bird is freed.\n" +
-        "cybertruck could never.\n" +
-        "see you on uranus. then mars. then whatever’s next.\n" +
-        "let that sink in." +
-        "<cite>— a totally real memo from Elon, probably</cite>";
+  function splashShot() {
+    if (shot) {
+      burst(shot.x, WATER_Y, "snow");
+      BoberSfx.splash();
     }
-    endNext.textContent = "PLAY AGAIN";
+    shot = null;
+    phase = "settle";
+    settleT = 0.35;
     hud();
-    submitRun(LEVEL_COUNT);
   }
 
-  async function submitRun(levelsDone) {
-    const name = playerName || BoberScores.defaultName;
-    if (score <= 0) return;
-    const levels = levelsDone || Math.max(1, levelIndex + 1);
-    try {
-      await BoberScores.submit({
-        name,
-        score,
-        levels: Math.min(LEVEL_COUNT, levels),
-        at: Date.now(),
-      });
-    } catch (_) {}
-  }
-
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
-  async function openBoard() {
-    boardOpen = true;
-    boardEl.classList.remove("hidden");
-    boardList.innerHTML = '<div class="board-empty">Loading yeets...</div>';
-    const rows = await BoberScores.list();
-    if (!rows.length) {
-      boardList.innerHTML = '<div class="board-empty">No yeets yet. Be the first dam.</div>';
-      return;
-    }
-    const medals = ["🥇", "🥈", "🥉"];
-    const head =
-      '<div class="board-row head"><span>#</span><span>PLAYER</span><span>$BOBER</span><span>LV</span></div>';
-    const body = rows
-      .slice(0, 15)
-      .map((r, i) => {
-        const me = playerName && r.name.toLowerCase() === playerName.toLowerCase() ? " me" : "";
-        const rank = medals[i] || String(i + 1);
-        return (
-          '<div class="board-row' +
-          me +
-          '"><span>' +
-          rank +
-          "</span><span>" +
-          escapeHtml(r.name) +
-          "</span><span>" +
-          r.score +
-          "</span><span>" +
-          r.levels +
-          "/" +
-          LEVEL_COUNT +
-          "</span></div>"
-        );
-      })
-      .join("");
-    boardList.innerHTML = head + body;
-  }
-
-  function closeBoard() {
-    boardOpen = false;
-    boardEl.classList.add("hidden");
-  }
-
-  function refreshNameGate() {
-    playBtn.disabled = false;
-    nameErr.classList.add("hidden");
-  }
-
-  function nextLevel() {
-    if (levelIndex >= LEVEL_COUNT - 1) {
-      if (state === "done") {
-        score = 0;
-        charge = 0;
-        loadLevel(0);
+  function stepShot() {
+    if (!shot) return;
+    shot.vx += wind * WIND_K;
+    shot.vy += GRAV;
+    const steps = Math.max(1, Math.ceil(Math.hypot(shot.vx, shot.vy) / 4));
+    for (let i = 0; i < steps; i++) {
+      shot.x += shot.vx / steps;
+      shot.y += shot.vy / steps;
+      shot.age += 1 / steps;
+      if (shot.y >= WATER_Y) {
+        splashShot();
         return;
       }
-      finishGame();
-      return;
-    }
-    loadLevel(levelIndex + 1);
-  }
-
-  function maybeEndShot() {
-    if (state !== "play" || !flight) return;
-    if (flightAge < 0.55) return;
-    if (splatted && splatT > 0) return;
-    if (!bodiesQuiet()) {
-      settleT = 0;
-      return;
-    }
-    settleT += 1 / 60;
-    if (settleT < 0.28) return;
-    settleT = 0;
-    sweepOffscreen();
-    if (state !== "play") return;
-    if (structureCleared()) {
-      winLevel();
-      return;
-    }
-    if (shotsLeft <= 0 || timeLeft <= 0) {
-      failLevel();
-      return;
-    }
-    spawnBober();
-  }
-
-  function onDown(ev) {
-    BoberSfx.ensure();
-    if (state !== "play" || flight || !bober) return;
-    const p = worldFromEvent(ev);
-    if (Math.hypot(p.x - bober.position.x, p.y - bober.position.y) > 90) return;
-    dragging = true;
-    dragPos = clampPull(p);
-    if (aimTutOn) dismissAimTut();
-    try {
-      canvas.setPointerCapture(ev.pointerId);
-    } catch (_) {}
-    ev.preventDefault();
-  }
-
-  function onMove(ev) {
-    pointerAim = worldFromEvent(ev);
-    if (!dragging) return;
-    dragPos = clampPull(pointerAim);
-    ev.preventDefault();
-  }
-
-  function onUp(ev) {
-    if (!dragging) return;
-    dragPos = clampPull(worldFromEvent(ev));
-    const d = Math.hypot(dragPos.x - SLING.x, dragPos.y - SLING.y);
-    if (d < 18) {
-      dragging = false;
-      dragPos = null;
-      Body.setPosition(bober, { x: SLING.x, y: SLING.y - 6 });
-      return;
-    }
-    launch();
-    ev.preventDefault();
-  }
-
-  function drawSkyFx(dt) {
-    const px = (pointerAim.x - W * 0.5) * 0.02;
-    const py = (pointerAim.y - H * 0.4) * 0.015;
-    for (const f of skyFx) {
-      f.x += f.vx + px * 0.15;
-      f.y += f.vy + py * 0.1;
-      f.a += f.va;
-      if (f.x < -30) f.x = W + 20;
-      if (f.x > W + 30) f.x = -20;
-      if (f.y < 10) f.y = GROUND_TOP - 40;
-      if (f.y > GROUND_TOP - 20) f.y = 30;
-      ctx.save();
-      ctx.translate(f.x, f.y);
-      ctx.rotate(f.a);
-      ctx.globalAlpha = 0.55 + Math.sin(f.a * 3) * 0.25;
-      if (f.kind === "mars" || f.kind === "colony") {
-        ctx.fillStyle = "#e07040";
-        ctx.fillRect(-f.r, -1.5, f.r * 2, 3);
-      } else if (f.kind === "xnight") {
-        ctx.strokeStyle = "#f2f2f2";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(-f.r, -f.r);
-        ctx.lineTo(f.r, f.r);
-        ctx.moveTo(f.r, -f.r);
-        ctx.lineTo(-f.r, f.r);
-        ctx.stroke();
-      } else if (f.kind === "doge") {
-        ctx.fillStyle = "#f4d060";
-        ctx.beginPath();
-        ctx.arc(0, 0, f.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "#1a1020";
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      } else if (f.kind === "boca" || f.kind === "cyber") {
-        ctx.fillStyle = f.kind === "boca" ? "#fff6c4" : "#c8ff80";
-        ctx.fillRect(-1, -f.r * 2, 2, f.r * 4);
-      } else if (f.kind === "tunnel") {
-        ctx.strokeStyle = "#6a6a78";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(0, 0, f.r + 4, 0, Math.PI * 2);
-        ctx.stroke();
-      } else if (f.kind === "sink") {
-        ctx.fillStyle = "#b8c4d8";
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 2, f.r, 0, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (f.kind === "finale") {
-        ctx.fillStyle = "#f5c400";
-        ctx.beginPath();
-        for (let k = 0; k < 5; k++) {
-          const ang = f.a + (k * Math.PI * 2) / 5;
-          ctx.lineTo(Math.cos(ang) * f.r, Math.sin(ang) * f.r);
+      if (shot.x < -40 || shot.x > WORLD_W + 40 || shot.y < -120) {
+        shot = null;
+        phase = "settle";
+        settleT = 0.25;
+        hud();
+        return;
+      }
+      if (solid(shot.x, shot.y)) {
+        explode(shot.x, shot.y);
+        return;
+      }
+      for (let k = 0; k < bobers.length; k++) {
+        const b = bobers[k];
+        if (!b.alive) continue;
+        if (shot.age < 6 && b.id === shot.owner) continue;
+        if (Math.hypot(b.x - shot.x, b.y - shot.y) < BOBER_R + shot.r) {
+          explode(shot.x, shot.y);
+          return;
         }
-        ctx.closePath();
-        ctx.fill();
-      } else {
-        ctx.fillStyle = "#fff6c4";
-        ctx.beginPath();
-        ctx.arc(0, 0, f.r * 0.5, 0, Math.PI * 2);
-        ctx.fill();
       }
-      ctx.restore();
     }
-    ctx.globalAlpha = 1;
   }
 
-  function drawPlanet(kind) {
-    uranusA += 0.003;
-    const ox = (pointerAim.x - W * 0.5) * 0.03;
-    const oy = (pointerAim.y - H * 0.4) * 0.02;
-    ctx.save();
-    ctx.translate(1080 + ox, 128 + oy);
-    ctx.rotate(kind === "uranus" ? uranusA : uranusA * 0.6);
-    if (kind === "uranus" && img.uranus) {
-      const uw = 210;
-      const uh = uw * (img.uranus.height / img.uranus.width);
-      ctx.drawImage(img.uranus, -uw / 2, -uh / 2, uw, uh);
+  function stepBober(b) {
+    if (!b.alive) {
+      b.vy += GRAV * 0.85;
+      b.y += b.vy;
+      const g = surfaceY(b.x);
+      if (b.y + BOBER_R >= g && g < WATER_Y) {
+        b.y = g - BOBER_R;
+        b.vy = 0;
+        b.vx = 0;
+      }
+      if (b.y - 4 > WATER_Y) b.y = WATER_Y + 40;
+      return;
+    }
+    b.vy += GRAV;
+    b.vx *= 0.992;
+    b.x += b.vx;
+    b.y += b.vy;
+    b.x = clamp(b.x, 18, WORLD_W - 18);
+    if (b.y - BOBER_R > WATER_Y || b.y > WATER_Y + 8) {
+      drown(b, "SPLASH");
+      return;
+    }
+    const feet = b.y + BOBER_R;
+    if (b.vy >= 0 && (solid(b.x, feet) || solid(b.x - 10, feet) || solid(b.x + 10, feet))) {
+      let gy = feet;
+      for (let i = 0; i < 28; i++) {
+        if (!solid(b.x, gy) && !solid(b.x - 8, gy) && !solid(b.x + 8, gy)) break;
+        gy -= 1;
+      }
+      b.y = gy - BOBER_R;
+      b.vy = 0;
+      b.vx *= 0.4;
+      if (Math.abs(b.vx) < 0.35) b.vx = 0;
+      b.standing = true;
     } else {
-      const g = ctx.createRadialGradient(-20, -20, 10, 0, 0, 90);
-      if (kind === "mars") {
-        g.addColorStop(0, "#f08a4a");
-        g.addColorStop(1, "#8a2810");
-      } else if (kind === "moon") {
-        g.addColorStop(0, "#eee8d8");
-        g.addColorStop(1, "#8a8478");
-      } else if (kind === "earth") {
-        g.addColorStop(0, "#7ec8f0");
-        g.addColorStop(0.55, "#3d8a3a");
-        g.addColorStop(1, "#1a4a8a");
-      } else {
-        g.addColorStop(0, "#c8c8d8");
-        g.addColorStop(1, "#444");
-      }
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(0, 0, 88, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#1a1020";
-      ctx.lineWidth = 5;
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function drawSky() {
-    const th = currentTheme || BoberLevels.themeFor(levelIndex);
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, th.sky[0]);
-    g.addColorStop(0.5, th.sky[1]);
-    g.addColorStop(1, th.sky[2]);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-    if (th.planet && th.planet !== "none") drawPlanet(th.planet);
-    drawSkyFx(0.016);
-    ctx.fillStyle = th.cloud || "rgba(255,255,255,0.5)";
-    for (const c of clouds) {
-      c.x += 0.12 * c.s;
-      if (c.x > W + 80) c.x = -80;
-      ctx.beginPath();
-      ctx.ellipse(c.x, c.y, 48 * c.s, 22 * c.s, 0, 0, Math.PI * 2);
-      ctx.ellipse(c.x + 28 * c.s, c.y + 4, 34 * c.s, 18 * c.s, 0, 0, Math.PI * 2);
-      ctx.ellipse(c.x - 26 * c.s, c.y + 6, 30 * c.s, 16 * c.s, 0, 0, Math.PI * 2);
-      ctx.fill();
+      b.standing = false;
     }
   }
 
-  function isSnowyTheme(th) {
-    const id = (th && th.id) || "";
-    return id === "uranus" || id === "xnight" || id === "sink" || id === "finale";
+  function allSettled() {
+    return living().every((b) => b.standing && Math.abs(b.vx) < 0.4 && Math.abs(b.vy) < 0.4);
   }
 
-  function drawGround() {
-    const th = currentTheme || BoberLevels.themeFor(levelIndex);
-    const snowy = isSnowyTheme(th);
-    ctx.fillStyle = th.dirt;
-    ctx.fillRect(0, GROUND_TOP, W, H - GROUND_TOP);
-    if (snowy) {
-      const sg = ctx.createLinearGradient(0, GROUND_TOP, 0, GROUND_TOP + 28);
-      sg.addColorStop(0, "#f4f7fb");
-      sg.addColorStop(0.55, "#d5dde8");
-      sg.addColorStop(1, th.dirt);
-      ctx.fillStyle = sg;
-      ctx.fillRect(0, GROUND_TOP, W, 28);
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
-      for (let x = 18; x < W; x += 46) {
-        ctx.beginPath();
-        ctx.ellipse(x, GROUND_TOP + 6, 16, 5, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
+  function checkWin() {
+    const lodge = living("lodge").length;
+    const creek = living("creek").length;
+    if (lodge > 0 && creek > 0) return null;
+    if (lodge === 0 && creek === 0) return "draw";
+    if (creek === 0) return "lodge";
+    return "creek";
+  }
+
+  function endMatch(who) {
+    winner = who;
+    phase = "end";
+    shot = null;
+    hudTop.classList.remove("live");
+    dock.classList.add("hidden");
+    if (who === "lodge") {
+      endTitle.textContent = "BANK CLEARED";
+      endMsg.textContent = "Lodge still standing. The creek crew got yeeted.";
+      BoberSfx.win();
+    } else if (who === "creek") {
+      endTitle.textContent = "CREW DOWN";
+      endMsg.textContent = "Creek took the bank. Shake it off. Play again.";
+      BoberSfx.fail();
     } else {
-      ctx.fillStyle = th.grass;
-      ctx.fillRect(0, GROUND_TOP, W, 18);
-      ctx.fillStyle = th.dirt;
-      ctx.globalAlpha = 0.45;
-      ctx.fillRect(0, GROUND_TOP + 14, W, 6);
-      ctx.globalAlpha = 1;
+      endTitle.textContent = "EVERYBODY YEETED";
+      endMsg.textContent = "The bank is empty. Draw.";
+      BoberSfx.fail();
     }
-    ctx.strokeStyle = "#1a1020";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_TOP);
-    ctx.lineTo(W, GROUND_TOP);
-    ctx.stroke();
+    endcard.classList.remove("hidden");
+    hud();
   }
 
-  function drawSling() {
-    if (!img.sling) return;
-    const sh = 236;
-    const sw = sh * (img.sling.width / img.sling.height);
-    ctx.drawImage(img.sling, SLING.x - sw / 2, GROUND_TOP - sh + 20, sw, sh);
-  }
-
-  function forkTips() {
-    return [
-      { x: SLING.x - 28, y: SLING.y - 72 },
-      { x: SLING.x + 30, y: SLING.y - 70 },
-    ];
-  }
-
-  function drawBands(to) {
-    const [L, R] = forkTips();
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#c9a000";
-    ctx.lineWidth = 10;
-    ctx.beginPath();
-    ctx.moveTo(L.x, L.y);
-    ctx.quadraticCurveTo((L.x + to.x) / 2, to.y + 18, to.x - 12, to.y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(R.x, R.y);
-    ctx.quadraticCurveTo((R.x + to.x) / 2, to.y + 18, to.x + 12, to.y);
-    ctx.stroke();
-    ctx.strokeStyle = "#ffe566";
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(L.x, L.y);
-    ctx.quadraticCurveTo((L.x + to.x) / 2, to.y + 18, to.x - 12, to.y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(R.x, R.y);
-    ctx.quadraticCurveTo((R.x + to.x) / 2, to.y + 18, to.x + 12, to.y);
-    ctx.stroke();
-  }
-
-  function drawAimPreview(from) {
-    let x = from.x;
-    let y = from.y;
-    const boost = 1 + charge * 0.32;
-    let vx = (SLING.x - from.x) * POWER * boost;
-    let vy = (SLING.y - from.y) * POWER * boost;
-    ctx.fillStyle = charge ? "rgba(255, 120, 40, 0.95)" : "rgba(255, 230, 90, 0.9)";
-    for (let i = 0; i < 16; i++) {
-      vx *= 0.996;
-      vy = vy * 0.996 + 0.32;
-      x += vx;
-      y += vy;
-      if (y > GROUND_TOP - 8) break;
-      ctx.beginPath();
-      ctx.arc(x, y, Math.max(2.2, 5.2 - i * 0.2), 0, Math.PI * 2);
-      ctx.fill();
+  function finishSettle() {
+    const who = checkWin();
+    if (who) {
+      endMatch(who);
+      return;
     }
+    beginTurn(turn === "lodge" ? "creek" : "lodge");
   }
 
-  function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
-    else ctx.rect(x, y, w, h);
+  function guessCpuAim(me, target) {
+    const dx = target.x - me.x;
+    const dy = target.y - me.y;
+    const dist = Math.hypot(dx, dy);
+    let ang = Math.atan2(dy - 130, dx);
+    let pwr = 30 + dist * 0.052 + Math.abs(wind) * 2.2;
+    if (wind * Math.sign(dx) < 0) pwr += 8;
+    if (wind * Math.sign(dx) > 0) pwr -= 3;
+    ang += (Math.random() - 0.5) * 0.3;
+    pwr += (Math.random() - 0.5) * 16;
+    if (ang > 0) ang = -Math.abs(ang);
+    return { angle: ang, power: clamp(pwr, 22, 86) };
   }
 
-  function drawBlock(body) {
-    const { x, y } = body.position;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(body.angle);
-    const w = body.bw;
-    const h = body.bh;
-    if (body.kind === "wood") {
-      const wg = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
-      wg.addColorStop(0, "#e0a060");
-      wg.addColorStop(0.45, "#c4894a");
-      wg.addColorStop(1, "#8a4e22");
-      ctx.fillStyle = wg;
-      roundRect(-w / 2, -h / 2, w, h, 7);
-      ctx.fill();
-      ctx.fillStyle = "#a86b32";
-      roundRect(-w / 2 + 4, -h / 2 + 4, w - 8, h - 8, 5);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(90, 48, 18, 0.7)";
-      ctx.lineWidth = 2;
-      for (let i = -h / 2 + 10; i < h / 2 - 6; i += 9) {
-        ctx.beginPath();
-        ctx.moveTo(-w / 2 + 8, i);
-        ctx.lineTo(w / 2 - 8, i + 1);
-        ctx.stroke();
+  function stepCpu(dt) {
+    cpuT += dt * 1000;
+    const me = getActive();
+    if (!me || !me.alive) {
+      pickActive("creek");
+    }
+    if (!cpuReady && cpuT >= CPU_THINK) {
+      const shooter = getActive();
+      const foes = living("lodge");
+      if (!shooter || !foes.length) {
+        finishSettle();
+        return;
       }
-      ctx.fillStyle = "rgba(255, 220, 150, 0.28)";
-      roundRect(-w / 2 + 5, -h / 2 + 4, w * 0.28, h - 10, 4);
-      ctx.fill();
-      if (isSnowyTheme(currentTheme) && h >= 22 && w >= 28) {
-        ctx.fillStyle = "#f4f7fb";
-        roundRect(-w / 2 + 3, -h / 2 + 2, w - 6, Math.min(8, h * 0.22), 4);
-        ctx.fill();
-      }
-    } else if (body.kind === "truck") {
-      ctx.fillStyle = "#c8ccc4";
-      roundRect(-w / 2, -h / 2, w, h, 6);
-      ctx.fill();
-      ctx.fillStyle = "#9aa090";
-      roundRect(-w / 2 + 6, -h / 2 + 6, w * 0.38, h - 12, 4);
-      ctx.fill();
-      ctx.fillStyle = "#1a1020";
-      ctx.fillRect(-w / 2 + 10, h / 2 - 10, 10, 8);
-      ctx.fillRect(w / 2 - 22, h / 2 - 10, 10, 8);
-    } else if (body.kind === "rocket") {
-      ctx.fillStyle = "#e8e4dc";
-      roundRect(-w / 2, -h / 2, w, h, 10);
-      ctx.fill();
-      ctx.fillStyle = "#c03020";
-      ctx.fillRect(-w / 2 + 4, h / 2 - 12, w - 8, 10);
-      ctx.fillStyle = "#3a6aaa";
-      ctx.beginPath();
-      ctx.arc(0, -h / 4, 6, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (body.kind === "xblock") {
-      ctx.fillStyle = "#141418";
-      roundRect(-w / 2, -h / 2, w, h, 6);
-      ctx.fill();
-      ctx.strokeStyle = "#f0f0f0";
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(-w / 4, -h / 4);
-      ctx.lineTo(w / 4, h / 4);
-      ctx.moveTo(w / 4, -h / 4);
-      ctx.lineTo(-w / 4, h / 4);
-      ctx.stroke();
-    } else if (body.kind === "sink") {
-      ctx.fillStyle = "#d8dce2";
-      roundRect(-w / 2, -h / 2, w, h, 8);
-      ctx.fill();
-      ctx.fillStyle = "#9aa4b0";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, w * 0.28, h * 0.22, 0, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (body.kind === "doge") {
-      ctx.fillStyle = "#e8b030";
-      roundRect(-w / 2, -h / 2, w, h, 10);
-      ctx.fill();
-      ctx.fillStyle = "#fff6c4";
-      ctx.beginPath();
-      ctx.arc(0, 0, Math.min(w, h) * 0.22, 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      ctx.fillStyle = "#9aa0aa";
-      roundRect(-w / 2, -h / 2, w, h, 8);
-      ctx.fill();
-      ctx.fillStyle = "#7a7e86";
-      roundRect(-w / 2 + 4, -h / 2 + 4, w - 8, h - 8, 6);
-      ctx.fill();
-      ctx.fillStyle = "#b3b7be";
-      ctx.beginPath();
-      ctx.arc(-w / 6, -h / 6, 5, 0, Math.PI * 2);
-      ctx.fill();
+      const target = foes[(Math.random() * foes.length) | 0];
+      const g = guessCpuAim(shooter, target);
+      angle = g.angle;
+      power = g.power;
+      shooter.facing = Math.cos(angle) >= 0 ? 1 : -1;
+      setWeapon(Math.random() < 0.45 ? "snow" : "stick");
+      cpuReady = true;
+      hud();
     }
-    if (body.hp < body.maxHp) {
-      ctx.strokeStyle = "#1a1020";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(-w / 4, -h / 3);
-      ctx.lineTo(w / 8, h / 5);
-      ctx.moveTo(w / 5, -h / 4);
-      ctx.lineTo(-w / 6, h / 3);
-      ctx.stroke();
+    if (cpuReady && cpuT >= CPU_THINK + CPU_SHOW) {
+      tryFire();
     }
-    if (body.flash > 0) {
-      ctx.fillStyle = "rgba(255,255,255," + Math.min(0.72, body.flash * 2.6) + ")";
-      roundRect(-w / 2, -h / 2, w, h, 7);
-      ctx.fill();
-    }
-    ctx.strokeStyle = "#1a1020";
-    ctx.lineWidth = 4;
-    roundRect(-w / 2, -h / 2, w, h, 7);
-    ctx.stroke();
-    ctx.restore();
   }
 
-  function drawHpPips(body) {
-    if (!body || body._dead) return;
-    const max = body.maxHp | 0;
-    if (max < 1) return;
-    const w = Math.max(28, Math.min(48, body.bw * 0.82));
-    const h = 7;
-    const x = body.position.x - w / 2;
-    const y = body.position.y - Math.max(body.bh, 24) / 2 - 14;
-    const ratio = Math.max(0, body.hp / max);
-    const pulse = body.hpPulse > 0 ? 1 + body.hpPulse * 0.28 : 1;
-    ctx.save();
-    ctx.translate(body.position.x, y + h / 2);
-    ctx.scale(pulse, pulse);
-    ctx.translate(-body.position.x, -(y + h / 2));
-    ctx.fillStyle = "#1a1020";
-    roundRect(x - 2, y - 2, w + 4, h + 4, 4);
-    ctx.fill();
-    ctx.fillStyle = "#2a2030";
-    roundRect(x, y, w, h, 3);
-    ctx.fill();
-    if (ratio > 0) {
-      ctx.fillStyle = ratio <= 0.34 || (body.hp <= 1 && max > 1) ? "#ff8a4a" : "#7dff7a";
-      roundRect(x, y, Math.max(4, w * ratio), h, 3);
-      ctx.fill();
+  function step(dt) {
+    if (toastT > 0) {
+      toastT -= dt;
+      if (toastT <= 0) toastEl.classList.remove("show");
     }
-    if (max > 1 && max <= 6) {
-      ctx.fillStyle = "#1a1020";
-      for (let i = 1; i < max; i++) {
-        ctx.fillRect(x + (w * i) / max - 1, y, 2, h);
-      }
+    waveT += dt;
+    if (phase === "cpu") stepCpu(dt);
+    if (phase === "fly") stepShot();
+    bobers.forEach(stepBober);
+    if (phase === "settle") {
+      settleT += dt;
+      if ((allSettled() && settleT > 0.45) || settleT > 4.2) finishSettle();
     }
-    ctx.restore();
-  }
-
-  function drawAimGhost() {
-    if (!aimTutOn || dragging || flight || state !== "play" || !bober) return;
-    const t = (Date.now() / 850) % 1;
-    const ease = t < 0.72 ? t / 0.72 : 1;
-    const x0 = SLING.x;
-    const y0 = SLING.y - 6;
-    const x1 = x0 - 18 - 88 * ease;
-    const y1 = y0 + 10 + 48 * ease;
-    ctx.save();
-    ctx.globalAlpha = 0.25 + 0.55 * (1 - t);
-    ctx.strokeStyle = "#ffe566";
-    ctx.fillStyle = "#ffe566";
-    ctx.lineWidth = 6;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(x0, y0);
-    ctx.lineTo(x1, y1);
-    ctx.stroke();
-    const ang = Math.atan2(y1 - y0, x1 - x0);
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x1 - Math.cos(ang - 0.5) * 16, y1 - Math.sin(ang - 0.5) * 16);
-    ctx.lineTo(x1 - Math.cos(ang + 0.5) * 16, y1 - Math.sin(ang + 0.5) * 16);
-    ctx.closePath();
-    ctx.fill();
-    ctx.font = "900 15px Trebuchet MS, sans-serif";
-    ctx.textAlign = "left";
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = "#1a1020";
-    ctx.fillStyle = "#fff6c4";
-    ctx.strokeText("PULL", x1 - 8, y1 + 28);
-    ctx.fillText("PULL", x1 - 8, y1 + 28);
-    ctx.restore();
-  }
-
-  function drawStar() {
-    if (!img.star) return;
-    const t = Date.now() / 400;
-    starBodies.forEach((st, i) => {
-      if (!st || st._dead) return;
-      const x = st.position.x;
-      const y = st.position.y + Math.sin(t + i) * 4;
-      const s = 44;
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(t * 0.4);
-      ctx.drawImage(img.star, -s / 2, -s / 2, s, s);
-      ctx.restore();
-    });
-  }
-
-  function drawBober() {
-    if (!bober) return;
-    let { x, y } = bober.position;
-    let spr = img.idle;
-    let ang = 0;
-    let size = 84;
-    if (splatted && img.splat) {
-      spr = img.splat;
-      ang = 0;
-      size = 92;
-      y = Math.min(y, GROUND_TOP - 30);
-    } else if (flight && img.fly) {
-      spr = img.fly;
-      ang = bober.angle;
-      size = 112;
-    }
-    if (!spr) return;
-    const ratio = spr.height / spr.width;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(ang);
-    if (charge > 0 && !flight) {
-      ctx.shadowColor = "#ff9a2a";
-      ctx.shadowBlur = 18 + charge * 10;
-    }
-    if (chargedYeet > 0 && flight) {
-      ctx.shadowColor = "#ff5a00";
-      ctx.shadowBlur = 22 + chargedYeet * 8;
-      size += chargedYeet * 8;
-    }
-    ctx.drawImage(spr, -size / 2, -(size * ratio) / 2, size, size * ratio);
-    ctx.restore();
-  }
-
-  function drawBits(dt) {
     for (let i = bits.length - 1; i >= 0; i--) {
       const p = bits[i];
       p.life -= dt;
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 18 * dt;
+      p.vy += 0.28;
       p.rot += p.vr;
-      if (p.life <= 0) {
-        bits.splice(i, 1);
-        continue;
+      if (p.life <= 0) bits.splice(i, 1);
+    }
+    for (let i = pops.length - 1; i >= 0; i--) {
+      pops[i].t -= dt;
+      pops[i].y -= 18 * dt;
+      if (pops[i].t <= 0) pops.splice(i, 1);
+    }
+  }
+
+  function worldFromEvent(ev) {
+    const r = canvas.getBoundingClientRect();
+    return {
+      x: (ev.clientX - r.left) / view.s + view.camX,
+      y: (ev.clientY - r.top) / view.s + view.camY,
+    };
+  }
+
+  function boberAt(x, y, team) {
+    let best = null;
+    let bestD = 48;
+    bobers.forEach((b) => {
+      if (!b.alive) return;
+      if (team && b.team !== team) return;
+      const d = Math.hypot(b.x - x, b.y - y);
+      if (d < bestD) {
+        bestD = d;
+        best = b;
       }
+    });
+    return best;
+  }
+
+  function aimFromDrag() {
+    const b = getActive();
+    if (!b || !dragPos) return;
+    const dx = b.x - dragPos.x;
+    const dy = b.y - dragPos.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 8) return;
+    angle = Math.atan2(dy, dx);
+    power = clamp((dist / MAX_PULL) * 100, 0, 100);
+    b.facing = Math.cos(angle) >= 0 ? 1 : -1;
+    hudAim();
+  }
+
+  function simDots() {
+    const b = getActive();
+    if (!b) return [];
+    const wpn = WEAPONS[weapon];
+    const spd = speedFromPower();
+    let x = b.x + Math.cos(angle) * (BOBER_R + 10);
+    let y = b.y + Math.sin(angle) * (BOBER_R + 10);
+    let vx = Math.cos(angle) * spd;
+    let vy = Math.sin(angle) * spd;
+    const dots = [];
+    for (let i = 0; i < 52; i++) {
+      vx += wind * WIND_K;
+      vy += GRAV;
+      x += vx;
+      y += vy;
+      if (y >= WATER_Y || x < -20 || x > WORLD_W + 20 || solid(x, y)) break;
+      if (i % 2 === 0) dots.push({ x, y });
+    }
+    return dots;
+  }
+
+  function layoutCam() {
+    const r = canvas.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const cssW = Math.max(1, r.width);
+    const cssH = Math.max(1, r.height);
+    const bw = Math.max(1, Math.round(cssW * dpr));
+    const bh = Math.max(1, Math.round(cssH * dpr));
+    if (canvas.width !== bw || canvas.height !== bh) {
+      canvas.width = bw;
+      canvas.height = bh;
+    }
+    const minBober = 36;
+    const sContain = Math.min(cssW / WORLD_W, cssH / WORLD_H);
+    let s;
+    let tx = 0;
+    let ty = 0;
+    let focusX = WORLD_W / 2;
+    let focusY = WORLD_H * 0.58;
+    const active = getActive();
+    if (shot) {
+      focusX = shot.x;
+      focusY = shot.y;
+    } else if (lastBlast && phase === "settle" && settleT < 0.7) {
+      focusX = lastBlast.x;
+      focusY = lastBlast.y;
+    } else if (active) {
+      focusX = active.x;
+      focusY = active.y - 20;
+    }
+    if (sContain * DRAW_H >= minBober) {
+      s = sContain;
+      tx = (WORLD_W - cssW / s) / 2;
+      ty = (WORLD_H - cssH / s) / 2;
+    } else {
+      s = Math.max(cssW / WORLD_W, minBober / DRAW_H);
+      const visW = cssW / s;
+      const visH = cssH / s;
+      tx = visW >= WORLD_W ? (WORLD_W - visW) / 2 : clamp(focusX - visW / 2, 0, WORLD_W - visW);
+      ty = visH >= WORLD_H ? (WORLD_H - visH) / 2 : clamp(focusY - visH * 0.62, 0, WORLD_H - visH);
+    }
+    if (!camInit) {
+      camS = s;
+      camX = tx;
+      camY = ty;
+      camInit = true;
+    } else {
+      camS += (s - camS) * 0.2;
+      camX += (tx - camX) * 0.14;
+      camY += (ty - camY) * 0.14;
+    }
+    view = { s: camS, camX, camY, cssW, cssH, dpr, showRadar: cssW / s < WORLD_W - 40 };
+  }
+
+  function drawBober(b) {
+    const sprite = !b.alive ? img.splat : b.standing ? img.idle : img.fly;
+    const h = DRAW_H;
+    const w = sprite ? (sprite.width / sprite.height) * h : h;
+    ctx.save();
+    ctx.translate(b.x, b.y + 4);
+    ctx.scale(b.facing, 1);
+    if (sprite) ctx.drawImage(sprite, -w / 2, -h / 2, w, h);
+    else {
+      ctx.fillStyle = "#8B5A2B";
+      ctx.fillRect(-20, -24, 40, 40);
+    }
+    ctx.fillStyle = b.team === "lodge" ? "#F5C400" : "#A8C4E8";
+    ctx.fillRect(-8, 6, 16, 6);
+    ctx.restore();
+    if (b.alive) {
+      const bw = 36;
+      const bh = 6;
+      ctx.fillStyle = "#1a1020";
+      ctx.fillRect(b.x - bw / 2 - 1, b.y - h / 2 - 14, bw + 2, bh + 2);
+      ctx.fillStyle = "#5a2030";
+      ctx.fillRect(b.x - bw / 2, b.y - h / 2 - 13, bw, bh);
+      ctx.fillStyle = b.team === "lodge" ? "#F5C400" : "#A8C4E8";
+      ctx.fillRect(b.x - bw / 2, b.y - h / 2 - 13, bw * clamp(b.hp / HP_MAX, 0, 1), bh);
+      ctx.fillStyle = "#fff6c4";
+      ctx.font = "bold 11px Trebuchet MS, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(b.name, b.x, b.y - h / 2 - 18);
+    }
+    if (b.alive && b.id === activeId && (phase === "aim" || phase === "cpu")) {
+      ctx.strokeStyle = b.team === "lodge" ? "#F5C400" : "#A8C4E8";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, BOBER_R + 10, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  function drawRadar() {
+    const rw = 168;
+    const rh = 94;
+    const x = view.cssW / 2 - rw / 2;
+    const y = 44;
+    ctx.save();
+    ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = "rgba(26,16,32,0.72)";
+    ctx.strokeStyle = "#1a1020";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x, y, rw, rh, 8) : ctx.rect(x, y, rw, rh);
+    ctx.fill();
+    ctx.stroke();
+    const sx = rw / WORLD_W;
+    const sy = rh / WORLD_H;
+    bobers.forEach((b) => {
+      ctx.fillStyle = !b.alive ? "#6a6080" : b.team === "lodge" ? "#F5C400" : "#A8C4E8";
+      ctx.beginPath();
+      ctx.arc(x + b.x * sx, y + b.y * sy, b.id === activeId ? 4 : 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    const vx = x + view.camX * sx;
+    const vy = y + view.camY * sy;
+    ctx.strokeStyle = "#ffe566";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(vx, vy, (view.cssW / view.s) * sx, (view.cssH / view.s) * sy);
+    ctx.restore();
+  }
+
+  function draw() {
+    layoutCam();
+    ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+    ctx.clearRect(0, 0, view.cssW, view.cssH);
+    ctx.save();
+    ctx.translate(-view.camX * view.s, -view.camY * view.s);
+    ctx.scale(view.s, view.s);
+
+    if (img.sky) ctx.drawImage(img.sky, 0, 0, WORLD_W, WORLD_H);
+    else {
+      ctx.fillStyle = "#3A2A6A";
+      ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+    }
+    ctx.drawImage(under, 0, 0);
+    ctx.drawImage(terrain, 0, 0);
+
+    ctx.fillStyle = "rgba(20, 70, 90, 0.72)";
+    ctx.fillRect(0, WATER_Y, WORLD_W, WORLD_H - WATER_Y);
+    ctx.strokeStyle = "rgba(200, 230, 255, 0.45)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let x = 0; x <= WORLD_W; x += 16) {
+      const yy = WATER_Y + Math.sin(x * 0.04 + waveT * 2.4) * 3.5;
+      if (x === 0) ctx.moveTo(x, yy);
+      else ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+
+    bobers.forEach((b) => {
+      if (!b.alive) drawBober(b);
+    });
+    bobers.forEach((b) => {
+      if (b.alive) drawBober(b);
+    });
+
+    if ((phase === "aim" && turn === "lodge") || phase === "cpu") {
+      const b = getActive();
+      if (b) {
+        const dots = simDots();
+        ctx.fillStyle = "#ffe566";
+        dots.forEach((d, i) => {
+          ctx.globalAlpha = 0.85 - i / 70;
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+        if (dragging && dragPos) {
+          ctx.strokeStyle = "#F5C400";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(b.x, b.y);
+          ctx.lineTo(dragPos.x, dragPos.y);
+          ctx.stroke();
+        }
+        const len = 28 + power * 0.5;
+        ctx.strokeStyle = "#fff6c4";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(b.x + Math.cos(angle) * len, b.y + Math.sin(angle) * len);
+        ctx.stroke();
+      }
+    }
+
+    if (shot) {
+      const spr = shot.weapon === "snow" ? img.snow : img.stick;
+      const rot = Math.atan2(shot.vy, shot.vx);
       ctx.save();
-      ctx.globalAlpha = Math.max(0, p.life * 2);
+      ctx.translate(shot.x, shot.y);
+      ctx.rotate(rot);
+      if (spr) ctx.drawImage(spr, -16, -16, 32, 32);
+      else {
+        ctx.fillStyle = "#F4E6C3";
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    bits.forEach((p) => {
+      ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rot);
-      ctx.fillStyle = p.kind === "stone" ? "#8a8e96" : "#b8743b";
-      ctx.strokeStyle = "#1a1020";
-      ctx.lineWidth = 2;
+      ctx.globalAlpha = clamp(p.life * 2, 0, 1);
+      ctx.fillStyle = p.kind === "snow" ? "#F4E6C3" : "#8B5A2B";
       ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-      ctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h);
       ctx.restore();
-    }
-  }
+    });
+    ctx.globalAlpha = 1;
 
-  function drawPops(dt) {
-    for (let i = pops.length - 1; i >= 0; i--) {
-      const p = pops[i];
-      p.t -= dt;
-      p.y -= 28 * dt;
-      if (p.t <= 0) {
-        pops.splice(i, 1);
-        continue;
-      }
-      ctx.save();
-      ctx.globalAlpha = Math.min(1, p.t * 3);
-      ctx.font = "900 22px Trebuchet MS, sans-serif";
-      ctx.textAlign = "center";
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = "#1a1020";
+    pops.forEach((p) => {
+      ctx.globalAlpha = clamp(p.t * 2, 0, 1);
       ctx.fillStyle = p.color;
+      ctx.font = "bold 18px Trebuchet MS, sans-serif";
+      ctx.textAlign = "center";
+      ctx.strokeStyle = "#1a1020";
+      ctx.lineWidth = 4;
       ctx.strokeText(p.text, p.x, p.y);
       ctx.fillText(p.text, p.x, p.y);
-      ctx.restore();
-    }
+    });
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    if (phase !== "splash" && phase !== "end" && view.showRadar) drawRadar();
   }
 
-  function frame(ts) {
+  function loop(ts) {
+    if (!running) return;
     const dt = Math.min(0.05, (ts - lastTs) / 1000 || 0.016);
     lastTs = ts;
-
-    if (state === "play" && !boardOpen) {
-      Engine.update(engine, 1000 / 120);
-      Engine.update(engine, 1000 / 120);
-      levelAge += dt;
-      if (unfreezeGrace > 0) unfreezeGrace -= dt;
-      if (hintT > 0) {
-        hintT -= dt;
-        if (hintT <= 0) hintEl.classList.add("hidden");
-      }
-      // First-run aim tutorial must not burn the level clock.
-      if (timeLeft > 0 && !aimTutOn) {
-        timeLeft -= dt;
-        if (timeLeft < 0) timeLeft = 0;
-      }
-      if (!aimTutOn && timeLeft <= 5 && timeLeft > 0) {
-        tickAcc += dt;
-        if (tickAcc >= 1) {
-          tickAcc = 0;
-          BoberSfx.tick();
-        }
-      }
-      timeEl.textContent = "0:" + String(Math.max(0, Math.ceil(timeLeft))).padStart(2, "0");
-      timeEl.classList.toggle("warn", timeLeft <= 5);
-      if (hitBlockThisShot && timeLeft > 0) {
-        for (const b of blocks) {
-          if (!b || b._dead || b.isStatic) continue;
-          Body.setAngularVelocity(b, b.angularVelocity * 0.9);
-        }
-      }
-      if (timeLeft <= 0) dampSpin(true);
-      if (timeLeft <= 0) {
-        timeLeft = 0;
-        timeUpAge += dt;
-        if (!isSpinning() || timeUpAge >= 0.95) {
-          if (timeUpAge >= 0.95 && isSpinning()) freezeMotion();
-          resolveTimeUp();
-        }
-      } else {
-        timeUpAge = 0;
-      }
-      if (dragging && bober && dragPos) {
-        Body.setPosition(bober, dragPos);
-      }
-      if (flight) {
-        flightAge += dt;
-        maybeEndShot();
-      }
-      if (splatT > 0) splatT -= dt;
-      for (const b of blocks) {
-        if (b.flash > 0) b.flash = Math.max(0, b.flash - dt);
-        if (b.hpPulse > 0) b.hpPulse = Math.max(0, b.hpPulse - dt);
-      }
+    acc += dt;
+    const stepDt = 1 / 60;
+    let n = 0;
+    while (acc >= stepDt && n < 5) {
+      step(stepDt);
+      acc -= stepDt;
+      n += 1;
     }
-
-    if (toastT > 0) {
-      toastT -= dt;
-      if (toastT <= 0) toastEl.classList.remove("show");
-    }
-
-    drawSky();
-    drawGround();
-    if (state !== "splash") drawSling();
-    drawStar();
-    for (const b of blocks) drawBlock(b);
-    for (const b of blocks) drawHpPips(b);
-
-    const hold = dragging && dragPos ? dragPos : bober ? bober.position : SLING;
-    if (!flight && bober) drawBands(hold);
-    if (dragging && dragPos) drawAimPreview(dragPos);
-    drawAimGhost();
-    drawBober();
-    drawBits(dt);
-    drawPops(dt);
-
-    requestAnimationFrame(frame);
+    draw();
+    requestAnimationFrame(loop);
   }
 
-  muteBtn.addEventListener("click", () => {
-    BoberSfx.ensure();
-    BoberSfx.setMuted(!BoberSfx.muted);
-    updateMuteBtn();
-  });
-  restartBtn.addEventListener("click", () => {
-    BoberSfx.ensure();
-    score = scoreAtLevelStart;
-    loadLevel(levelIndex);
-  });
-  nextBtn.addEventListener("click", () => {
-    BoberSfx.ensure();
-    if (levelIndex >= LEVEL_COUNT - 1 && (state === "win" || state === "done")) finishGame();
-    else nextLevel();
-  });
-  let assetsReady = false;
-  let startWhenReady = false;
+  function showTut() {
+    if (localStorage.getItem(TUT_KEY) === "1") return;
+    aimTutOn = true;
+    aimTutEl.classList.remove("hidden");
+    hud();
+  }
 
-  function beginRun() {
-    const n = BoberScores.setSavedName(nameInput.value || BoberScores.defaultName);
-    playerName = n || BoberScores.defaultName;
+  function hideTut() {
+    aimTutOn = false;
+    aimTutEl.classList.add("hidden");
+    localStorage.setItem(TUT_KEY, "1");
+    hud();
+  }
+
+  function startMatch() {
+    BoberSfx.ensure();
     splash.classList.add("hidden");
-    score = 0;
-    charge = 0;
-    loadLevel(0);
+    endcard.classList.add("hidden");
+    if (window.BoberLore) BoberLore.close();
+    makeTerrain();
+    spawnCrew();
+    craterCount = 0;
+    lastBlast = null;
+    winner = null;
+    weapon = "stick";
+    setWeapon("stick");
+    hudTop.classList.add("live");
+    dock.classList.remove("hidden");
+    camS = 1;
+    camX = 0;
+    camY = 0;
+    camInit = false;
+    const wasRunning = running;
+    running = true;
+    lastTs = performance.now();
+    acc = 0;
+    beginTurn("lodge");
+    showTut();
+    hud();
+    if (!wasRunning) requestAnimationFrame(loop);
   }
 
-  if (aimTutOk) {
-    aimTutOk.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      dismissAimTut();
-    });
+  function leaveToSplash() {
+    phase = "splash";
+    running = false;
+    shot = null;
+    hudTop.classList.remove("live");
+    dock.classList.add("hidden");
+    endcard.classList.add("hidden");
+    splash.classList.remove("hidden");
   }
 
-  playBtn.addEventListener("click", (ev) => {
+  function onPointerDown(ev) {
+    if (phase !== "aim" || turn !== "lodge" || aimTutOn) return;
     ev.preventDefault();
-    BoberSfx.ensure();
-    if (!assetsReady) {
-      playBtn.textContent = "LOADING...";
-      startWhenReady = true;
-      return;
+    const w = worldFromEvent(ev);
+    const tapped = boberAt(w.x, w.y, "lodge");
+    if (tapped) {
+      activeId = tapped.id;
+      BoberSfx.pop();
     }
-    beginRun();
-  });
-  nameInput.addEventListener("input", refreshNameGate);
-  nameInput.addEventListener("change", refreshNameGate);
-  nameInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") playBtn.click();
-  });
-  btnBoard.addEventListener("click", () => {
-    BoberSfx.ensure();
-    openBoard();
-  });
-  btnSplashBoard.addEventListener("click", () => {
-    BoberSfx.ensure();
-    openBoard();
-  });
-  endBoard.addEventListener("click", () => {
-    BoberSfx.ensure();
-    openBoard();
-  });
-  boardClose.addEventListener("click", closeBoard);
-  endRestart.addEventListener("click", () => {
-    BoberSfx.ensure();
-    if (state === "done") {
-      score = 0;
-      charge = 0;
-      loadLevel(0);
-      return;
-    }
-    score = scoreAtLevelStart;
-    loadLevel(levelIndex);
-  });
-  endNext.addEventListener("click", () => {
-    BoberSfx.ensure();
-    nextLevel();
-  });
+    dragging = true;
+    dragPos = w;
+    aimFromDrag();
+    try {
+      canvas.setPointerCapture(ev.pointerId);
+    } catch (_) {}
+  }
 
-  canvas.addEventListener("pointerdown", onDown);
-  canvas.addEventListener("pointermove", onMove);
-  window.addEventListener("pointerup", onUp);
-  window.addEventListener("pointercancel", onUp);
-  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-  document.addEventListener(
-    "touchmove",
-    (e) => {
-      if (e.target.closest && e.target.closest("input, textarea, .board-list, button, .museum-grid, .history-body, .museum-detail, .aim-tut")) return;
+  function onPointerMove(ev) {
+    if (!dragging) return;
+    dragPos = worldFromEvent(ev);
+    aimFromDrag();
+  }
+
+  function onPointerUp(ev) {
+    if (!dragging) return;
+    dragging = false;
+    try {
+      canvas.releasePointerCapture(ev.pointerId);
+    } catch (_) {}
+  }
+
+  function holdBtn(el, fn) {
+    if (!el) return;
+    let t = 0;
+    const go = (e) => {
       e.preventDefault();
+      fn();
+      t = setInterval(fn, 70);
+    };
+    const stop = () => clearInterval(t);
+    el.addEventListener("pointerdown", go);
+    el.addEventListener("pointerup", stop);
+    el.addEventListener("pointercancel", stop);
+    el.addEventListener("pointerleave", stop);
+  }
+
+  function bind() {
+    playBtn.addEventListener("click", startMatch);
+    endRestart.addEventListener("click", startMatch);
+    fireBtn.addEventListener("click", () => {
+      BoberSfx.ensure();
+      tryFire();
+    });
+    muteBtn.addEventListener("click", () => {
+      BoberSfx.setMuted(!BoberSfx.muted);
+      updateMuteBtn();
+    });
+    leaveBtn.addEventListener("click", leaveToSplash);
+    $("w-stick").addEventListener("click", () => setWeapon("stick"));
+    $("w-snow").addEventListener("click", () => setWeapon("snow"));
+    holdBtn($("ang-l"), () => {
+      if (phase !== "aim") return;
+      angle -= 0.045;
+      hudAim();
+    });
+    holdBtn($("ang-r"), () => {
+      if (phase !== "aim") return;
+      angle += 0.045;
+      hudAim();
+    });
+    holdBtn($("pwr-d"), () => {
+      if (phase !== "aim") return;
+      power = clamp(power - 2, 0, 100);
+      hudAim();
+    });
+    holdBtn($("pwr-u"), () => {
+      if (phase !== "aim") return;
+      power = clamp(power + 2, 0, 100);
+      hudAim();
+    });
+    if (aimTutOk) aimTutOk.addEventListener("click", hideTut);
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointercancel", onPointerUp);
+    window.addEventListener("keydown", (ev) => {
+      if (phase === "splash" && (ev.key === "Enter" || ev.key === " ")) {
+        startMatch();
+        return;
+      }
+      if (phase !== "aim") return;
+      if (ev.key === "ArrowLeft") angle -= 0.05;
+      if (ev.key === "ArrowRight") angle += 0.05;
+      if (ev.key === "ArrowUp") power = clamp(power + 3, 0, 100);
+      if (ev.key === "ArrowDown") power = clamp(power - 3, 0, 100);
+      if (ev.key === "1") setWeapon("stick");
+      if (ev.key === "2") setWeapon("snow");
+      if (ev.key === " " || ev.key === "Enter") {
+        ev.preventDefault();
+        tryFire();
+      }
+      hudAim();
+    });
+    updateMuteBtn();
+  }
+
+  function snapshot() {
+    return {
+      phase,
+      turn,
+      wind,
+      weapon,
+      power,
+      angle,
+      craterCount,
+      lastBlast,
+      winner,
+      bobers: bobers.map((b) => ({
+        id: b.id,
+        name: b.name,
+        team: b.team,
+        hp: b.hp,
+        alive: b.alive,
+        x: b.x,
+        y: b.y,
+      })),
+    };
+  }
+
+  window.__yeetWar = {
+    snapshot,
+    startMatch,
+    setAim: (deg, pwr) => setAim((deg * Math.PI) / 180, pwr),
+    setWeapon,
+    fire: tryFire,
+    killTeam(team) {
+      living(team).forEach((b) => kill(b));
+      if (phase === "aim" || phase === "cpu") {
+        phase = "settle";
+        settleT = 0.5;
+      }
     },
-    { passive: false }
-  );
+    setWind(v) {
+      wind = clamp(v | 0, -4, 4);
+      hud();
+    },
+    get lastBlast() {
+      return lastBlast;
+    },
+    get craterCount() {
+      return craterCount;
+    },
+    solid,
+    WEAPONS,
+    HP_MAX,
+  };
 
-  playBtn.disabled = false;
-  refreshNameGate();
-  if (!nameInput.value) nameInput.value = BoberScores.getSavedName() || BoberScores.defaultName;
-
-  Promise.allSettled([
+  Promise.all([
     loadImage("assets/sprites/bober-idle.png").then((i) => (img.idle = i)),
     loadImage("assets/sprites/bober-fly.png").then((i) => (img.fly = i)),
     loadImage("assets/sprites/bober-splat.png").then((i) => (img.splat = i)),
-    loadImage("assets/sprites/uranus.png").then((i) => (img.uranus = i)),
-    loadImage("assets/sprites/slingshot.png").then((i) => (img.sling = i)),
-    loadImage("assets/sprites/star.png").then((i) => (img.star = i)),
-  ]).then(() => {
-    assetsReady = true;
-    playBtn.textContent = "YEET";
-    makeClouds();
-    updateMuteBtn();
-    if (!nameInput.value.trim()) nameInput.value = BoberScores.getSavedName() || BoberScores.defaultName;
-    refreshNameGate();
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") submitRun();
+    loadImage("assets/sprites/yeet-stick.png").then((i) => (img.stick = i)),
+    loadImage("assets/sprites/snowball.png").then((i) => (img.snow = i)),
+    loadImage("assets/sprites/bank-sky.jpg").then((i) => (img.sky = i)),
+  ])
+    .catch((err) => console.error(err))
+    .then(() => {
+      bind();
+      if (FAST) startMatch();
     });
-    window.addEventListener("pagehide", () => submitRun());
-    requestAnimationFrame(frame);
-    if (startWhenReady) beginRun();
-  });
 })();

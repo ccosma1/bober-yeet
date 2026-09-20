@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#3a2a6a" />
-  <title>Bober Yeet</title>
+  <title>Bober Yeet War</title>
   <link rel="icon" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <link rel="manifest" href="manifest.webmanifest" />
@@ -14,44 +14,59 @@
 </head>
 <body>
   <div id="app">
-    <canvas id="game"></canvas>
-    <div id="hud">
-      <div class="top">
+    <div id="stage">
+      <canvas id="game"></canvas>
+      <div id="hud-top">
         <div class="top-stats">
-          <div class="chip" id="level">LV 1/100</div>
-          <div class="chip" id="player-chip">online player</div>
-          <div class="chip coin-chip" id="score">$BOBER 0</div>
-          <div class="chip time" id="time">0:20</div>
-          <div class="chip star-chip hidden" id="star-chip">★</div>
-          <div class="chip star-chip" id="charge-chip">CHARGE</div>
+          <div class="chip" id="turn-chip">LODGE</div>
+          <div class="chip wind-chip" id="wind-chip">
+            <span id="wind-flag" aria-hidden="true">⚑</span>
+            <span id="wind-val">WIND 0</span>
+          </div>
+          <div class="chip" id="phase-chip">AIM</div>
         </div>
         <div class="btns">
-          <button class="btn" id="btn-board" title="High scores" aria-label="High scores">🏆</button>
           <button class="btn" id="btn-mute" title="Mute" aria-label="Mute">🔊</button>
-          <button class="btn" id="btn-restart" title="Restart" aria-label="Restart">↻</button>
-          <button class="btn" id="btn-next" title="Next level" aria-label="Next level">➜</button>
+          <button class="btn" id="btn-leave" title="Leave" aria-label="Leave">✕</button>
         </div>
       </div>
-      <div id="ammo"></div>
-      <div id="hint" class="hint hidden">PULL BACK</div>
+      <div id="toast"></div>
       <div id="aim-tut" class="aim-tut hidden">
-        <p>Drag Bober back. Let go to yeet.</p>
+        <p>Drag back to aim. Tap a Lodge Bober to switch. Fire when ready.</p>
         <button type="button" id="aim-tut-ok">GOT IT</button>
       </div>
     </div>
-    <div id="toast"></div>
+    <div id="dock" class="hidden">
+      <div class="weapons">
+        <button type="button" class="wep on" id="w-stick" data-w="stick">
+          <img src="assets/sprites/yeet-stick.png" alt="" />
+          <span>Yeet Stick</span>
+        </button>
+        <button type="button" class="wep" id="w-snow" data-w="snow">
+          <img src="assets/sprites/snowball.png" alt="" />
+          <span>Snowball</span>
+        </button>
+      </div>
+      <div class="aim-row">
+        <button type="button" class="btn fat" id="ang-l" aria-label="Angle left">◄</button>
+        <button type="button" class="btn fat" id="ang-r" aria-label="Angle right">►</button>
+        <div class="power-wrap">
+          <div class="power-bar" id="power-bar"><i id="power-fill"></i></div>
+          <span id="power-num">50</span>
+        </div>
+        <button type="button" class="btn fat" id="pwr-d" aria-label="Power down">−</button>
+        <button type="button" class="btn fat" id="pwr-u" aria-label="Power up">+</button>
+      </div>
+      <button type="button" class="fire" id="btn-fire">FIRE</button>
+    </div>
     <div id="splash" class="overlay">
-      <img class="hero" src="assets/sprites/splash-hero.png" alt="Bober" />
-      <h1>BOBER YEET</h1>
-      <p class="mission">Yeet Bober. Clear the myth levels. Leave a score.</p>
-      <p class="reason">Aim with skill. Climb 100 levels.<br />Clips and scores — not a token farm.</p>
+      <img class="hero" src="assets/sprites/splash-hero.png" alt="Bober with a yeet stick" />
+      <h1>BOBER YEET WAR</h1>
+      <p class="mission">Take turns. Aim true. Yeet the other crew off the bank.</p>
+      <p class="reason">Turn-based stick fights — charge, angle, laugh. Short matches, not a slingshot endless.</p>
       <p class="tagline">Fan game by a holder.</p>
-      <label class="name-label" for="player-name">Your name</label>
-      <input id="player-name" class="name-input" type="text" maxlength="16" autocomplete="nickname" value="online player" placeholder="online player" />
-      <p class="name-err hidden" id="name-err">Type a name so we can tell players apart.</p>
       <div class="end-actions">
-        <button class="play" id="btn-play" type="button">YEET</button>
-        <button class="play play-ghost" id="btn-splash-board">SCORES</button>
+        <button class="play" id="btn-play" type="button">START</button>
       </div>
       <div class="end-actions lore-actions">
         <button class="play play-ghost play-sm" id="btn-museum" type="button">MUSEUM</button>
@@ -62,39 +77,28 @@
     <div id="endcard" class="overlay hidden">
       <h2 id="end-title">YEET!</h2>
       <p id="end-msg"></p>
-      <blockquote id="end-quote" class="end-quote hidden"></blockquote>
       <div class="end-actions">
-        <button class="play" id="end-restart">RESTART</button>
-        <button class="play" id="end-next">NEXT LEVEL</button>
-        <button class="play play-ghost" id="end-board">SCORES</button>
+        <button class="play" id="end-restart" type="button">PLAY AGAIN</button>
+        <button class="play play-ghost" id="end-museum" type="button">MUSEUM</button>
       </div>
       <p class="hub-link"><a href="https://ccosma1.github.io/green-home-games/">More games · Green Home Games</a></p>
     </div>
-    <div id="board" class="overlay hidden">
-      <h2>DAM LEADERBOARD</h2>
-      <p class="board-sub">Ranked by $BOBER earned. No wallet.</p>
-      <div id="board-list" class="board-list"></div>
-      <button class="play" id="board-close">CLOSE</button>
-    </div>
     <div id="museum" class="overlay hidden">
       <h2>MUSEUM</h2>
-      <p class="board-sub">Bober, yeet moments, milestones.</p>
+      <p class="board-sub">Bober, the old slingshot climb, this bank.</p>
       <div id="museum-grid" class="museum-grid"></div>
       <div id="museum-detail" class="museum-detail hidden"></div>
       <button class="play" id="museum-close" type="button">CLOSE</button>
     </div>
     <div id="history" class="overlay hidden">
       <h2>HISTORY</h2>
-      <p class="board-sub">The yeet myth arc. Play is the climb.</p>
+      <p class="board-sub">Was Yeet. Now War. Play is the bank.</p>
       <div id="history-body" class="history-body"></div>
       <button class="play" id="history-close" type="button">CLOSE</button>
     </div>
-    <div id="rotate-tip">Tip: landscape yeets harder</div>
+    <div id="rotate-tip">Tip: landscape shows the whole bank</div>
   </div>
-  <script src="js/matter.min.js"></script>
   <script src="js/audio.js"></script>
-  <script src="js/scores.js"></script>
-  <script src="js/levels.js"></script>
   <script src="js/lore.js"></script>
   <script src="js/game.js"></script>
 </body>

@@ -5,48 +5,49 @@
       cat: "Bober",
       title: "The beaver",
       img: "assets/sprites/splash-hero.png",
-      blurb: "Square wood head, paddle tail, snow in the fur. You yeet him. He is the whole joke.",
+      blurb: "Square wood head, paddle tail, snow in the fur. He used to fly from a sling. Now he brings a stick to the bank.",
     },
     {
-      cat: "Moment",
-      title: "First dam",
+      cat: "Was Yeet",
+      title: "Slingshot days",
       img: "assets/sprites/slingshot.png",
-      blurb: "Three logs. Pull back. Hit the feet. The myth starts small on purpose.",
+      blurb: "This room was Bober Yeet: 100 myth levels, three shots, $BOBER on a board. The sling still hangs here. Play is War now.",
     },
     {
-      cat: "Moment",
+      cat: "Was Yeet",
       title: "Charged yeet",
       img: "assets/sprites/star.png",
-      blurb: "Grab a star, then fire. CHARGE is power for the next shot — not a loot box.",
+      blurb: "Grab a star, then fire. CHARGE was power for the next shot — not a loot box. That climb is history.",
     },
     {
-      cat: "Moment",
-      title: "Faceplant",
-      img: "assets/sprites/bober-splat.png",
-      blurb: "Teeth first, Uranus watching. Clips beat farms. Miss, laugh, pull again.",
+      cat: "War",
+      title: "Yeet Stick",
+      img: "assets/sprites/yeet-stick.png",
+      blurb: "Twenty-five sting, blast 28, infinite. The honest lodge tool. Charge, angle, laugh.",
     },
     {
-      cat: "Milestone",
-      title: "100 levels",
-      img: "assets/sprites/uranus.png",
-      blurb: "Uranus to Mars to worse ideas. Three shots a dam. Grey holds the stack.",
+      cat: "War",
+      title: "Snowball",
+      img: "assets/sprites/snowball.png",
+      blurb: "Fifteen sting, blast 36, infinite. Softer hit, fatter crater. Dig the bank.",
     },
     {
-      cat: "Milestone",
-      title: "$BOBER coins",
-      img: "assets/sprites/star.png",
-      blurb: "Smash loot is $BOBER. A number you leave on the board. No wallet. No IAP.",
+      cat: "War",
+      title: "The Bank",
+      img: "assets/sprites/bank-sky.jpg",
+      blurb: "One map. Chunky snow on dirt. Wind on the flag. Creek and void below — you are out.",
     },
     {
       cat: "Milestone",
       title: "Green Home",
       img: "assets/sprites/bober-idle.png",
-      blurb: "Yeet → Dam → Lodge → Nightfall → Crown. One holder universe. This room is Yeet.",
+      blurb: "Yeet became War. Then Dam, Lodge, Nightfall, Crown. One holder universe. This room is the bank.",
     },
   ];
 
   const ARC = [
-    { name: "Yeet", cap: "Aim. Smash. Leave $BOBER." },
+    { name: "Yeet", cap: "Was slingshot. 100 levels." },
+    { name: "War", cap: "Turns. Stick. Bank." },
     { name: "Dam", cap: "Hold the river." },
     { name: "Lodge", cap: "Warm rooms, cold jokes." },
     { name: "Nightfall", cap: "Lights out on the ice." },
@@ -156,7 +157,7 @@
           );
         }).join("") +
         "</div>" +
-        '<p class="hist-cap">The Green Home myth line. Yeet is this room. The others wait on the hub.</p>';
+        '<p class="hist-cap">The Green Home myth line. This room was Yeet. Play is War.</p>';
       const maxH = 100;
       const bars =
         '<div class="hist-climb" aria-hidden="false">' +
@@ -172,7 +173,7 @@
           );
         }).join("") +
         "</div>" +
-        '<p class="hist-cap">100-level climb. Each decade a new sky. Skill aim, not a token farm.</p>';
+        '<p class="hist-cap">Was Yeet: the old 100-level slingshot climb. War does not use it.</p>';
       body.innerHTML = arc + bars;
       body.dataset.ready = "1";
     }
@@ -185,10 +186,12 @@
     const mc = $("museum-close");
     const hc = $("history-close");
     const grid = $("museum-grid");
+    const endM = $("end-museum");
     if (m) m.addEventListener("click", openMuseum);
     if (h) h.addEventListener("click", openHistory);
     if (mc) mc.addEventListener("click", closeAll);
     if (hc) hc.addEventListener("click", closeAll);
+    if (endM) endM.addEventListener("click", openMuseum);
     if (grid) {
       grid.addEventListener("click", (ev) => {
         const card = ev.target.closest && ev.target.closest(".museum-card");

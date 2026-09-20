@@ -49,6 +49,21 @@
       this.beep(180, 0.18, "sawtooth", 0.1, 90);
       this.beep(320, 0.12, "square", 0.05, 140);
     },
+    yeet() {
+      this.beep(240, 0.16, "sawtooth", 0.1, 110);
+      this.beep(420, 0.1, "square", 0.05, 180);
+    },
+    boom() {
+      this.noise(0.22, 0.22);
+      this.beep(90, 0.2, "square", 0.09, 40);
+    },
+    splash() {
+      this.noise(0.18, 0.14);
+      this.beep(180, 0.16, "triangle", 0.06, 70);
+    },
+    hurt() {
+      this.beep(220, 0.12, "sawtooth", 0.08, 90);
+    },
     wood() {
       this.noise(0.12, 0.16);
       this.beep(140, 0.08, "triangle", 0.07, 70);
@@ -57,18 +72,9 @@
       this.noise(0.06, 0.1);
       this.beep(210, 0.05, "triangle", 0.05, 120);
     },
-    stone() {
-      this.noise(0.16, 0.2);
-      this.beep(90, 0.14, "square", 0.08, 50);
-    },
     splat() {
       this.beep(220, 0.25, "sawtooth", 0.1, 70);
       this.beep(140, 0.35, "triangle", 0.08, 50);
-    },
-    star() {
-      this.beep(660, 0.12, "square", 0.08);
-      setTimeout(() => this.beep(880, 0.14, "square", 0.07), 80);
-      setTimeout(() => this.beep(1174, 0.18, "square", 0.06), 160);
     },
     win() {
       [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.beep(f, 0.16, "square", 0.07), i * 90));
@@ -82,6 +88,10 @@
     },
     pop() {
       this.beep(700, 0.06, "square", 0.05, 400);
+    },
+    turn() {
+      this.beep(520, 0.08, "square", 0.05);
+      this.beep(660, 0.1, "square", 0.04);
     },
 
     setMuted(v) {

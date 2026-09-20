@@ -1,212 +1,236 @@
 #!/usr/bin/env python3
-"""Paint the Bober Yeet app mark from polygons. Pillow only.
+"""Bober Yeet War mark — 100-unit meshes, lofted club, chamfered beaver.
 
-Layout (1024-unit sheet, then scaled):
-  night-purple field
-  yellow sling-V behind the chin
-  squarish beaver head, cream snout, two buckteeth
+Paints a full-bleed night-purple square. No sling-V, no sword, no logs.
+Pillow only. Design space is 100 x 100, then mapped to the face size.
 """
 
 from __future__ import annotations
 
-import math
+import struct
+from io import BytesIO
+from math import cos, hypot, radians, sin
 from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-# Brand hexes from BRAND_MARK.md
-FUR = (0x8B, 0x5A, 0x2B, 255)
-TOOTH = (0xF4, 0xE6, 0xC3, 255)
-SLING = (0xF5, 0xC4, 0x00, 255)
-SKY = (0x3A, 0x2A, 0x6A, 255)
-
-# Clip-art inks that stay off the sibling palettes (no cyan, navy, oxblood, teal)
-INK = (0x2A, 0x16, 0x0C, 255)
-EAR = (0x6A, 0x43, 0x20, 255)
-CHEEK = (0xA5, 0x6C, 0x38, 255)
-EYE = (0x1A, 0x12, 0x28, 255)
-SLING_SHADE = (0xC4, 0x8C, 0x00, 255)
-GUM = (0xE8, 0xC9, 0x96, 255)
-
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "icons"
 
-SHEET = 1024
+# Named palette from BRAND_MARK.md
+FUR = (0x8B, 0x5A, 0x2B, 255)
+TOOTH = (0xF4, 0xE6, 0xC3, 255)
+STICK = (0xF5, 0xC4, 0x00, 255)
+SKY = (0x3A, 0x2A, 0x6A, 255)
+
+# Support inks mixed from the four — stay off sibling palettes
+INK = (0x28, 0x14, 0x0C, 255)
+EAR = (0x6A, 0x42, 0x1E, 255)
+FACE_BAR = (0x9C, 0x68, 0x34, 255)
+EYE = (0x18, 0x10, 0x1C, 255)
+STICK_DIM = (0xC2, 0x8E, 0x00, 255)
+WRAP = (0x5A, 0x34, 0x14, 255)
+GUM = (0xE2, 0xCC, 0x9A, 255)
+
+FACES = (16, 24, 32, 48, 64, 128, 256)
 
 
-def _px(n: float, size: int) -> int:
-    return int(round(n * size / SHEET))
+Mesh = list[tuple[float, float]]
 
 
-def _xy(pt: tuple[float, float], size: int) -> tuple[int, int]:
-    return (_px(pt[0], size), _px(pt[1], size))
+def rot(mesh: Mesh, deg: float) -> Mesh:
+    a = radians(deg)
+    ca, sa = cos(a), sin(a)
+    return [(x * ca - y * sa, x * sa + y * ca) for x, y in mesh]
 
 
-def _box(a: tuple[float, float], b: tuple[float, float], size: int) -> tuple[int, int, int, int]:
-    x0, y0 = _xy(a, size)
-    x1, y1 = _xy(b, size)
-    return (x0, y0, x1, y1)
+def mov(mesh: Mesh, dx: float, dy: float) -> Mesh:
+    return [(x + dx, y + dy) for x, y in mesh]
 
 
-def _offset(p: tuple[float, float], q: tuple[float, float], dist: float) -> list[tuple[float, float]]:
-    dx, dy = q[0] - p[0], q[1] - p[1]
-    length = math.hypot(dx, dy) or 1.0
-    nx, ny = -dy / length * dist, dx / length * dist
+def loft(samples: list[tuple[float, float]]) -> Mesh:
+    """Closed side-view from (x, halfwidth) samples along +X."""
+    top = [(x, -h) for x, h in samples]
+    bot = [(x, h) for x, h in reversed(samples)]
+    return top + bot
+
+
+def chamfer(x0: float, y0: float, x1: float, y1: float, cut: float) -> Mesh:
+    """Axis box with clipped corners — chocolate-bar, not a squircle."""
+    w, h = x1 - x0, y1 - y0
+    c = min(cut, w * 0.45, h * 0.45)
     return [
-        (p[0] + nx, p[1] + ny),
-        (p[0] - nx, p[1] - ny),
-        (q[0] - nx, q[1] - ny),
-        (q[0] + nx, q[1] + ny),
+        (x0 + c, y0),
+        (x1 - c, y0),
+        (x1, y0 + c),
+        (x1, y1 - c),
+        (x1 - c, y1),
+        (x0 + c, y1),
+        (x0, y1 - c),
+        (x0, y0 + c),
     ]
 
 
-def _capsule(draw: ImageDraw.ImageDraw, p: tuple[float, float], q: tuple[float, float],
-             radius: float, fill, size: int, outline=None, ink_w: float = 0) -> None:
-    if outline and ink_w:
-        poly = [_xy(pt, size) for pt in _offset(p, q, radius + ink_w)]
-        draw.polygon(poly, fill=outline)
-        r = _px(radius + ink_w, size)
-        draw.ellipse((_xy(p, size)[0] - r, _xy(p, size)[1] - r,
-                      _xy(p, size)[0] + r, _xy(p, size)[1] + r), fill=outline)
-        draw.ellipse((_xy(q, size)[0] - r, _xy(q, size)[1] - r,
-                      _xy(q, size)[0] + r, _xy(q, size)[1] + r), fill=outline)
-    poly = [_xy(pt, size) for pt in _offset(p, q, radius)]
-    draw.polygon(poly, fill=fill)
-    r = _px(radius, size)
-    cx, cy = _xy(p, size)
-    draw.ellipse((cx - r, cy - r, cx + r, cy + r), fill=fill)
-    cx, cy = _xy(q, size)
-    draw.ellipse((cx - r, cy - r, cx + r, cy + r), fill=fill)
+def puff(mesh: Mesh, amt: float) -> Mesh:
+    """Push vertices away from the centroid. Convex meshes only."""
+    if amt <= 0 or len(mesh) < 3:
+        return mesh
+    cx = sum(p[0] for p in mesh) / len(mesh)
+    cy = sum(p[1] for p in mesh) / len(mesh)
+    out: Mesh = []
+    for x, y in mesh:
+        dx, dy = x - cx, y - cy
+        length = hypot(dx, dy) or 1.0
+        out.append((x + dx / length * amt, y + dy / length * amt))
+    return out
 
 
-def _round_block(draw: ImageDraw.ImageDraw, a, b, radius: float, fill, size: int,
-                 outline=None, ink_w: float = 0) -> None:
-    if outline and ink_w:
-        draw.rounded_rectangle(
-            _box((a[0] - ink_w, a[1] - ink_w), (b[0] + ink_w, b[1] + ink_w), size),
-            radius=_px(radius + ink_w, size),
-            fill=outline,
-        )
-    draw.rounded_rectangle(_box(a, b, size), radius=_px(radius, size), fill=fill)
+def fit(mesh: Mesh, size: int, inset: float) -> Mesh:
+    usable = size * (1.0 - 2.0 * inset)
+    origin = size * inset
+    s = usable / 100.0
+    return [(origin + x * s, origin + y * s) for x, y in mesh]
 
 
-def _ellipse(draw: ImageDraw.ImageDraw, a, b, fill, size: int,
-             outline=None, ink_w: float = 0) -> None:
-    if outline and ink_w:
-        draw.ellipse(
-            _box((a[0] - ink_w, a[1] - ink_w), (b[0] + ink_w, b[1] + ink_w), size),
-            fill=outline,
-        )
-    draw.ellipse(_box(a, b, size), fill=fill)
+def ink_units(size: int) -> float:
+    return max(2.0, 130.0 / size)
 
 
-def paint_sling(draw: ImageDraw.ImageDraw, size: int, pad: float) -> None:
-    """True sling-V: two thick forks meet at an apex under the teeth."""
-    ink = 18
-    apex = (512.0, 900.0 - pad * 0.35)
-    left_tip = (108.0 + pad, 470.0)
-    right_tip = (916.0 - pad, 470.0)
-    _capsule(draw, left_tip, apex, 64, SLING, size, INK, ink)
-    _capsule(draw, right_tip, apex, 64, SLING, size, INK, ink)
-    # Flat inner strip — wood fork, not a glow
-    _capsule(draw, left_tip, apex, 22, SLING_SHADE, size)
-    _capsule(draw, right_tip, apex, 22, SLING_SHADE, size)
-    # Rubber pouch the beaver sits in (band across the V crotch)
-    _capsule(draw, (300.0, 700.0), (724.0, 700.0), 42, SLING, size, INK, 14)
-    _capsule(draw, (330.0, 700.0), (694.0, 700.0), 18, SLING_SHADE, size)
+def blob(
+    draw: ImageDraw.ImageDraw,
+    mesh: Mesh,
+    fill: tuple[int, int, int, int],
+    size: int,
+    inset: float,
+    outline: tuple[int, int, int, int] | None = INK,
+) -> None:
+    if outline is not None:
+        draw.polygon(fit(puff(mesh, ink_units(size)), size, inset), fill=outline)
+    draw.polygon(fit(mesh, size, inset), fill=fill)
 
 
-def paint_bober(draw: ImageDraw.ImageDraw, size: int, pad: float) -> None:
-    ink = 20
-    # Blocky side ears, inset on maskable so circular crops keep them
-    le_a, le_b = (96 + pad, 248), (248 + pad * 0.15, 468)
-    re_a, re_b = (776 - pad * 0.15, 248), (928 - pad, 468)
-    _round_block(draw, le_a, le_b, 50, EAR, size, INK, ink)
-    _round_block(draw, re_a, re_b, 50, EAR, size, INK, ink)
-    _ellipse(
-        draw,
-        (le_a[0] + 28, le_a[1] + 40),
-        (le_b[0] - 18, le_b[1] - 36),
-        INK,
-        size,
-    )
-    _ellipse(
-        draw,
-        (re_a[0] + 18, re_a[1] + 40),
-        (re_b[0] - 28, re_b[1] - 36),
-        INK,
-        size,
+def club_body() -> Mesh:
+    # Bat profile: fat knob, thick handle, fatter blunt barrel. No point, no fork.
+    return loft(
+        [
+            (0.0, 3.0),
+            (4.0, 10.0),
+            (10.0, 13.0),
+            (16.0, 12.5),
+            (20.0, 8.6),
+            (32.0, 8.2),
+            (46.0, 8.6),
+            (56.0, 11.5),
+            (68.0, 15.8),
+            (80.0, 17.4),
+            (90.0, 16.6),
+            (96.0, 13.0),
+            (99.0, 7.5),
+        ]
     )
 
-    head_l, head_t = 196 + pad * 0.35, 128 + pad * 0.3
-    head_r, head_b = 828 - pad * 0.35, 672
-    _round_block(draw, (head_l, head_t), (head_r, head_b), 82, FUR, size, INK, ink)
 
-    # Flat cheek slab — clip-art, not a glow orb
-    _round_block(
-        draw,
-        (head_l + 36, head_t + 70),
-        (head_r - 36, 430),
-        60,
-        CHEEK,
-        size,
-    )
-    _round_block(
-        draw,
-        (head_l + 58, head_t + 92),
-        (head_r - 58, 412),
-        50,
-        FUR,
-        size,
+def club_shade() -> Mesh:
+    return loft(
+        [
+            (22.0, 2.6),
+            (40.0, 2.8),
+            (58.0, 4.4),
+            (76.0, 6.6),
+            (90.0, 6.0),
+            (96.0, 3.0),
+        ]
     )
 
-    _ellipse(draw, (300, 400), (724, 678), TOOTH, size, INK, ink)
 
-    # Smaller high-set eyes so the snout + teeth own the beaver read
-    _ellipse(draw, (328, 228), (440, 360), EYE, size, INK, 8)
-    _ellipse(draw, (584, 228), (696, 360), EYE, size, INK, 8)
-    _ellipse(draw, (364, 248), (412, 296), TOOTH, size)
-    _ellipse(draw, (620, 248), (668, 296), TOOTH, size)
-
-    _ellipse(draw, (448, 428), (576, 516), INK, size)
-    _ellipse(draw, (468, 440), (524, 478), TOOTH, size)
-
-    gap, tooth_w = 18, 88
-    left = 512 - gap / 2 - tooth_w
-    right = 512 + gap / 2
-    _round_block(draw, (left, 592), (left + tooth_w, 792), 16, TOOTH, size, INK, 14)
-    _round_block(draw, (right, 592), (right + tooth_w, 792), 16, TOOTH, size, INK, 14)
-    _round_block(draw, (left + 6, 592), (right + tooth_w - 6, 630), 8, GUM, size)
+def wrap_band(x0: float, x1: float, half: float) -> Mesh:
+    return loft(
+        [
+            (x0, half * 0.72),
+            (x0 + 1.4, half),
+            (x1 - 1.4, half),
+            (x1, half * 0.72),
+        ]
+    )
 
 
-def render(size: int, maskable: bool = False) -> Image.Image:
+def plant_club(mesh: Mesh) -> Mesh:
+    # Knob lower-left, barrel peeks beside the right cheek — under the teeth.
+    return mov(rot(mesh, -17.0), 7.0, 90.0)
+
+
+def paint_club(draw: ImageDraw.ImageDraw, size: int, inset: float) -> None:
+    blob(draw, plant_club(club_body()), STICK, size, inset)
+    blob(draw, plant_club(mov(club_shade(), 0.0, 4.6)), STICK_DIM, size, inset, None)
+    blob(draw, plant_club(wrap_band(18.0, 27.5, 10.4)), WRAP, size, inset)
+    blob(draw, plant_club(wrap_band(84.0, 94.0, 16.8)), WRAP, size, inset)
+
+
+def paint_bober(draw: ImageDraw.ImageDraw, size: int, inset: float) -> None:
+    blob(draw, chamfer(5.5, 22.0, 24.0, 47.0, 5.5), EAR, size, inset)
+    blob(draw, chamfer(76.0, 22.0, 94.5, 47.0, 5.5), EAR, size, inset)
+    blob(draw, chamfer(10.0, 28.5, 19.5, 41.0, 3.0), INK, size, inset, None)
+    blob(draw, chamfer(80.5, 28.5, 90.0, 41.0, 3.0), INK, size, inset, None)
+
+    blob(draw, chamfer(19.0, 9.0, 81.0, 61.0, 9.0), FUR, size, inset)
+    blob(draw, chamfer(28.0, 14.0, 72.0, 21.5, 2.2), FACE_BAR, size, inset, None)
+
+    blob(draw, chamfer(29.5, 22.0, 42.5, 37.0, 3.2), EYE, size, inset)
+    blob(draw, chamfer(57.5, 22.0, 70.5, 37.0, 3.2), EYE, size, inset)
+    blob(draw, chamfer(32.0, 24.0, 37.5, 29.5, 1.2), TOOTH, size, inset, None)
+    blob(draw, chamfer(60.0, 24.0, 65.5, 29.5, 1.2), TOOTH, size, inset, None)
+
+    blob(draw, chamfer(31.0, 40.0, 69.0, 67.0, 11.0), TOOTH, size, inset)
+    blob(draw, chamfer(44.0, 46.5, 56.0, 56.5, 3.0), EYE, size, inset)
+    blob(draw, chamfer(45.5, 47.8, 50.5, 52.0, 1.0), TOOTH, size, inset, None)
+
+    blob(draw, chamfer(36.5, 58.0, 47.5, 85.5, 3.2), TOOTH, size, inset)
+    blob(draw, chamfer(52.5, 58.0, 63.5, 85.5, 3.2), TOOTH, size, inset)
+    blob(draw, chamfer(36.5, 56.5, 63.5, 64.5, 2.4), GUM, size, inset, None)
+
+
+def paint(size: int, maskable: bool = False) -> Image.Image:
     im = Image.new("RGBA", (size, size), SKY)
     draw = ImageDraw.Draw(im)
-    pad = 90 if maskable else 0
-    paint_sling(draw, size, pad)
-    paint_bober(draw, size, pad)
+    inset = 0.14 if maskable else 0.0
+    paint_club(draw, size, inset)
+    paint_bober(draw, size, inset)
     return im
 
 
-def render_crisp(size: int, maskable: bool = False) -> Image.Image:
-    """Paint oversized, then box-filter down so clip-art edges stay chunky."""
-    master = 1024 if size >= 64 else 512
-    hi = render(master, maskable=maskable)
+def down(size: int, maskable: bool = False) -> Image.Image:
+    master = 1024 if size >= 48 else 640
+    hi = paint(master, maskable=maskable)
     if size == master:
         return hi
-    return hi.resize((size, size), Image.Resampling.LANCZOS)
+    how = Image.Resampling.BOX if size <= 64 else Image.Resampling.LANCZOS
+    return hi.resize((size, size), how)
 
 
 def write_png(path: Path, size: int, maskable: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    render_crisp(size, maskable=maskable).save(path, "PNG")
+    down(size, maskable=maskable).save(path, "PNG")
 
 
 def write_ico(path: Path) -> None:
-    sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
-    img = render_crisp(256)
+    """ICO with one PNG payload per face. Pillow's ICO saver drops extras."""
+    payloads: list[tuple[int, bytes]] = []
+    for face in FACES:
+        buf = BytesIO()
+        down(face).save(buf, format="PNG")
+        payloads.append((face, buf.getvalue()))
+    count = len(payloads)
+    header = struct.pack("<HHH", 0, 1, count)
+    offset = 6 + 16 * count
+    entries = bytearray()
+    body = bytearray()
+    for face, data in payloads:
+        dim = 0 if face >= 256 else face
+        entries.extend(struct.pack("<BBBBHHII", dim, dim, 0, 0, 1, 32, len(data), offset))
+        body.extend(data)
+        offset += len(data)
     path.parent.mkdir(parents=True, exist_ok=True)
-    img.save(path, format="ICO", sizes=sizes)
+    path.write_bytes(header + bytes(entries) + bytes(body))
 
 
 def main() -> None:
@@ -214,11 +238,11 @@ def main() -> None:
     write_png(OUT / "icon-192.png", 192)
     write_png(OUT / "icon-512.png", 512)
     write_png(OUT / "icon-maskable-512.png", 512, maskable=True)
-    write_ico(OUT / "bober-yeet.ico")
+    write_ico(OUT / "bober-yeet-war.ico")
     print(f"wrote {OUT / 'icon-192.png'}")
     print(f"wrote {OUT / 'icon-512.png'}")
     print(f"wrote {OUT / 'icon-maskable-512.png'}")
-    print(f"wrote {OUT / 'bober-yeet.ico'}")
+    print(f"wrote {OUT / 'bober-yeet-war.ico'}")
 
 
 if __name__ == "__main__":

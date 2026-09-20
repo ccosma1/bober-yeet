@@ -1,14 +1,16 @@
-# Bober Yeet
+# Bober Yeet War
 
 Fan game by a holder.
 
 **Play online:** https://ccosma1.github.io/bober-yeet/
 
-Cartoon beaver in a yellow slingshot. Yeet Bober at wood and stone. 100 levels, 3 shots. Grab stars to CHARGE a stronger yeet. Smash loot and the HUD score are $BOBER coins. Enter your name, smash the dam, climb the shared leaderboard.
+Take turns. Aim true. Yeet the other crew off the bank.
 
-Museum and History live on the splash. They do not block Play. First run shows a drag-back aim tip once.
+Turn-based stick fights — charge, angle, laugh. Short matches. Lodge vs Creek AI. One bank, chunky destructible snow, Yeet Stick and Snowball.
 
-No wallet. No token farm. No login. No ads.
+This room was Bober Yeet (slingshot, 100 myth levels). Museum and History keep that story. Play is War now.
+
+No wallet. No gacha. No login. No ads.
 
 [More games · Green Home Games](https://ccosma1.github.io/green-home-games/). Other games are not required to play.
 
