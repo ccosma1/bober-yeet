@@ -5,66 +5,63 @@
       cat: "Bober",
       title: "The beaver",
       img: "assets/sprites/splash-hero.png",
-      blurb: "Square wood head, paddle tail, snow in the fur. He used to fly from a sling. Now he brings a stick to the bank.",
+      blurb: "Square wood head, paddle tail, snow in the fur. Calm on the bank. He used to fly from a sling. Now he aims a stick.",
     },
     {
       cat: "Was Yeet",
       title: "Slingshot days",
-      img: "assets/sprites/slingshot.png",
-      blurb: "This room was Bober Yeet: 100 myth levels, three shots, $BOBER on a board. The sling still hangs here. Play is War now.",
+      img: "assets/history/was-yeet.jpg",
+      blurb: "This room was Bober Yeet: 100 myth levels, three shots, $BOBER on a board. That climb is history. Play is War now.",
     },
     {
-      cat: "Was Yeet",
-      title: "Charged yeet",
-      img: "assets/sprites/star.png",
-      blurb: "Grab a star, then fire. CHARGE was power for the next shot — not a loot box. That climb is history.",
+      cat: "War",
+      title: "The bank",
+      img: "assets/history/bank-fight.jpg",
+      blurb: "Turns. Three Lodge, three Creek. Aim, power, wind. Dig cover. Last beaver standing.",
+    },
+    {
+      cat: "War",
+      title: "Aim and wind",
+      img: "assets/history/aim-wind.jpg",
+      blurb: "Drag back for angle. Charge power. Read the yellow flag. Fire. The creek below is out.",
     },
     {
       cat: "War",
       title: "Yeet Stick",
       img: "assets/sprites/yeet-stick.png",
-      blurb: "Twenty-five sting, blast 28, infinite. The honest lodge tool. Charge, angle, laugh.",
+      blurb: "Twenty-five sting, blast 28, infinite. The honest lodge tool.",
     },
     {
       cat: "War",
       title: "Snowball",
       img: "assets/sprites/snowball.png",
-      blurb: "Fifteen sting, blast 36, infinite. Softer hit, fatter crater. Dig the bank.",
+      blurb: "Fifteen sting, blast 36, infinite. Softer hit, fatter crater.",
     },
     {
       cat: "War",
-      title: "The Bank",
-      img: "assets/sprites/bank-sky.jpg",
-      blurb: "One map. Chunky snow on dirt. Wind on the flag. Creek and void below — you are out.",
+      title: "Dynamite",
+      img: "assets/sprites/dynamite.png",
+      blurb: "Forty-five sting, blast 48, fuse about two seconds. Buy a charge with $BOBER, or find a crate. Not a win button.",
     },
     {
-      cat: "Milestone",
-      title: "Green Home",
-      img: "assets/sprites/bober-idle.png",
-      blurb: "Yeet became War. Then Dam, Lodge, Nightfall, Crown. One holder universe. This room is the bank.",
+      cat: "War",
+      title: "Sap Bomb",
+      img: "assets/sprites/sap-bomb.png",
+      blurb: "Thirty sting, blast 40, sticky two ticks. Lodge sap. Charges only.",
+    },
+    {
+      cat: "War",
+      title: "Crates",
+      img: "assets/history/crate-gear.jpg",
+      blurb: "Every three turns a crate lands on solid ground. Walk on: Dynamite, Sap, or $BOBER. Between matches, spend coins on extra charges.",
     },
   ];
 
-  const ARC = [
-    { name: "Yeet", cap: "Was slingshot. 100 levels." },
-    { name: "War", cap: "Turns. Stick. Bank." },
-    { name: "Dam", cap: "Hold the river." },
-    { name: "Lodge", cap: "Warm rooms, cold jokes." },
-    { name: "Nightfall", cap: "Lights out on the ice." },
-    { name: "Crown", cap: "Whoever lasts." },
-  ];
-
-  const CLIMB = [
-    { name: "Uranus", lv: "1–10", h: 22 },
-    { name: "Mars", lv: "11–20", h: 30 },
-    { name: "Night", lv: "21–30", h: 38 },
-    { name: "Cyber", lv: "31–40", h: 46 },
-    { name: "Boca", lv: "41–50", h: 54 },
-    { name: "Doge", lv: "51–60", h: 62 },
-    { name: "Tunnel", lv: "61–70", h: 70 },
-    { name: "Sink", lv: "71–80", h: 78 },
-    { name: "Colony", lv: "81–90", h: 88 },
-    { name: "Finale", lv: "91–100", h: 100 },
+  const STILLS = [
+    CARDS[1],
+    CARDS[2],
+    CARDS[3],
+    CARDS[8],
   ];
 
   function $(id) {
@@ -82,46 +79,35 @@
     hide($("museum"));
     hide($("history"));
     hide($("museum-detail"));
+    hide($("history-detail"));
     const grid = $("museum-grid");
     if (grid) grid.classList.remove("hidden");
+    const body = $("history-body");
+    if (body) body.classList.remove("hidden");
   }
 
-  function openMuseum() {
-    hide($("history"));
-    hide($("museum-detail"));
-    const grid = $("museum-grid");
-    if (grid) {
-      grid.classList.remove("hidden");
-      if (!grid.dataset.ready) {
-        grid.innerHTML = CARDS.map((c, i) => {
-          return (
-            '<button type="button" class="museum-card" data-i="' +
-            i +
-            '"><span class="museum-cat">' +
-            c.cat +
-            '</span><img src="' +
-            c.img +
-            '" alt="" /><span class="museum-card-title">' +
-            c.title +
-            "</span></button>"
-          );
-        }).join("");
-        grid.dataset.ready = "1";
-      }
-    }
-    show($("museum"));
+  function cardHtml(c, i, prefix) {
+    return (
+      '<button type="button" class="museum-card" data-i="' +
+      i +
+      '" data-set="' +
+      prefix +
+      '"><span class="museum-cat">' +
+      c.cat +
+      '</span><img src="' +
+      c.img +
+      '" alt="" /><span class="museum-card-title">' +
+      c.title +
+      "</span></button>"
+    );
   }
 
-  function openCard(i) {
-    const c = CARDS[i];
-    if (!c) return;
-    const detail = $("museum-detail");
-    const grid = $("museum-grid");
-    if (!detail) return;
+  function fillDetail(detail, grid, c) {
+    if (!detail || !c) return;
     hide(grid);
     detail.innerHTML =
-      '<button type="button" class="play play-ghost museum-back" id="museum-back">BACK</button>' +
-      '<img class="museum-detail-img" src="' +
+      '<button type="button" class="play play-ghost museum-back" data-back="1">BACK</button>' +
+      '<img class="museum-detail-img still" src="' +
       c.img +
       '" alt="" />' +
       "<h3>" +
@@ -131,7 +117,7 @@
       c.blurb +
       "</p>";
     show(detail);
-    const back = $("museum-back");
+    const back = detail.querySelector("[data-back]");
     if (back) {
       back.addEventListener("click", () => {
         hide(detail);
@@ -140,42 +126,34 @@
     }
   }
 
+  function openMuseum() {
+    hide($("history"));
+    hide($("museum-detail"));
+    const grid = $("museum-grid");
+    if (grid) {
+      grid.classList.remove("hidden");
+      if (!grid.dataset.ready) {
+        grid.innerHTML = CARDS.map((c, i) => cardHtml(c, i, "m")).join("");
+        grid.dataset.ready = "1";
+      }
+    }
+    show($("museum"));
+  }
+
   function openHistory() {
     hide($("museum"));
+    hide($("history-detail"));
     const body = $("history-body");
-    if (body && !body.dataset.ready) {
-      const arc =
-        '<div class="hist-arc">' +
-        ARC.map((n, i) => {
-          return (
-            (i ? '<span class="hist-join" aria-hidden="true"></span>' : "") +
-            '<div class="hist-node"><strong>' +
-            n.name +
-            "</strong><span>" +
-            n.cap +
-            "</span></div>"
-          );
-        }).join("") +
-        "</div>" +
-        '<p class="hist-cap">The Green Home myth line. This room was Yeet. Play is War.</p>';
-      const maxH = 100;
-      const bars =
-        '<div class="hist-climb" aria-hidden="false">' +
-        CLIMB.map((d) => {
-          return (
-            '<div class="hist-bar"><i style="height:' +
-            Math.max(12, (d.h / maxH) * 88) +
-            'px"></i><b>' +
-            d.name +
-            "</b><span>" +
-            d.lv +
-            "</span></div>"
-          );
-        }).join("") +
-        "</div>" +
-        '<p class="hist-cap">Was Yeet: the old 100-level slingshot climb. War does not use it.</p>';
-      body.innerHTML = arc + bars;
-      body.dataset.ready = "1";
+    if (body) {
+      body.classList.remove("hidden");
+      if (!body.dataset.ready) {
+        body.innerHTML =
+          '<p class="hist-cap">The Green Home myth line. This room was Yeet. Play is War. Tap a still.</p>' +
+          '<div class="museum-grid hist-stills">' +
+          STILLS.map((c, i) => cardHtml(c, i, "h")).join("") +
+          "</div>";
+        body.dataset.ready = "1";
+      }
     }
     show($("history"));
   }
@@ -186,19 +164,23 @@
     const mc = $("museum-close");
     const hc = $("history-close");
     const grid = $("museum-grid");
+    const body = $("history-body");
     const endM = $("end-museum");
     if (m) m.addEventListener("click", openMuseum);
     if (h) h.addEventListener("click", openHistory);
     if (mc) mc.addEventListener("click", closeAll);
     if (hc) hc.addEventListener("click", closeAll);
     if (endM) endM.addEventListener("click", openMuseum);
-    if (grid) {
-      grid.addEventListener("click", (ev) => {
-        const card = ev.target.closest && ev.target.closest(".museum-card");
-        if (!card) return;
-        openCard(Number(card.getAttribute("data-i")));
-      });
+    function onCard(ev) {
+      const card = ev.target.closest && ev.target.closest(".museum-card");
+      if (!card) return;
+      const i = Number(card.getAttribute("data-i"));
+      const set = card.getAttribute("data-set");
+      if (set === "h") fillDetail($("history-detail"), $("history-body"), STILLS[i]);
+      else fillDetail($("museum-detail"), $("museum-grid"), CARDS[i]);
     }
+    if (grid) grid.addEventListener("click", onCard);
+    if (body) body.addEventListener("click", onCard);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);

@@ -9,13 +9,23 @@
   const HP_MAX = 100;
   const MAX_PULL = 140;
   const TUT_KEY = "bober-yeet-war-tut";
+  const COIN_KEY = "bober-yeet-war-coins";
+  const AMMO_KEY = "bober-yeet-war-ammo";
   const FAST = /(?:\?|&)selftest=1(?:&|$)/.test(location.search);
   const CPU_THINK = FAST ? 180 : 900;
   const CPU_SHOW = FAST ? 220 : 800;
+  const DYN_COST = 12;
+  const SAP_COST = 10;
+  const CRATE_EVERY = 3;
+  const FUSE_SEC = 2;
+  const SAP_DOT = 8;
+  const SAP_TICKS = 2;
 
   const WEAPONS = {
-    stick: { id: "stick", name: "Yeet Stick", dmg: 25, blast: 28, r: 7 },
-    snow: { id: "snow", name: "Snowball", dmg: 15, blast: 36, r: 9 },
+    stick: { id: "stick", name: "Yeet Stick", dmg: 25, blast: 28, r: 7, inf: true },
+    snow: { id: "snow", name: "Snowball", dmg: 15, blast: 36, r: 9, inf: true },
+    dynamite: { id: "dynamite", name: "Dynamite", dmg: 45, blast: 48, r: 10, fuse: FUSE_SEC, cost: DYN_COST },
+    sap: { id: "sap", name: "Sap Bomb", dmg: 30, blast: 40, r: 9, dot: SAP_DOT, ticks: SAP_TICKS, cost: SAP_COST },
   };
 
   const LODGE_NAMES = ["Pip", "Nibs", "Paddle"];
@@ -32,6 +42,7 @@
   const windFlag = document.getElementById("wind-flag");
   const windVal = document.getElementById("wind-val");
   const phaseChip = document.getElementById("phase-chip");
+  const coinChip = document.getElementById("coin-chip");
   const muteBtn = document.getElementById("btn-mute");
   const leaveBtn = document.getElementById("btn-leave");
   const playBtn = document.getElementById("btn-play");
@@ -43,6 +54,9 @@
   const endRestart = document.getElementById("end-restart");
   const aimTutEl = document.getElementById("aim-tut");
   const aimTutOk = document.getElementById("aim-tut-ok");
+  const tipStrip = document.getElementById("tip-strip");
+  const howtoEl = document.getElementById("howto");
+  const shopEl = document.getElementById("shop");
 
   const img = {};
   const bits = [];
@@ -60,6 +74,7 @@
 
   let phase = "splash";
   let turn = "lodge";
+  let turnN = 0;
   let wind = 0;
   let weapon = "stick";
   let angle = -0.95;
@@ -74,6 +89,7 @@
   let cpuReady = false;
   let dragging = false;
   let dragPos = null;
+  let dragStart = null;
   let toastT = 0;
   let waveT = 0;
   let acc = 0;
@@ -86,6 +102,13 @@
   let view = { s: 1, camX: 0, camY: 0, cssW: 1, cssH: 1 };
   let winner = null;
   let aimTutOn = false;
+  let coins = 0;
+  let matchCoins = 0;
+  let ammo = { lodge: { dynamite: 0, sap: 0 }, creek: { dynamite: 0, sap: 0 } };
+  let crates = [];
+  let fuses = [];
+  let shopFrom = "splash";
+  let howtoFrom = "splash";
 
   function $(id) {
     return document.getElementById(id);
@@ -104,6 +127,29 @@
     });
   }
 
+  function loadCoins() {
+    const n = parseInt(localStorage.getItem(COIN_KEY) || "0", 10);
+    coins = Number.isFinite(n) && n > 0 ? n : 0;
+    try {
+      const raw = JSON.parse(localStorage.getItem(AMMO_KEY) || "{}");
+      ammo.lodge.dynamite = Math.max(0, raw.dynamite | 0);
+      ammo.lodge.sap = Math.max(0, raw.sap | 0);
+    } catch (_) {}
+  }
+
+  function saveCoins() {
+    localStorage.setItem(COIN_KEY, String(coins));
+    localStorage.setItem(AMMO_KEY, JSON.stringify({ dynamite: ammo.lodge.dynamite, sap: ammo.lodge.sap }));
+  }
+
+  function addCoins(n) {
+    if (!n) return;
+    coins += n;
+    matchCoins += n;
+    saveCoins();
+    hud();
+  }
+
   function toast(text, fail) {
     toastEl.textContent = text;
     toastEl.classList.toggle("fail", !!fail);
@@ -116,7 +162,7 @@
   }
 
   function burst(x, y, kind) {
-    const n = kind === "snow" ? 14 : 10;
+    const n = kind === "snow" ? 14 : kind === "sap" ? 12 : 10;
     for (let i = 0; i < n; i++) {
       bits.push({
         x,
@@ -270,6 +316,11 @@
           alive: true,
           facing: side.facing,
           standing: true,
+          airborne: false,
+          walkT: 0,
+          walkDir: 0,
+          sapTicks: 0,
+          sapT: 0,
         });
       });
     });
@@ -279,11 +330,20 @@
     return (Math.random() * 9 | 0) - 4;
   }
 
+  function teamAmmo(team, id) {
+    if (WEAPONS[id] && WEAPONS[id].inf) return 99;
+    return (ammo[team] && ammo[team][id]) || 0;
+  }
+
   function setWeapon(id) {
-    if (!WEAPONS[id]) return;
+    if (!WEAPONS[id]) return false;
+    if (!WEAPONS[id].inf && teamAmmo(turn, id) <= 0) return false;
     weapon = id;
-    $("w-stick").classList.toggle("on", id === "stick");
-    $("w-snow").classList.toggle("on", id === "snow");
+    ["stick", "snow", "dynamite", "sap"].forEach((w) => {
+      const el = $("w-" + w);
+      if (el) el.classList.toggle("on", w === id);
+    });
+    return true;
   }
 
   function setAim(rad, pwr) {
@@ -303,12 +363,41 @@
     const wtxt = wind === 0 ? "WIND 0" : wind > 0 ? "WIND +" + wind : "WIND " + wind;
     windVal.textContent = wtxt;
     windFlag.className = wind === 0 ? "calm" : wind < 0 ? "left" : "right";
-    const labels = { aim: "AIM", fly: "YEET", settle: "SETTLE", cpu: "CPU", end: "END" };
+    const labels = { aim: "AIM", fly: "YEET", settle: "SETTLE", cpu: "CPU", end: "END", fuse: "FUSE" };
     phaseChip.textContent = labels[phase] || phase.toUpperCase();
+    if (coinChip) coinChip.textContent = "$BOBER " + coins;
+    const dynN = teamAmmo("lodge", "dynamite");
+    const sapN = teamAmmo("lodge", "sap");
+    const dynEl = $("ammo-dynamite");
+    const sapEl = $("ammo-sap");
+    if (dynEl) dynEl.textContent = String(dynN);
+    if (sapEl) sapEl.textContent = String(sapN);
+    const wDyn = $("w-dynamite");
+    const wSap = $("w-sap");
+    if (wDyn) wDyn.classList.toggle("out", dynN <= 0);
+    if (wSap) wSap.classList.toggle("out", sapN <= 0);
     const canFire = phase === "aim" && turn === "lodge" && !aimTutOn;
     fireBtn.disabled = !canFire;
-    fireBtn.textContent = phase === "cpu" ? "CPU…" : phase === "fly" ? "YEET" : "FIRE";
+    fireBtn.textContent = phase === "cpu" ? "CPU…" : phase === "fly" || phase === "fuse" ? "YEET" : "FIRE";
+    if (tipStrip) {
+      const showTip = (phase === "aim" || phase === "cpu") && turnN <= 2;
+      tipStrip.classList.toggle("hidden", !showTip);
+    }
     hudAim();
+    hudShop();
+  }
+
+  function hudShop() {
+    const sc = $("shop-coins");
+    if (sc) sc.textContent = "$BOBER " + coins;
+    const dn = $("shop-dyn-n");
+    const sn = $("shop-sap-n");
+    if (dn) dn.textContent = String(ammo.lodge.dynamite);
+    if (sn) sn.textContent = String(ammo.lodge.sap);
+    const bd = $("buy-dynamite");
+    const bs = $("buy-sap");
+    if (bd) bd.disabled = coins < DYN_COST;
+    if (bs) bs.disabled = coins < SAP_COST;
   }
 
   function updateMuteBtn() {
@@ -317,11 +406,58 @@
     muteBtn.title = BoberSfx.muted ? "Unmute" : "Mute";
   }
 
+  function spawnCrate(kind, x) {
+    const kinds = ["dynamite", "sap", "coin"];
+    const k = kind && kinds.indexOf(kind) >= 0 ? kind : kinds[(Math.random() * 3) | 0];
+    let cx = x;
+    if (cx == null) {
+      const left = Math.random() < 0.5;
+      cx = left ? 90 + Math.random() * 280 : 900 + Math.random() * 280;
+    }
+    for (let tries = 0; tries < 14; tries++) {
+      const gy = surfaceY(cx);
+      const blocked =
+        gy >= WATER_Y - 8 ||
+        bobers.some((b) => b.alive && Math.hypot(b.x - cx, b.y - (gy - BOBER_R)) < 44);
+      if (!blocked) {
+        const crate = { x: cx, y: gy - 18, kind: k, life: 1 };
+        crates.push(crate);
+        pop(crate.x, crate.y - 24, "CRATE", "#ffe566");
+        return crate;
+      }
+      cx = Math.random() < 0.5 ? 80 + Math.random() * 300 : 880 + Math.random() * 300;
+    }
+    return null;
+  }
+
+  function pickupCrates(b) {
+    if (!b.alive) return;
+    for (let i = crates.length - 1; i >= 0; i--) {
+      const c = crates[i];
+      if (Math.hypot(c.x - b.x, c.y - b.y) > 36) continue;
+      crates.splice(i, 1);
+      BoberSfx.pop();
+      if (c.kind === "coin") {
+        if (b.team === "lodge") {
+          addCoins(10);
+          pop(c.x, c.y, "+10 $BOBER", "#ffe566");
+        } else pop(c.x, c.y, "NICKED", "#a8c4e8");
+      } else {
+        ammo[b.team][c.kind] = (ammo[b.team][c.kind] || 0) + 1;
+        saveCoins();
+        pop(c.x, c.y, c.kind === "sap" ? "SAP +1" : "DYN +1", "#ffe566");
+      }
+      hud();
+    }
+  }
+
   function beginTurn(team) {
     turn = team;
+    turnN += 1;
     wind = randWind();
     shot = null;
     dragging = false;
+    if (turnN > 0 && turnN % CRATE_EVERY === 0) spawnCrate();
     if (team === "lodge") {
       phase = "aim";
       pickActive("lodge");
@@ -329,7 +465,10 @@
       if (a) {
         angle = -0.95;
         a.facing = 1;
+        pickupCrates(a);
       }
+      if (!WEAPONS[weapon] || (!WEAPONS[weapon].inf && teamAmmo("lodge", weapon) <= 0)) weapon = "stick";
+      setWeapon(weapon);
       power = 50;
       BoberSfx.turn();
       toast("LODGE TURN");
@@ -353,6 +492,15 @@
     const b = getActive();
     if (!b || !b.alive) return false;
     const wpn = WEAPONS[weapon];
+    if (!wpn) return false;
+    if (!wpn.inf) {
+      if (teamAmmo(b.team, wpn.id) <= 0) {
+        toast("NO CHARGE", true);
+        return false;
+      }
+      ammo[b.team][wpn.id] -= 1;
+      saveCoins();
+    }
     const spd = speedFromPower();
     const nose = BOBER_R + 10;
     shot = {
@@ -363,6 +511,7 @@
       r: wpn.r,
       weapon: wpn.id,
       owner: b.id,
+      team: b.team,
       age: 0,
     };
     phase = "fly";
@@ -378,6 +527,7 @@
     b.hp = 0;
     b.vx = 0;
     b.vy = 0;
+    b.airborne = false;
     BoberSfx.splash();
     pop(b.x, b.y, why || "SPLASH", "#8ad4ff");
   }
@@ -386,16 +536,18 @@
     if (!b.alive) return;
     b.alive = false;
     b.hp = 0;
+    b.vx = 0;
+    b.airborne = false;
     BoberSfx.splat();
     pop(b.x, b.y - 20, "YEETED", "#ff8ad0");
   }
 
-  function explode(x, y) {
-    const wpn = WEAPONS[shot ? shot.weapon : weapon];
+  function explode(x, y, wpnId, fromTeam) {
+    const wpn = WEAPONS[wpnId] || WEAPONS.stick;
     const r = wpn.blast;
     const dmgMax = wpn.dmg;
     carve(x, y, r);
-    burst(x, y, wpn.id === "snow" ? "snow" : "dirt");
+    burst(x, y, wpn.id === "snow" ? "snow" : wpn.id === "sap" ? "sap" : "dirt");
     BoberSfx.boom();
     const hits = [];
     bobers.forEach((b) => {
@@ -413,12 +565,31 @@
       b.vx += Math.cos(ang) * k * 6.2;
       b.vy += Math.sin(ang) * k * 4.4 - 2.2;
       b.standing = false;
-      if (b.hp <= 0) kill(b);
+      b.airborne = true;
+      b.walkT = 0;
+      if (wpn.id === "sap") {
+        b.sapTicks = SAP_TICKS;
+        b.sapT = 0.9;
+      }
+      if (fromTeam === "lodge") addCoins(Math.max(1, Math.floor(dmg / 5)));
+      if (b.hp <= 0) {
+        if (fromTeam === "lodge") addCoins(8);
+        kill(b);
+      }
     });
     lastBlast = { x, y, r, dmg: dmgMax, weapon: wpn.id, hits };
     shot = null;
     phase = "settle";
     settleT = 0;
+    hud();
+  }
+
+  function plantFuse(x, y, wpnId, team) {
+    fuses.push({ x, y, t: FUSE_SEC, weapon: wpnId, team });
+    shot = null;
+    phase = "fuse";
+    BoberSfx.tick();
+    pop(x, y - 16, "FUSE", "#ff8a4a");
     hud();
   }
 
@@ -431,6 +602,12 @@
     phase = "settle";
     settleT = 0.35;
     hud();
+  }
+
+  function onShotHit(x, y) {
+    if (!shot) return;
+    if (shot.weapon === "dynamite") plantFuse(x, y, "dynamite", shot.team);
+    else explode(x, y, shot.weapon, shot.team);
   }
 
   function stepShot() {
@@ -454,7 +631,7 @@
         return;
       }
       if (solid(shot.x, shot.y)) {
-        explode(shot.x, shot.y);
+        onShotHit(shot.x, shot.y);
         return;
       }
       for (let k = 0; k < bobers.length; k++) {
@@ -462,14 +639,49 @@
         if (!b.alive) continue;
         if (shot.age < 6 && b.id === shot.owner) continue;
         if (Math.hypot(b.x - shot.x, b.y - shot.y) < BOBER_R + shot.r) {
-          explode(shot.x, shot.y);
+          onShotHit(shot.x, shot.y);
           return;
         }
       }
     }
   }
 
+  function stepFuses(dt) {
+    for (let i = fuses.length - 1; i >= 0; i--) {
+      const f = fuses[i];
+      f.t -= dt;
+      if (f.t <= 0) {
+        fuses.splice(i, 1);
+        explode(f.x, f.y, f.weapon, f.team);
+      }
+    }
+  }
+
+  function snapStand(b) {
+    const gy = surfaceY(b.x);
+    if (gy >= WATER_Y) {
+      drown(b, "SPLASH");
+      return false;
+    }
+    b.y = gy - BOBER_R;
+    b.vx = 0;
+    b.vy = 0;
+    b.standing = true;
+    b.airborne = false;
+    return true;
+  }
+
   function stepBober(b) {
+    if (b.alive && b.sapTicks > 0) {
+      b.sapT -= 1 / 60;
+      if (b.sapT <= 0) {
+        b.sapTicks -= 1;
+        b.sapT = 0.9;
+        b.hp -= SAP_DOT;
+        pop(b.x, b.y - 28, "-" + SAP_DOT, "#e8a020");
+        if (b.hp <= 0) kill(b);
+      }
+    }
     if (!b.alive) {
       b.vy += GRAV * 0.85;
       b.y += b.vy;
@@ -482,8 +694,33 @@
       if (b.y - 4 > WATER_Y) b.y = WATER_Y + 40;
       return;
     }
+    if (b.walkT > 0) {
+      b.walkT -= 1 / 60;
+      b.x = clamp(b.x + b.walkDir * 1.55, 18, WORLD_W - 18);
+      if (!snapStand(b)) return;
+      pickupCrates(b);
+      return;
+    }
+    if (!b.airborne) {
+      const gy = surfaceY(b.x);
+      if (gy >= WATER_Y) {
+        drown(b, "SPLASH");
+        return;
+      }
+      if (gy - BOBER_R > b.y + 10) {
+        b.airborne = true;
+        b.standing = false;
+        b.vy = 0.15;
+      } else {
+        b.y = gy - BOBER_R;
+        b.vx = 0;
+        b.vy = 0;
+        b.standing = true;
+        pickupCrates(b);
+        return;
+      }
+    }
     b.vy += GRAV;
-    b.vx *= 0.992;
     b.x += b.vx;
     b.y += b.vy;
     b.x = clamp(b.x, 18, WORLD_W - 18);
@@ -493,31 +730,45 @@
     }
     const feet = b.y + BOBER_R;
     if (b.vy >= 0 && (solid(b.x, feet) || solid(b.x - 10, feet) || solid(b.x + 10, feet))) {
-      let gy = feet;
-      for (let i = 0; i < 28; i++) {
-        if (!solid(b.x, gy) && !solid(b.x - 8, gy) && !solid(b.x + 8, gy)) break;
-        gy -= 1;
+      if (Math.abs(b.vx) < 0.85 && b.vy < 4.5) {
+        snapStand(b);
+        pickupCrates(b);
+      } else {
+        let gy = feet;
+        for (let i = 0; i < 28; i++) {
+          if (!solid(b.x, gy) && !solid(b.x - 8, gy) && !solid(b.x + 8, gy)) break;
+          gy -= 1;
+        }
+        b.y = gy - BOBER_R;
+        b.vy *= -0.12;
+        b.vx *= 0.35;
+        if (Math.abs(b.vx) < 0.5 && Math.abs(b.vy) < 0.5) snapStand(b);
       }
-      b.y = gy - BOBER_R;
-      b.vy = 0;
-      b.vx *= 0.4;
-      if (Math.abs(b.vx) < 0.35) b.vx = 0;
-      b.standing = true;
     } else {
       b.standing = false;
     }
   }
 
+  function walkActive(dir) {
+    const b = getActive();
+    if (!b || !b.alive || phase !== "aim" || turn !== "lodge") return;
+    if (b.airborne) return;
+    b.walkDir = dir < 0 ? -1 : 1;
+    b.walkT = 0.28;
+    b.facing = b.walkDir;
+    b.airborne = false;
+  }
+
   function allSettled() {
-    return living().every((b) => b.standing && Math.abs(b.vx) < 0.4 && Math.abs(b.vy) < 0.4);
+    return living().every((b) => b.standing && !b.airborne && Math.abs(b.vx) < 0.2 && Math.abs(b.vy) < 0.2) && fuses.length === 0;
   }
 
   function checkWin() {
-    const lodge = living("lodge").length;
-    const creek = living("creek").length;
-    if (lodge > 0 && creek > 0) return null;
-    if (lodge === 0 && creek === 0) return "draw";
-    if (creek === 0) return "lodge";
+    const lodgeN = living("lodge").length;
+    const creekN = living("creek").length;
+    if (lodgeN > 0 && creekN > 0) return null;
+    if (lodgeN === 0 && creekN === 0) return "draw";
+    if (creekN === 0) return "lodge";
     return "creek";
   }
 
@@ -525,21 +776,27 @@
     winner = who;
     phase = "end";
     shot = null;
+    fuses.length = 0;
     hudTop.classList.remove("live");
     dock.classList.add("hidden");
+    if (tipStrip) tipStrip.classList.add("hidden");
     if (who === "lodge") {
+      addCoins(20);
       endTitle.textContent = "BANK CLEARED";
       endMsg.textContent = "Lodge still standing. The creek crew got yeeted.";
       BoberSfx.win();
     } else if (who === "creek") {
+      addCoins(4);
       endTitle.textContent = "CREW DOWN";
-      endMsg.textContent = "Creek took the bank. Shake it off. Play again.";
+      endMsg.textContent = "Creek took the bank. Shake it off. Spend $BOBER, play again.";
       BoberSfx.fail();
     } else {
       endTitle.textContent = "EVERYBODY YEETED";
       endMsg.textContent = "The bank is empty. Draw.";
       BoberSfx.fail();
     }
+    const ec = $("end-coins");
+    if (ec) ec.textContent = "This match +" + matchCoins + " · bag $BOBER " + coins;
     endcard.classList.remove("hidden");
     hud();
   }
@@ -567,16 +824,31 @@
     return { angle: ang, power: clamp(pwr, 22, 86) };
   }
 
+  function cpuPickWeapon() {
+    if (teamAmmo("creek", "dynamite") > 0 && Math.random() < 0.28) return "dynamite";
+    if (teamAmmo("creek", "sap") > 0 && Math.random() < 0.28) return "sap";
+    return Math.random() < 0.45 ? "snow" : "stick";
+  }
+
   function stepCpu(dt) {
     cpuT += dt * 1000;
     const me = getActive();
-    if (!me || !me.alive) {
-      pickActive("creek");
-    }
+    if (!me || !me.alive) pickActive("creek");
+    const shooter = getActive();
+    if (shooter) pickupCrates(shooter);
     if (!cpuReady && cpuT >= CPU_THINK) {
-      const shooter = getActive();
+      if (!shooter) {
+        finishSettle();
+        return;
+      }
+      const near = crates.find((c) => Math.abs(c.x - shooter.x) < 90 && Math.abs(c.y - shooter.y) < 50);
+      if (near && !shooter.airborne) {
+        shooter.walkDir = near.x < shooter.x ? -1 : 1;
+        shooter.walkT = 0.3;
+        shooter.facing = shooter.walkDir;
+      }
       const foes = living("lodge");
-      if (!shooter || !foes.length) {
+      if (!foes.length) {
         finishSettle();
         return;
       }
@@ -585,13 +857,11 @@
       angle = g.angle;
       power = g.power;
       shooter.facing = Math.cos(angle) >= 0 ? 1 : -1;
-      setWeapon(Math.random() < 0.45 ? "snow" : "stick");
+      setWeapon(cpuPickWeapon());
       cpuReady = true;
       hud();
     }
-    if (cpuReady && cpuT >= CPU_THINK + CPU_SHOW) {
-      tryFire();
-    }
+    if (cpuReady && cpuT >= CPU_THINK + CPU_SHOW) tryFire();
   }
 
   function step(dt) {
@@ -602,9 +872,12 @@
     waveT += dt;
     if (phase === "cpu") stepCpu(dt);
     if (phase === "fly") stepShot();
+    if (fuses.length) stepFuses(dt);
     bobers.forEach(stepBober);
-    if (phase === "settle") {
+    if (phase === "settle" || phase === "fuse") {
       settleT += dt;
+      if (phase === "fuse" && fuses.length) return;
+      if (phase === "fuse" && !fuses.length) phase = "settle";
       if ((allSettled() && settleT > 0.45) || settleT > 4.2) finishSettle();
     }
     for (let i = bits.length - 1; i >= 0; i--) {
@@ -662,7 +935,6 @@
   function simDots() {
     const b = getActive();
     if (!b) return [];
-    const wpn = WEAPONS[weapon];
     const spd = speedFromPower();
     let x = b.x + Math.cos(angle) * (BOBER_R + 10);
     let y = b.y + Math.sin(angle) * (BOBER_R + 10);
@@ -702,6 +974,9 @@
     if (shot) {
       focusX = shot.x;
       focusY = shot.y;
+    } else if (fuses.length) {
+      focusX = fuses[0].x;
+      focusY = fuses[0].y;
     } else if (lastBlast && phase === "settle" && settleT < 0.7) {
       focusX = lastBlast.x;
       focusY = lastBlast.y;
@@ -734,13 +1009,17 @@
   }
 
   function drawBober(b) {
-    const sprite = !b.alive ? img.splat : b.standing ? img.idle : img.fly;
+    const flying = b.alive && b.airborne && Math.hypot(b.vx, b.vy) > 1.6;
+    const sprite = !b.alive ? img.splat : flying ? img.fly : img.idle;
     const h = DRAW_H;
     const w = sprite ? (sprite.width / sprite.height) * h : h;
+    const fid = b.standing && b.alive ? Math.sin(waveT * 1.35 + b.id * 1.7) * 1.15 : 0;
+    const dx = Math.round(b.x);
+    const dy = Math.round(b.y + 4 + fid);
     ctx.save();
-    ctx.translate(b.x, b.y + 4);
+    ctx.translate(dx, dy);
     ctx.scale(b.facing, 1);
-    if (sprite) ctx.drawImage(sprite, -w / 2, -h / 2, w, h);
+    if (sprite) ctx.drawImage(sprite, Math.round(-w / 2), Math.round(-h / 2), w, h);
     else {
       ctx.fillStyle = "#8B5A2B";
       ctx.fillRect(-20, -24, 40, 40);
@@ -761,6 +1040,10 @@
       ctx.font = "bold 11px Trebuchet MS, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(b.name, b.x, b.y - h / 2 - 18);
+      if (b.sapTicks > 0) {
+        ctx.fillStyle = "#e8a020";
+        ctx.fillText("SAP", b.x, b.y + h / 2 + 10);
+      }
     }
     if (b.alive && b.id === activeId && (phase === "aim" || phase === "cpu")) {
       ctx.strokeStyle = b.team === "lodge" ? "#F5C400" : "#A8C4E8";
@@ -783,7 +1066,8 @@
     ctx.strokeStyle = "#1a1020";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect ? ctx.roundRect(x, y, rw, rh, 8) : ctx.rect(x, y, rw, rh);
+    if (ctx.roundRect) ctx.roundRect(x, y, rw, rh, 8);
+    else ctx.rect(x, y, rw, rh);
     ctx.fill();
     ctx.stroke();
     const sx = rw / WORLD_W;
@@ -794,17 +1078,25 @@
       ctx.arc(x + b.x * sx, y + b.y * sy, b.id === activeId ? 4 : 3, 0, Math.PI * 2);
       ctx.fill();
     });
-    const vx = x + view.camX * sx;
-    const vy = y + view.camY * sy;
-    ctx.strokeStyle = "#ffe566";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(vx, vy, (view.cssW / view.s) * sx, (view.cssH / view.s) * sy);
+    crates.forEach((c) => {
+      ctx.fillStyle = "#ffe566";
+      ctx.fillRect(x + c.x * sx - 2, y + c.y * sy - 2, 4, 4);
+    });
     ctx.restore();
+  }
+
+  function projSprite(id) {
+    if (id === "snow") return img.snow;
+    if (id === "dynamite") return img.dynamite;
+    if (id === "sap") return img.sap;
+    return img.stick;
   }
 
   function draw() {
     layoutCam();
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.clearRect(0, 0, view.cssW, view.cssH);
     ctx.save();
     ctx.translate(-view.camX * view.s, -view.camY * view.s);
@@ -829,6 +1121,24 @@
       else ctx.lineTo(x, yy);
     }
     ctx.stroke();
+
+    crates.forEach((c) => {
+      const spr = img.crate;
+      if (spr) ctx.drawImage(spr, c.x - 16, c.y - 16, 32, 32);
+      else {
+        ctx.fillStyle = "#b8743b";
+        ctx.fillRect(c.x - 12, c.y - 12, 24, 24);
+      }
+    });
+
+    fuses.forEach((f) => {
+      const spr = projSprite(f.weapon);
+      if (spr) ctx.drawImage(spr, f.x - 14, f.y - 18, 28, 28);
+      ctx.fillStyle = "#ff8a4a";
+      ctx.font = "bold 12px Trebuchet MS, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(f.t.toFixed(1), f.x, f.y - 22);
+    });
 
     bobers.forEach((b) => {
       if (!b.alive) drawBober(b);
@@ -868,7 +1178,7 @@
     }
 
     if (shot) {
-      const spr = shot.weapon === "snow" ? img.snow : img.stick;
+      const spr = projSprite(shot.weapon);
       const rot = Math.atan2(shot.vy, shot.vx);
       ctx.save();
       ctx.translate(shot.x, shot.y);
@@ -888,7 +1198,7 @@
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rot);
       ctx.globalAlpha = clamp(p.life * 2, 0, 1);
-      ctx.fillStyle = p.kind === "snow" ? "#F4E6C3" : "#8B5A2B";
+      ctx.fillStyle = p.kind === "snow" ? "#F4E6C3" : p.kind === "sap" ? "#e8a020" : "#8B5A2B";
       ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
       ctx.restore();
     });
@@ -940,16 +1250,67 @@
     hud();
   }
 
-  function startMatch() {
-    BoberSfx.ensure();
+  function openHowTo(from) {
+    howtoFrom = from || "splash";
+    howtoEl.classList.remove("hidden");
+  }
+
+  function closeHowTo() {
+    howtoEl.classList.add("hidden");
+    if (howtoFrom === "end") endcard.classList.remove("hidden");
+    else if (howtoFrom === "shop") shopEl.classList.remove("hidden");
+    else if (howtoFrom === "match") {
+      /* stay in match */
+    } else splash.classList.remove("hidden");
+  }
+
+  function openShop(from) {
+    shopFrom = from || "splash";
     splash.classList.add("hidden");
     endcard.classList.add("hidden");
+    hudShop();
+    shopEl.classList.remove("hidden");
+  }
+
+  function closeShop() {
+    shopEl.classList.add("hidden");
+    if (shopFrom === "end") endcard.classList.remove("hidden");
+    else splash.classList.remove("hidden");
+  }
+
+  function buy(id) {
+    const cost = id === "sap" ? SAP_COST : DYN_COST;
+    if (coins < cost) {
+      toast("NEED $BOBER", true);
+      return false;
+    }
+    coins -= cost;
+    ammo.lodge[id] = (ammo.lodge[id] || 0) + 1;
+    saveCoins();
+    BoberSfx.pop();
+    hud();
+    return true;
+  }
+
+  function startMatch() {
+    BoberSfx.ensure();
+    loadCoins();
+    splash.classList.add("hidden");
+    endcard.classList.add("hidden");
+    shopEl.classList.add("hidden");
+    howtoEl.classList.add("hidden");
     if (window.BoberLore) BoberLore.close();
     makeTerrain();
     spawnCrew();
+    crates = [];
+    fuses = [];
     craterCount = 0;
     lastBlast = null;
     winner = null;
+    matchCoins = 0;
+    turnN = 0;
+    ammo.creek.dynamite = 0;
+    ammo.creek.sap = 0;
     weapon = "stick";
     setWeapon("stick");
     hudTop.classList.add("live");
@@ -972,9 +1333,13 @@
     phase = "splash";
     running = false;
     shot = null;
+    fuses.length = 0;
     hudTop.classList.remove("live");
     dock.classList.add("hidden");
+    if (tipStrip) tipStrip.classList.add("hidden");
     endcard.classList.add("hidden");
+    shopEl.classList.add("hidden");
+    howtoEl.classList.add("hidden");
     splash.classList.remove("hidden");
   }
 
@@ -982,6 +1347,7 @@
     if (phase !== "aim" || turn !== "lodge" || aimTutOn) return;
     ev.preventDefault();
     const w = worldFromEvent(ev);
+    dragStart = w;
     const tapped = boberAt(w.x, w.y, "lodge");
     if (tapped) {
       activeId = tapped.id;
@@ -1004,9 +1370,18 @@
   function onPointerUp(ev) {
     if (!dragging) return;
     dragging = false;
+    const w = worldFromEvent(ev);
     try {
       canvas.releasePointerCapture(ev.pointerId);
     } catch (_) {}
+    if (dragStart && Math.hypot(w.x - dragStart.x, w.y - dragStart.y) < 14) {
+      const tapped = boberAt(w.x, w.y, "lodge");
+      if (!tapped) {
+        const b = getActive();
+        if (b && Math.abs(w.x - b.x) > 12) walkActive(w.x < b.x ? -1 : 1);
+      }
+    }
+    dragStart = null;
   }
 
   function holdBtn(el, fn) {
@@ -1025,8 +1400,10 @@
   }
 
   function bind() {
+    loadCoins();
+    hud();
     playBtn.addEventListener("click", startMatch);
-    endRestart.addEventListener("click", startMatch);
+    endRestart.addEventListener("click", () => openShop("end"));
     fireBtn.addEventListener("click", () => {
       BoberSfx.ensure();
       tryFire();
@@ -1038,6 +1415,12 @@
     leaveBtn.addEventListener("click", leaveToSplash);
     $("w-stick").addEventListener("click", () => setWeapon("stick"));
     $("w-snow").addEventListener("click", () => setWeapon("snow"));
+    $("w-dynamite").addEventListener("click", () => {
+      if (!setWeapon("dynamite")) toast("BUY A CHARGE", true);
+    });
+    $("w-sap").addEventListener("click", () => {
+      if (!setWeapon("sap")) toast("BUY A CHARGE", true);
+    });
     holdBtn($("ang-l"), () => {
       if (phase !== "aim") return;
       angle -= 0.045;
@@ -1059,6 +1442,23 @@
       hudAim();
     });
     if (aimTutOk) aimTutOk.addEventListener("click", hideTut);
+    const help = $("btn-help");
+    if (help) help.addEventListener("click", () => openHowTo("match"));
+    const btnHow = $("btn-howto");
+    if (btnHow) btnHow.addEventListener("click", () => openHowTo("splash"));
+    const endHow = $("end-howto");
+    if (endHow) endHow.addEventListener("click", () => {
+      endcard.classList.add("hidden");
+      openHowTo("end");
+    });
+    const howClose = $("howto-close");
+    if (howClose) howClose.addEventListener("click", closeHowTo);
+    const btnGear = $("btn-gear");
+    if (btnGear) btnGear.addEventListener("click", () => openShop("splash"));
+    $("buy-dynamite").addEventListener("click", () => buy("dynamite"));
+    $("buy-sap").addEventListener("click", () => buy("sap"));
+    $("shop-play").addEventListener("click", startMatch);
+    $("shop-back").addEventListener("click", closeShop);
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
@@ -1069,12 +1469,16 @@
         return;
       }
       if (phase !== "aim") return;
+      if (ev.key === "a" || ev.key === "A") walkActive(-1);
+      if (ev.key === "d" || ev.key === "D") walkActive(1);
       if (ev.key === "ArrowLeft") angle -= 0.05;
       if (ev.key === "ArrowRight") angle += 0.05;
       if (ev.key === "ArrowUp") power = clamp(power + 3, 0, 100);
       if (ev.key === "ArrowDown") power = clamp(power - 3, 0, 100);
       if (ev.key === "1") setWeapon("stick");
       if (ev.key === "2") setWeapon("snow");
+      if (ev.key === "3") setWeapon("dynamite");
+      if (ev.key === "4") setWeapon("sap");
       if (ev.key === " " || ev.key === "Enter") {
         ev.preventDefault();
         tryFire();
@@ -1088,6 +1492,7 @@
     return {
       phase,
       turn,
+      turnN,
       wind,
       weapon,
       power,
@@ -1095,6 +1500,10 @@
       craterCount,
       lastBlast,
       winner,
+      coins,
+      ammo: { lodge: { ...ammo.lodge }, creek: { ...ammo.creek } },
+      crates: crates.map((c) => ({ x: c.x, y: c.y, kind: c.kind })),
+      fuses: fuses.map((f) => ({ x: f.x, y: f.y, t: f.t, weapon: f.weapon })),
       bobers: bobers.map((b) => ({
         id: b.id,
         name: b.name,
@@ -1103,6 +1512,11 @@
         alive: b.alive,
         x: b.x,
         y: b.y,
+        vx: b.vx,
+        vy: b.vy,
+        standing: b.standing,
+        airborne: b.airborne,
+        sapTicks: b.sapTicks,
       })),
     };
   }
@@ -1113,9 +1527,23 @@
     setAim: (deg, pwr) => setAim((deg * Math.PI) / 180, pwr),
     setWeapon,
     fire: tryFire,
+    walk: walkActive,
+    buy,
+    spawnCrate,
+    addCoins,
+    setCoins(n) {
+      coins = Math.max(0, n | 0);
+      saveCoins();
+      hud();
+    },
+    giveAmmo(team, id, n) {
+      ammo[team][id] = (ammo[team][id] || 0) + (n || 1);
+      saveCoins();
+      hud();
+    },
     killTeam(team) {
       living(team).forEach((b) => kill(b));
-      if (phase === "aim" || phase === "cpu") {
+      if (phase === "aim" || phase === "cpu" || phase === "fuse") {
         phase = "settle";
         settleT = 0.5;
       }
@@ -1133,6 +1561,8 @@
     solid,
     WEAPONS,
     HP_MAX,
+    DYN_COST,
+    SAP_COST,
   };
 
   Promise.all([
@@ -1141,6 +1571,9 @@
     loadImage("assets/sprites/bober-splat.png").then((i) => (img.splat = i)),
     loadImage("assets/sprites/yeet-stick.png").then((i) => (img.stick = i)),
     loadImage("assets/sprites/snowball.png").then((i) => (img.snow = i)),
+    loadImage("assets/sprites/dynamite.png").then((i) => (img.dynamite = i)),
+    loadImage("assets/sprites/sap-bomb.png").then((i) => (img.sap = i)),
+    loadImage("assets/sprites/crate.png").then((i) => (img.crate = i)),
     loadImage("assets/sprites/bank-sky.jpg").then((i) => (img.sky = i)),
   ])
     .catch((err) => console.error(err))

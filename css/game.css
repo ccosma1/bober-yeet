@@ -150,6 +150,37 @@ html, body {
   grid-template-columns: 1fr 1fr;
   gap: 6px;
 }
+.wep small {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: 900;
+  color: inherit;
+  opacity: 0.8;
+}
+.wep.out { opacity: 0.45; }
+
+.coin-chip { color: #ffe566; }
+
+.tip-strip {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  z-index: 7;
+  pointer-events: none;
+  background: rgba(26, 16, 32, 0.82);
+  border: 2px solid #1a1020;
+  border-radius: 12px;
+  padding: 5px 12px;
+  font-weight: 800;
+  font-size: clamp(12px, 2.2vw, 15px);
+  color: #ffe566;
+  text-align: center;
+  max-width: 92%;
+  white-space: nowrap;
+}
+.tip-strip.hidden { display: none !important; }
 .wep {
   pointer-events: auto;
   touch-action: manipulation;
@@ -246,12 +277,13 @@ html, body {
 @media (min-width: 720px) and (orientation: landscape) {
   #dock {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) minmax(240px, 1.2fr) auto;
+    grid-template-columns: minmax(280px, 1.2fr) minmax(220px, 1fr) auto;
     align-items: center;
     gap: 10px;
   }
+  .weapons { grid-template-columns: 1fr 1fr 1fr 1fr; }
   .fire {
-    width: min(34vw, 280px);
+    width: min(28vw, 240px);
     min-height: 64px;
   }
 }
@@ -547,6 +579,67 @@ h1 {
   height: auto;
   filter: drop-shadow(0 6px 0 #0005);
 }
+.museum-detail-img.still {
+  width: min(92%, 420px);
+  border-radius: 12px;
+  border: 3px solid #1a1020;
+}
+.hist-stills { max-height: min(52vh, 360px); }
+
+.howto-body {
+  width: min(94%, 460px);
+  text-align: left;
+  margin: 8px 0 14px;
+  padding: 10px 14px;
+  background: rgba(26, 16, 32, 0.72);
+  border: 3px solid #1a1020;
+  border-radius: 16px;
+}
+.howto-body p {
+  margin: 0 0 10px;
+  font-weight: 700;
+  color: #e8d9ff;
+  font-size: clamp(14px, 2.6vw, 16px);
+  line-height: 1.35;
+}
+.howto-body p:last-child { margin-bottom: 0; }
+.howto-body strong { color: #ffe566; }
+
+.shop-list {
+  width: min(94%, 460px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+.shop-row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+  padding: 8px 10px;
+  background: rgba(26, 16, 32, 0.72);
+  border: 3px solid #1a1020;
+  border-radius: 14px;
+}
+.shop-row img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+.shop-row strong { display: block; color: var(--yellow); font-size: 16px; }
+.shop-row span { display: block; font-size: 12px; font-weight: 700; color: #cbbbe8; }
+.shop-cost { color: #ffe566 !important; }
+.shop-note {
+  margin: 0 0 12px;
+  font-weight: 700;
+  color: #cbbbe8;
+  font-size: 13px;
+  max-width: 28em;
+}
+
+#howto, #shop { z-index: 23; }
 .museum-back { margin-bottom: 8px; font-size: 14px; padding: 6px 16px; }
 .history-body {
   width: min(96%, 560px);
