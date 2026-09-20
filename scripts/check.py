@@ -74,6 +74,9 @@ def main() -> int:
     must(css, "min-height: 55vh", "game.css")
     must(css, "min-height: 62dvh", "game.css")
     must(css, "min-height: 56px", "game.css")
+    must(css, "max-height: 28dvh", "game.css")
+    must(css, "overflow-x: auto", "game.css")
+    must(css, "env(safe-area-inset-bottom)", "game.css")
     must(css, "portrait-block", "game.css")
     must(css, "object-fit: cover", "game.css")
 

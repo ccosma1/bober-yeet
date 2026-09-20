@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war3b"
+URL = "http://127.0.0.1:8765/?v=war3c"
 
 
 def shot(page, name):
@@ -86,6 +86,29 @@ def assert_fat_fire_br(page, vp_w, vp_h):
     assert fire and fire["height"] >= 44
     assert fire["x"] + fire["width"] > vp_w * 0.62
     assert fire["y"] + fire["height"] > vp_h * 0.72
+    assert fire["y"] >= -1
+    assert fire["y"] + fire["height"] <= vp_h + 1
+
+
+def assert_chrome_fits(page, vp_w, vp_h, landscape=False):
+    dock = page.locator("#dock").bounding_box()
+    print("DOCK", dock)
+    assert dock
+    assert dock["y"] >= -1
+    assert dock["y"] + dock["height"] <= vp_h + 1
+    if landscape:
+        assert dock["height"] / vp_h <= 0.28 + 0.02
+    ids = ["w-stick", "w-snow", "w-dynamite", "w-sap", "w-mortar", "w-ice"]
+    for wid in ids:
+        loc = page.locator("#" + wid)
+        loc.scroll_into_view_if_needed()
+        page.wait_for_timeout(30)
+        box = loc.bounding_box()
+        print("WEP", wid, box)
+        assert box and box["height"] >= 32
+        assert box["y"] >= dock["y"] - 2
+        assert box["y"] + box["height"] <= vp_h + 2
+        assert box["y"] + box["height"] <= dock["y"] + dock["height"] + 2
 
 
 def both_teams_visible(s):
@@ -195,6 +218,7 @@ def main():
         assert page.locator("#btn-shop").inner_text() == "SHOP"
         assert_one_top_shop(page, 720)
         assert_fat_fire_br(page, 1280, 720)
+        assert_chrome_fits(page, 1280, 720, landscape=True)
         page.click("#btn-shop")
         page.wait_for_timeout(200)
         assert "hidden" not in (page.locator("#shop").get_attribute("class") or "")
@@ -397,6 +421,7 @@ def main():
         shot(page, "test-match-mobile.png")
         assert_one_top_shop(page, vp_h)
         assert_fat_fire_br(page, 390, vp_h)
+        assert_chrome_fits(page, 390, vp_h, landscape=False)
         page.click("#btn-shop")
         page.wait_for_timeout(250)
         assert "hidden" not in (page.locator("#shop").get_attribute("class") or "")
@@ -444,6 +469,8 @@ def main():
                 assert not is_flat_purple(edges["bot"]), edges["bot"]
             assert_one_top_shop(page, 390)
             assert_fat_fire_br(page, 844, 390)
+            assert_chrome_fits(page, 844, 390, landscape=True)
+            page.evaluate("() => { const el = document.querySelector('.weapons'); if (el) el.scrollLeft = 0; }")
             page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('stick'); w.setAim(-48, 70); }")
             page.wait_for_timeout(180)
             shot(page, shot_name)
@@ -451,22 +478,32 @@ def main():
             page.wait_for_timeout(200)
             assert "hidden" not in (page.locator("#shop").get_attribute("class") or "")
             page.evaluate("() => window.__yeetWar.setCoins(200)")
-            page.click("#buy-ice")
-            assert snap(page)["ammo"]["lodge"]["ice"] >= 1
+            page.click("#buy-mortar")
+            assert snap(page)["ammo"]["lodge"]["mortar"] >= 1
             assert snap(page)["phase"] == "aim"
             page.click("#shop-play")
             wait_phase(page, "aim", timeout=5000)
-            page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('stick'); w.setAim(-48, 70); w.fire(); }")
-            page.wait_for_timeout(700)
+            page.locator("#w-mortar").scroll_into_view_if_needed()
+            page.click("#w-mortar")
+            page.wait_for_timeout(80)
+            page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('mortar'); w.setAim(-42, 62); }")
+            page.wait_for_timeout(200)
+            page.evaluate("() => { const w = window.__yeetWar; w.fire(); }")
+            page.wait_for_timeout(420)
+            page.wait_for_function(
+                "() => window.__yeetWar.lastBlast && window.__yeetWar.lastBlast.weapon === 'mortar'",
+                timeout=8000,
+            )
             s = snap(page)
-            print("LAND FIRE", map_id, s.get("phase"), s.get("lastBlast"))
-            assert s["phase"] in ("fly", "settle", "cpu", "aim", "fuse")
+            print("LAND MORTAR", map_id, s.get("lastBlast"), s.get("phase"))
+            assert s["lastBlast"]["weapon"] == "mortar"
+            assert s["lastBlast"]["dmg"] == 38
 
-        page = browser.new_page(viewport={"width": 844, "height": 390})
+        page = browser.new_page(viewport={"width": 844, "height": 390}, is_mobile=True, has_touch=True)
         page.goto(URL, wait_until="networkidle", timeout=30000)
         page.evaluate("() => localStorage.setItem('bober-yeet-war-tut', '1')")
-        smoke_land(page, "mesa", "test-match-mobile-landscape.png", check_purple=True)
-        smoke_land(page, "crater", "test-mobile-landscape.png", check_purple=True)
+        smoke_land(page, "ledges", "test-match-mobile-landscape.png", check_purple=True)
+        smoke_land(page, "mesa", "test-mobile-landscape.png", check_purple=True)
         page.evaluate("() => window.__yeetWar.killTeam('creek')")
         wait_phase(page, "end", timeout=8000)
         assert "YOU WIN" in page.locator("#end-title").inner_text()
