@@ -1643,7 +1643,7 @@
     const sW = cssW / WORLD_W;
     const sH = cssH / WORLD_H;
     const landscape = cssW >= cssH;
-    let s = landscape ? Math.max(sW, sH) : sW;
+    let s = Math.max(sW, sH);
     const minVisW = WORLD_W * 0.92;
     if (cssW / s < minVisW) s = cssW / minVisW;
     const visW = cssW / s;
@@ -1687,12 +1687,13 @@
       dpr,
       landscape,
       cover: camS * WORLD_H >= cssH - 1.5 && camS * WORLD_W >= cssW * 0.9,
+      skyFill: true,
       showRadar: cssW / camS < WORLD_W - 80,
     };
   }
 
   function drawSkyCover(sky) {
-    if (view.landscape && sky) {
+    if (sky) {
       const iw = sky.width || WORLD_W;
       const ih = sky.height || WORLD_H;
       const sc = Math.max(view.cssW / iw, view.cssH / ih);
@@ -1815,10 +1816,18 @@
     ctx.translate(-view.camX * view.s, -view.camY * view.s);
     ctx.scale(view.s, view.s);
 
-    if (sky) ctx.drawImage(sky, 0, 0, WORLD_W, WORLD_H);
-    else {
+    if (sky) {
+      const visW = view.cssW / view.s;
+      const visH = view.cssH / view.s;
+      const iw = sky.width || WORLD_W;
+      const ih = sky.height || WORLD_H;
+      const sc = Math.max(visW / iw, visH / ih);
+      const dw = iw * sc;
+      const dh = ih * sc;
+      ctx.drawImage(sky, view.camX + (visW - dw) / 2, view.camY + (visH - dh) / 2, dw, dh);
+    } else {
       ctx.fillStyle = "#24143c";
-      ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+      ctx.fillRect(view.camX, view.camY, view.cssW / view.s, view.cssH / view.s);
     }
     const waterTop = s.washFrom || 500;
     const hy = hazardY();
@@ -2314,12 +2323,19 @@
       }
       openShop("match");
     };
-    ["btn-shop", "coin-chip"].forEach((id) => {
-      const el = $(id);
-      if (!el) return;
-      el.addEventListener("click", onShopMatch);
-      el.addEventListener("pointerdown", (e) => e.stopPropagation());
-    });
+    const shopBtn = $("btn-shop");
+    if (shopBtn) {
+      shopBtn.addEventListener("click", onShopMatch);
+      shopBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+    }
+    if (coinChip) {
+      coinChip.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toast("$BOBER " + coins);
+      });
+      coinChip.addEventListener("pointerdown", (e) => e.stopPropagation());
+    }
     if (shopEl) shopEl.addEventListener("pointerdown", (e) => e.stopPropagation());
     window.addEventListener("resize", syncOrient);
     window.addEventListener("orientationchange", () => setTimeout(syncOrient, 80));
@@ -2420,6 +2436,7 @@
         cssH: view.cssH,
         landscape: !!view.landscape,
         cover: !!view.cover,
+        skyFill: !!view.skyFill,
       },
       bobers: bobers.map((b) => ({
         id: b.id,

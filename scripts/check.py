@@ -78,6 +78,8 @@ def main() -> int:
     must(html, 'id="btn-shop"', "index.html")
     must(html, 'id="tray-l"', "index.html")
     must(html, 'id="tray-r"', "index.html")
+    must(html, 'title="$BOBER"', "index.html")
+    forbid(html, 'id="coin-chip" title="Shop"', "index.html")
     forbid(html, "tilt-play", "index.html")
     forbid(html, "PLAY ANYWAY", "index.html")
     forbid(html, "tilt to landscape", "index.html")
@@ -162,6 +164,8 @@ def main() -> int:
     must(game, "function scrollTray(", "game.js")
     must(game, "function drawSkyCover(", "game.js")
     must(game, "Math.max(sW, sH)", "game.js")
+    must(game, "skyFill: true", "game.js")
+    forbid(game, '"btn-shop", "coin-chip"', "game.js")
 
     must(lore, "Lodge Bowl", "lore.js")
     must(lore, "Twin Ledges", "lore.js")

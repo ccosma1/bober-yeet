@@ -188,7 +188,7 @@ html, body {
 .coin-chip {
   color: #ffe566;
   pointer-events: auto;
-  cursor: pointer;
+  cursor: default;
   font: inherit;
   touch-action: manipulation;
   appearance: none;

@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war4"
+URL = "http://127.0.0.1:8765/?v=war4b"
 
 
 def shot(page, name):
@@ -78,6 +78,11 @@ def assert_one_top_shop(page, vp_h):
     coin = page.locator("#coin-chip").bounding_box()
     assert shop and shop["y"] < min(90, vp_h * 0.24)
     assert coin and abs(shop["y"] - coin["y"]) < 56
+    title = page.locator("#coin-chip").get_attribute("title") or ""
+    assert "shop" not in title.lower()
+    page.click("#coin-chip")
+    page.wait_for_timeout(120)
+    assert "hidden" in (page.locator("#shop").get_attribute("class") or "")
 
 
 def assert_fat_fire_br(page, vp_w, vp_h):
@@ -443,6 +448,11 @@ def main():
         lodge_on, creek_on, view = both_teams_visible(s)
         print("PHONE CAM", view, "lodge", lodge_on, "creek", creek_on)
         assert lodge_on and creek_on
+        assert view.get("skyFill") is True
+        edges = canvas_edges(page)
+        print("PORTRAIT EDGES", edges)
+        assert not is_flat_purple(edges["top"]), edges["top"]
+        assert not is_flat_purple(edges["bot"]), edges["bot"]
         shot(page, "test-match-mobile.png")
         assert_one_top_shop(page, vp_h)
         assert_fat_fire_br(page, 390, vp_h)
