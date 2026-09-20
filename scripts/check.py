@@ -91,6 +91,10 @@ def main() -> int:
     must(html, "HARD", "index.html")
     must(html, "SUDDEN DEATH", "index.html")
     must(html, "Sudden Death", "index.html")
+    must(html, "Each bank has its own scrap", "index.html")
+    must(html, 'id="map-story"', "index.html")
+    must(html, 'id="story-strip"', "index.html")
+    must(html, "Starfall over the Green Home bowl.", "index.html")
     must(html, "LINK BATTLE", "index.html")
     must(html, "VS AI", "index.html")
     must(html, ">HOST<", "index.html")
@@ -165,6 +169,22 @@ def main() -> int:
     must(game, "function shopAllowed(", "game.js")
     must(game, "const SD_TURN = 12", "game.js")
     must(game, "function tickSuddenDeath(", "game.js")
+    must(game, "function drawStory(", "game.js")
+    must(game, "function drawSdScreen(", "game.js")
+    must(game, "function hurtBand(", "game.js")
+    must(game, 'story: "Starfall over the Green Home bowl."', "game.js")
+    must(game, 'story: "Jet duel over the ice bridge."', "game.js")
+    must(game, 'story: "Mars colony. Dust takes the unsheltered."', "game.js")
+    must(game, 'story: "Moon landing. Miss the rim and you void."', "game.js")
+    must(game, 'story: "Ice quake on the methane shelf."', "game.js")
+    must(game, 'story: "Venus vents. Not a flamethrower."', "game.js")
+    must(game, 'story: "Ring debris. The span chips."', "game.js")
+    must(game, 'story: "Deep current. The pack surges."', "game.js")
+    must(game, 'story: "Heart frost. A probe blinks in the dark."', "game.js")
+    must(game, 'story: "Asteroid mining. The notch sways."', "game.js")
+    must(game, "bober-limp.png", "game.js")
+    must(game, "bober-kneel.png", "game.js")
+    must(read("js/audio.js"), "siren()", "js/audio.js")
     must(game, "function guessCpuAim(", "game.js")
     must(game, "function cpuShop(", "game.js")
     must(game, "function setDiff(", "game.js")
@@ -220,6 +240,9 @@ def main() -> int:
     forbid(game, '"btn-shop", "coin-chip"', "game.js")
 
     must(lore, "Lodge Bowl", "lore.js")
+    must(lore, "Starfall over the banks", "lore.js")
+    must(lore, "Jet duel over the ice bridge", "lore.js")
+    must(lore, "Not a flamethrower", "lore.js")
     must(lore, "Twin Ledges", "lore.js")
     must(lore, "Red Mesa", "lore.js")
     must(lore, "Crater Rim", "lore.js")
@@ -248,6 +271,7 @@ def main() -> int:
     must(readme, "Link Battle", "README.md")
     must(readme, "Corkscrew Rocket", "README.md")
     must(readme, "Lodge Chaingun", "README.md")
+    must(readme, "own scrap", "README.md")
     must(html, "js/net.js", "index.html")
 
     for path, text in (
@@ -284,6 +308,13 @@ def main() -> int:
         "assets/sprites/crate.png",
         "assets/sprites/splash-hero.png",
         "assets/sprites/bober-idle.png",
+        "assets/sprites/bober-limp.png",
+        "assets/sprites/bober-kneel.png",
+        "assets/sprites/story-jet.png",
+        "assets/sprites/story-lander.png",
+        "assets/sprites/story-probe.png",
+        "assets/sprites/story-drone.png",
+        "assets/sprites/story-torch.png",
         "assets/history/bank-fight.jpg",
         "assets/history/aim-wind.jpg",
         "assets/history/crate-gear.jpg",

@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war7b"
+URL = "http://127.0.0.1:8765/?v=war8"
 
 
 def shot(page, name):
@@ -162,6 +162,13 @@ def main():
         assert page.locator("#btn-play").inner_text() == "START"
         assert page.locator("#btn-howto").inner_text() == "HOW TO PLAY"
         assert page.locator("#splash-maps .map-card").count() == 10
+        story = page.locator("#map-story").inner_text()
+        print("STORY", story)
+        assert "Starfall" in story
+        page.click('#splash-maps .map-card[data-map="crater"]')
+        page.wait_for_timeout(80)
+        assert "Moon landing" in page.locator("#map-story").inner_text()
+        page.click('#splash-maps .map-card[data-map="ledges"]')
         assert page.locator("#splash-diff .diff-card").count() == 3
         assert page.locator("#splash-diff .diff-card.on").inner_text() == "NORMAL"
         assert page.locator("#mode-vsai").inner_text() == "VS AI"
@@ -208,6 +215,7 @@ def main():
         assert "85" in how
         assert "Red Mesa" in how
         assert "Sudden Death" in how
+        assert "own scrap" in how
         assert "Easy" in how and "Hard" in how
         assert "Link Battle" in how
         assert "PeerJS" in how
@@ -242,6 +250,24 @@ def main():
         print("MAP", s.get("mapId"))
         assert s["phase"] == "aim"
         assert s["mapId"] == "ledges"
+        assert "Jet duel" in (s.get("story") or "")
+        page.evaluate("() => window.__yeetWar.setHp(0, 28)")
+        assert snap(page)["bobers"][0]["hurt"] == "low"
+        page.evaluate("() => window.__yeetWar.setHp(0, 8)")
+        assert snap(page)["bobers"][0]["hurt"] == "kneel"
+        page.evaluate("() => window.__yeetWar.setHp(0, 85)")
+        assert snap(page)["bobers"][0]["hurt"] == "high"
+        page.evaluate("() => window.__yeetWar.forceSudden()")
+        s = snap(page)
+        print("SD STORY", s.get("sudden"), s.get("sdFlash"), s.get("sdRise"))
+        assert s["sudden"] is True
+        assert s["sdRise"] >= 32
+        assert (s.get("sdFlash") or 0) > 0
+        shot(page, "test-sudden-world.png")
+        page.evaluate("() => window.__yeetWar.startMatch()")
+        wait_phase(page, "aim", timeout=8000)
+        s = snap(page)
+        assert s["sudden"] is False
         assert len(s["bobers"]) == 6
         for b in s["bobers"]:
             if not b["alive"]:

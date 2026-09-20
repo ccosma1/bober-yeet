@@ -37,6 +37,7 @@
         </div>
       </div>
       <div id="tip-strip" class="tip-strip hidden">angle · power · wind flag · Fire</div>
+      <div id="story-strip" class="story-strip hidden"></div>
       <div id="toast"></div>
       <div id="aim-tut" class="aim-tut hidden">
         <p>Drag back to aim. Tap a Lodge Bober to switch. Tap the bank to take a short step. Fire when ready.</p>
@@ -161,6 +162,7 @@
           <span>Dock Notch</span>
         </button>
       </div>
+      <p class="map-story" id="map-story">Starfall over the Green Home bowl.</p>
       <div class="diff-pick" id="splash-diff">
         <button type="button" class="diff-card" data-diff="easy">EASY</button>
         <button type="button" class="diff-card on" data-diff="normal">NORMAL</button>
@@ -207,8 +209,8 @@
         <p>Drag back to set <strong>angle</strong>. Charge <strong>power</strong> 0–100. Read the <strong>wind flag</strong>. Fire.</p>
         <p>Hits dig cover and hurt <strong>HP</strong> (Bobers start at 85). Falloff at the blast edge. Creek, dust, void, methane, or acid below = out. Last beaver standing wins.</p>
         <p><strong>Crates</strong> drop every 3 turns. Walk onto one for gear or $BOBER. Tap <strong>SHOP</strong> mid-match to buy charges. If you are short, the shop says how many more $BOBER you need.</p>
-        <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Stick and Snowball stay infinite. Paid guns hit harder. Use the tray <strong>◀ ▶</strong> chevrons (or swipe) to reach Lodge Mortar, Pinecone Cluster, Woodchip Mine, Bark Buckler, Corkscrew Rocket, and Lodge Chaingun. You cannot buy a win.</p>
-        <p>Pick <strong>Easy</strong>, <strong>Normal</strong>, or <strong>Hard</strong>. After turn 12 — or when two Bobers remain — <strong>Sudden Death</strong> raises the hazard every 2 turns so the match ends.</p>
+        <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Each bank has its own scrap. Stick and Snowball stay infinite. Paid guns hit harder. Use the tray <strong>◀ ▶</strong> chevrons (or swipe) to reach Lodge Mortar, Pinecone Cluster, Woodchip Mine, Bark Buckler, Corkscrew Rocket, and Lodge Chaingun. You cannot buy a win.</p>
+        <p>Pick <strong>Easy</strong>, <strong>Normal</strong>, or <strong>Hard</strong>. After turn 12 — or when two Bobers remain — <strong>Sudden Death</strong> raises the hazard every 2 turns. The map reacts: the creek, acid, void, or dust climbs the banks with a rumble and a siren flash.</p>
         <p><strong>Link Battle:</strong> Host gets a 4-letter room code. Friend taps Join and types it. Same Wi-Fi is best. Finding each other uses a short PeerJS internet hop (STUN, then TURN if needed) — no account, no lobby. Host is Lodge, Join is Creek. Two devices. If you see ICE FAIL, retry Host / Join on the same Wi-Fi.</p>
       </div>
       <button class="play" id="howto-close" type="button">GOT IT</button>
@@ -351,6 +353,7 @@
           <span>Dock Notch</span>
         </button>
       </div>
+      <p class="map-story" id="end-map-story">Starfall over the Green Home bowl.</p>
       <div class="diff-pick" id="end-diff">
         <button type="button" class="diff-card" data-diff="easy">EASY</button>
         <button type="button" class="diff-card on" data-diff="normal">NORMAL</button>

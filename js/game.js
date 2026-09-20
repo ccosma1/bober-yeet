@@ -70,6 +70,7 @@
       hazardColor: "#8ad4ff",
       under: "#4a2810",
       washFrom: 430,
+      story: "Starfall over the Green Home bowl.",
     },
     ledges: {
       id: "ledges",
@@ -84,6 +85,7 @@
       hazardColor: "#8ad4ff",
       under: "#4a2810",
       washFrom: 500,
+      story: "Jet duel over the ice bridge.",
     },
     mesa: {
       id: "mesa",
@@ -98,6 +100,7 @@
       hazardColor: "#e8a060",
       under: "#6a3010",
       washFrom: 620,
+      story: "Mars colony. Dust takes the unsheltered.",
     },
     crater: {
       id: "crater",
@@ -113,6 +116,7 @@
       under: "#2a2a32",
       washFrom: 520,
       pit: { x: 640, y: 470, r: 118 },
+      story: "Moon landing. Miss the rim and you void.",
     },
     methane: {
       id: "methane",
@@ -127,6 +131,7 @@
       hazardColor: "#6ad4c8",
       under: "#0a2830",
       washFrom: 470,
+      story: "Ice quake on the methane shelf.",
     },
     acid: {
       id: "acid",
@@ -141,6 +146,7 @@
       hazardColor: "#c8e040",
       under: "#5a4010",
       washFrom: 520,
+      story: "Venus vents. Not a flamethrower.",
     },
     ring: {
       id: "ring",
@@ -155,6 +161,7 @@
       hazardColor: "#c8c0e0",
       under: "#3a3018",
       washFrom: 500,
+      story: "Ring debris. The span chips.",
     },
     pack: {
       id: "pack",
@@ -169,6 +176,7 @@
       hazardColor: "#8ad4ff",
       under: "#1a3048",
       washFrom: 560,
+      story: "Deep current. The pack surges.",
     },
     frost: {
       id: "frost",
@@ -183,6 +191,7 @@
       hazardColor: "#a8c4e8",
       under: "#2a3040",
       washFrom: 520,
+      story: "Heart frost. A probe blinks in the dark.",
     },
     dock: {
       id: "dock",
@@ -197,6 +206,7 @@
       hazardColor: "#c8c0e0",
       under: "#1a1a1e",
       washFrom: 480,
+      story: "Asteroid mining. The notch sways.",
     },
   };
 
@@ -321,6 +331,8 @@
   let flashes = [];
   let trails = [];
   let gunBurst = null;
+  let sdFlash = 0;
+  let storyT = 0;
 
   function $(id) {
     return document.getElementById(id);
@@ -841,6 +853,7 @@
           sapT: 0,
           shield: 0,
           shieldTurns: 0,
+          flinch: 0,
         });
       });
     });
@@ -917,6 +930,11 @@
       const showTip = (phase === "aim" || phase === "cpu") && turnN <= 2;
       tipStrip.classList.toggle("hidden", !showTip);
     }
+    const storyStrip = $("story-strip");
+    if (storyStrip) {
+      storyStrip.textContent = spec().story || "";
+      storyStrip.classList.toggle("hidden", storyT <= 0);
+    }
     const nm = (WEAPONS[weapon] || WEAPONS.stick).name;
     const chip = $("wep-chip");
     if (chip) chip.textContent = nm.toUpperCase();
@@ -985,7 +1003,25 @@
     mapId = id;
     localStorage.setItem(MAP_KEY, mapId);
     syncMapCards();
+    syncStoryLine();
     hud();
+  }
+
+  function syncStoryLine() {
+    const line = (MAPS[mapId] || MAPS.bowl).story || "";
+    ["map-story", "end-map-story"].forEach((id) => {
+      const el = $(id);
+      if (el) el.textContent = line;
+    });
+  }
+
+  function hurtBand(b) {
+    if (!b || !b.alive) return "down";
+    const r = b.hp / HP_MAX;
+    if (r < 0.15) return "kneel";
+    if (r < 0.35) return "low";
+    if (r < 0.6) return "mid";
+    return "high";
   }
 
   function updateMuteBtn() {
@@ -1101,7 +1137,8 @@
       sudden = true;
       sdTickAt = turnN;
       toast("SUDDEN DEATH");
-      pop(WORLD_W / 2, hazardY() - 40, "SUDDEN DEATH", "#ffe566");
+      pop(WORLD_W / 2, hazardY() - 40, "SUDDEN DEATH", spec().hazardColor || "#ffe566");
+      if (BoberSfx.siren) BoberSfx.siren();
       riseSudden();
       return;
     }
@@ -1113,16 +1150,27 @@
 
   function riseSudden() {
     sdRise += 32;
+    sdFlash = 1;
+    boomShake(48);
     shrinkMidTerrain();
+    const hy = hazardY();
+    burst(WORLD_W / 2, hy - 20, spec().hazard === "acid" || spec().hazard === "dust" ? "fire" : "dirt");
+    burst(WORLD_W / 2 - 70, hy - 10, "dirt");
+    burst(WORLD_W / 2 + 70, hy - 10, "dirt");
+    flash(WORLD_W / 2, hy - 24, 90, spec().hazardColor || "#ffe566");
     living().forEach((b) => {
-      if (b.y + BOBER_R >= hazardY()) drown(b, spec().hazardWord);
+      b.flinch = 0.7;
+      b.vy -= 1.4;
+      b.standing = false;
+      if (b.y + BOBER_R >= hy) drown(b, spec().hazardWord);
     });
+    if (BoberSfx.siren) BoberSfx.siren();
     hud();
   }
 
   function shrinkMidTerrain() {
     const hy = hazardY();
-    const r = 34 + Math.min(40, sdRise * 0.2);
+    const r = 48 + Math.min(56, sdRise * 0.28);
     carve(WORLD_W / 2, hy - 36, r);
   }
 
@@ -1340,8 +1388,9 @@
       BoberSfx.hurt();
       const ang = Math.atan2(b.y - y, b.x - x);
       const k = fall;
+      const hop = spec().id === "crater" ? 1.55 : 1;
       b.vx += Math.cos(ang) * k * 6.2;
-      b.vy += Math.sin(ang) * k * 4.4 - 2.2;
+      b.vy += Math.sin(ang) * k * 4.4 * hop - 2.2 * hop;
       b.standing = false;
       b.airborne = true;
       b.walkT = 0;
@@ -1603,6 +1652,7 @@
   }
 
   function stepBober(b) {
+    if (b.flinch > 0) b.flinch = Math.max(0, b.flinch - 1 / 60);
     if (b.alive && b.sapTicks > 0) {
       b.sapT -= 1 / 60;
       if (b.sapT <= 0) {
@@ -1628,7 +1678,9 @@
     }
     if (b.walkT > 0) {
       b.walkT -= 1 / 60;
-      b.x = clamp(b.x + b.walkDir * 1.55, 18, WORLD_W - 18);
+      const band = hurtBand(b);
+      const spd = band === "kneel" ? 0.7 : band === "low" ? 0.95 : 1.55;
+      b.x = clamp(b.x + b.walkDir * spd, 18, WORLD_W - 18);
       if (!snapStand(b)) return;
       pickupCrates(b);
       return;
@@ -1886,6 +1938,13 @@
     waveT += dt;
     if (shake > 0.15) shake *= 0.86;
     else shake = 0;
+    if (sdFlash > 0) sdFlash = Math.max(0, sdFlash - dt * 0.65);
+    if (spec().id === "methane" && Math.sin(waveT * 1.7) > 0.94 && shake < 6) boomShake(8);
+    if (storyT > 0) {
+      storyT -= dt;
+      const strip = $("story-strip");
+      if (strip) strip.classList.toggle("hidden", storyT <= 0);
+    }
     for (let i = trails.length - 1; i >= 0; i--) {
       trails[i].t -= dt;
       trails[i].w += 22 * dt;
@@ -2099,14 +2158,31 @@
     ctx.fillRect(0, 0, view.cssW, view.cssH);
   }
 
+  function blit(im, x, y, w, h, flip) {
+    if (!im) return;
+    ctx.save();
+    ctx.translate(x, y);
+    if (flip) ctx.scale(-1, 1);
+    ctx.drawImage(im, -w / 2, -h / 2, w, h);
+    ctx.restore();
+  }
+
   function drawBober(b) {
     const flying = b.alive && b.airborne && Math.hypot(b.vx, b.vy) > 1.6;
-    const sprite = !b.alive ? img.splat : flying ? img.fly : img.idle;
-    const h = DRAW_H;
+    const band = hurtBand(b);
+    let sprite = !b.alive ? img.splat : flying ? img.fly : img.idle;
+    if (b.alive && !flying) {
+      if (band === "kneel" && img.kneel) sprite = img.kneel;
+      else if ((band === "low" || band === "mid") && img.limp) sprite = img.limp;
+    }
+    const h = band === "kneel" ? DRAW_H * 0.9 : DRAW_H;
     const w = sprite ? (sprite.width / sprite.height) * h : h;
-    const fid = b.standing && b.alive ? Math.sin(waveT * 1.35 + b.id * 1.7) * 1.15 : 0;
+    const fidget = band === "kneel" ? 0.45 : band === "low" ? 0.7 : 1.35;
+    const amp = band === "mid" ? 2.4 : band === "low" ? 1.8 : 1.15;
+    const fid = b.standing && b.alive ? Math.sin(waveT * fidget + b.id * 1.7) * amp : 0;
+    const fl = b.flinch > 0 ? Math.sin(b.flinch * 22) * 4 : 0;
     const dx = Math.round(b.x);
-    const dy = Math.round(b.y + 4 + fid);
+    const dy = Math.round(b.y + 4 + fid + fl);
     ctx.save();
     ctx.translate(dx, dy);
     ctx.scale(b.facing, 1);
@@ -2143,6 +2219,13 @@
         ctx.stroke();
         ctx.fillStyle = "#c8a060";
         ctx.fillText("SH " + b.shield, b.x, b.y + h / 2 + 10);
+      }
+      if (band === "low" || band === "kneel") {
+        ctx.fillStyle = "rgba(244, 230, 195, 0.7)";
+        const puff = 4 + Math.sin(waveT * 6 + b.id) * 2;
+        ctx.beginPath();
+        ctx.arc(b.x + 16 * b.facing, b.y - 18, puff, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
     if (b.alive && b.id === activeId && (phase === "aim" || phase === "cpu")) {
@@ -2182,6 +2265,211 @@
       ctx.fillStyle = "#ffe566";
       ctx.fillRect(x + c.x * sx - 2, y + c.y * sy - 2, 4, 4);
     });
+    ctx.restore();
+  }
+
+  function drawStory(s) {
+    const t = waveT;
+    if (s.id === "bowl") {
+      for (let i = 0; i < 7; i++) {
+        const u = (t * 0.18 + i * 0.14) % 1;
+        const x = -80 + u * 1480;
+        const y = 28 + i * 22 + u * 70;
+        ctx.save();
+        ctx.strokeStyle = "rgba(255, 210, 140, 0.85)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 54, y - 22);
+        ctx.stroke();
+        ctx.fillStyle = i % 2 ? "#ff9a3a" : "#ffe566";
+        ctx.beginPath();
+        ctx.arc(x, y, 4 + (i % 3), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    if (s.id === "ledges") {
+      for (let i = 0; i < 2; i++) {
+        const u = (t * 0.12 + i * 0.5) % 1;
+        const x = -90 + u * 1460;
+        const y = 64 + Math.sin(u * 10 + i) * 26 + i * 40;
+        const flip = i === 1;
+        blit(img.jet, x, y, 78, 42, flip);
+      }
+    }
+    if (s.id === "mesa") {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = "#8a4a20";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      ctx.moveTo(80, 430);
+      ctx.quadraticCurveTo(240, 410, 420, 438);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(220, 200, 170, 0.35)";
+      ctx.beginPath();
+      ctx.ellipse(1080, 210, 70, 28, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(200, 180, 150, 0.4)";
+      ctx.fillRect(1048, 210, 64, 70);
+      ctx.restore();
+      const cx = 640 + Math.sin(t * 0.45) * 220;
+      const cy = 300;
+      for (let i = 0; i < 14; i++) {
+        const a = t * 3 + i * 0.45;
+        const r = 8 + i * 4;
+        ctx.fillStyle = "rgba(200, 120, 50, 0.28)";
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(a) * r * 0.4, cy - i * 6, 10 - i * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    if (s.id === "crater") {
+      blit(img.lander, 430, 250, 90, 74, false);
+      ctx.save();
+      ctx.globalAlpha = 0.35 + Math.sin(t * 2) * 0.1;
+      ctx.fillStyle = "#f4e6c3";
+      ctx.beginPath();
+      ctx.moveTo(470, 220);
+      ctx.lineTo(478, 188);
+      ctx.lineTo(486, 220);
+      ctx.fill();
+      ctx.restore();
+    }
+    if (s.id === "methane") {
+      ctx.save();
+      ctx.strokeStyle = "rgba(106, 212, 200, 0.55)";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        const x0 = 420 + i * 90;
+        const wob = Math.sin(t * 2 + i) * 8;
+        ctx.beginPath();
+        ctx.moveTo(x0, 360);
+        ctx.lineTo(x0 + wob, 430 + Math.sin(t + i) * 6);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    if (s.id === "acid") {
+      [480, 640, 820].forEach((x, i) => {
+        const h = 40 + Math.sin(t * 2.2 + i) * 18;
+        const g = ctx.createLinearGradient(x, 520 - h, x, 560);
+        g.addColorStop(0, "rgba(200, 224, 64, 0.05)");
+        g.addColorStop(1, "rgba(180, 200, 40, 0.55)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(x - 16, 560);
+        ctx.quadraticCurveTo(x + Math.sin(t * 3 + i) * 8, 520 - h, x + 16, 560);
+        ctx.fill();
+      });
+      const show = (t % 11) < 2.4;
+      if (show) blit(img.torch, 620, 150 + Math.sin(t * 2) * 6, 70, 56, false);
+    }
+    if (s.id === "ring") {
+      for (let i = 0; i < 10; i++) {
+        const u = (t * 0.06 + i * 0.1) % 1;
+        const x = -40 + u * 1360;
+        const y = 200 + Math.sin(i * 1.3) * 80 + Math.sin(t + i) * 6;
+        ctx.fillStyle = i % 2 ? "#d4b06a" : "#c8a050";
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(t * 0.4 + i);
+        ctx.fillRect(-7, -4, 14, 8);
+        ctx.restore();
+      }
+    }
+    if (s.id === "frost") {
+      ctx.save();
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = "#d8e8ff";
+      ctx.beginPath();
+      ctx.ellipse(640, 420, 90 + Math.sin(t) * 8, 36, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      for (let i = 0; i < 8; i++) {
+        ctx.fillStyle = "rgba(200, 220, 240, 0.18)";
+        ctx.beginPath();
+        ctx.arc(560 + i * 22, 390 + Math.sin(t * 0.8 + i) * 10, 12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const blink = Math.sin(t * 4) > 0.2;
+      ctx.globalAlpha = blink ? 1 : 0.35;
+      blit(img.probe, 1080, 90 + Math.sin(t * 0.6) * 8, 54, 54, false);
+      ctx.globalAlpha = 1;
+    }
+    if (s.id === "dock") {
+      for (let i = 0; i < 2; i++) {
+        const a = t * 0.5 + i * 3.1;
+        const x = 640 + Math.cos(a) * 180;
+        const y = 140 + Math.sin(a * 1.4) * 40 + i * 20;
+        blit(img.drone, x, y, 64, 58, Math.cos(a) < 0);
+        ctx.strokeStyle = "rgba(255, 170, 60, 0.55)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, y + 10);
+        ctx.lineTo(x + Math.cos(a + 1) * 40, y + 50);
+        ctx.stroke();
+      }
+      const rockX = 640 + Math.sin(t * 0.7) * 12;
+      ctx.fillStyle = "#3a3a44";
+      ctx.beginPath();
+      ctx.ellipse(rockX, 310, 28, 14, t * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (s.id === "pack") {
+      for (let i = 0; i < 6; i++) {
+        const x = 200 + i * 160;
+        const y = (s.washFrom || 560) - 20 + Math.sin(t * 1.1 + i) * 10;
+        ctx.fillStyle = "rgba(80, 160, 200, 0.28)";
+        ctx.beginPath();
+        ctx.ellipse(x, y, 40, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawSdWorld(s) {
+    if (!sudden) return;
+    const hy = hazardY();
+    const col = s.hazardColor || "#ffe566";
+    for (let i = 0; i < 12; i++) {
+      const x = (i / 12) * WORLD_W + ((waveT * 40 + i * 17) % 40);
+      ctx.fillStyle = col;
+      ctx.globalAlpha = 0.18 + (i % 3) * 0.08;
+      ctx.beginPath();
+      ctx.arc(x, hy - 8 - Math.sin(waveT * 3 + i) * 10, 6 + (i % 4), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawSdScreen() {
+    if (!sudden && sdFlash <= 0) return;
+    ctx.save();
+    ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+    const s = spec();
+    let tint = "rgba(20, 8, 28, 0.16)";
+    if (s.hazard === "acid") tint = "rgba(120, 140, 20, 0.18)";
+    else if (s.hazard === "dust") tint = "rgba(160, 70, 20, 0.2)";
+    else if (s.hazard === "void") tint = "rgba(4, 2, 12, 0.28)";
+    else if (s.hazard === "methane") tint = "rgba(8, 40, 48, 0.2)";
+    else if (s.hazard === "water") tint = "rgba(20, 50, 80, 0.16)";
+    if (sudden) {
+      ctx.fillStyle = tint;
+      ctx.fillRect(0, 0, view.cssW, view.cssH);
+    }
+    if (sdFlash > 0) {
+      ctx.fillStyle = "rgba(255, 80, 40, " + (sdFlash * 0.28) + ")";
+      ctx.fillRect(0, 0, view.cssW, view.cssH);
+      ctx.fillStyle = "#ffe566";
+      ctx.globalAlpha = sdFlash;
+      ctx.font = "bold 22px Trebuchet MS, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("SUDDEN DEATH", view.cssW / 2, 86);
+    }
     ctx.restore();
   }
 
@@ -2225,7 +2513,9 @@
       ctx.fillStyle = "#24143c";
       ctx.fillRect(view.camX, view.camY, view.cssW / view.s, view.cssH / view.s);
     }
-    const waterTop = (s.washFrom || 500) - sdRise;
+    drawStory(s);
+    const surge = s.id === "pack" ? Math.sin(waveT * 1.05) * (sudden ? 14 : 7) : 0;
+    const waterTop = (s.washFrom || 500) - sdRise + surge;
     const hy = hazardY();
     const wg = ctx.createLinearGradient(0, waterTop, 0, WORLD_H);
     if (s.hazard === "dust") {
@@ -2265,6 +2555,7 @@
     }
     ctx.drawImage(under, 0, 0);
     ctx.drawImage(terrain, 0, 0);
+    drawSdWorld(s);
     walls.forEach((w) => {
       if (img.ice) ctx.drawImage(img.ice, w.x, w.y, w.w, w.h);
       else {
@@ -2458,6 +2749,7 @@
     ctx.globalAlpha = 1;
     ctx.restore();
 
+    drawSdScreen();
     if (phase !== "splash" && phase !== "end" && view.showRadar) drawRadar();
   }
 
@@ -2599,6 +2891,9 @@
     sudden = false;
     sdRise = 0;
     sdTickAt = 0;
+    sdFlash = 0;
+    storyT = 2.6;
+    syncStoryLine();
     if (isLink() && guestBag) {
       cpuCoins = guestBag.coins | 0;
       ammo.creek = guestBag.ammo || emptyAmmo();
@@ -2770,6 +3065,7 @@
       angle,
       sudden,
       sdRise,
+      sdFlash,
       mapId,
       winner,
       coinsL: coins,
@@ -2792,6 +3088,7 @@
         sapTicks: b.sapTicks,
         shield: b.shield || 0,
         shieldTurns: b.shieldTurns || 0,
+        flinch: b.flinch || 0,
       })),
       crates: crates.map((c) => ({ x: c.x, y: c.y, kind: c.kind })),
       fuses: fuses.map((f) => ({ x: f.x, y: f.y, t: f.t, weapon: f.weapon, team: f.team })),
@@ -2823,6 +3120,7 @@
     wind = s.wind;
     sudden = !!s.sudden;
     sdRise = s.sdRise || 0;
+    if (s.sdFlash != null) sdFlash = s.sdFlash;
     winner = s.winner;
     const keepAim = isGuest() && s.phase === "aim" && s.turn === "creek";
     if (!keepAim && !dragging) {
@@ -3017,6 +3315,7 @@
 
   function bind() {
     loadCoins();
+    syncStoryLine();
     hud();
     playBtn.addEventListener("click", () => {
       if (playMode === "link" && !isHost()) return;
@@ -3301,6 +3600,8 @@
       diff,
       sudden,
       sdRise,
+      sdFlash,
+      story: spec().story,
       cpuCoins,
       crates: crates.map((c) => ({ x: c.x, y: c.y, kind: c.kind })),
       fuses: fuses.map((f) => ({ x: f.x, y: f.y, t: f.t, weapon: f.weapon })),
@@ -3330,6 +3631,8 @@
         airborne: b.airborne,
         sapTicks: b.sapTicks,
         shield: b.shield || 0,
+        hurt: hurtBand(b),
+        flinch: b.flinch || 0,
       })),
     };
   }
@@ -3391,6 +3694,13 @@
     get lastBlast() {
       return lastBlast;
     },
+    hurtBand,
+    setHp(id, n) {
+      const b = bobers.find((x) => x.id === id);
+      if (!b) return;
+      b.hp = clamp(n, 0, HP_MAX);
+      hud();
+    },
     get craterCount() {
       return craterCount;
     },
@@ -3405,6 +3715,13 @@
     loadImage("assets/sprites/bober-idle.png").then((i) => (img.idle = i)),
     loadImage("assets/sprites/bober-fly.png").then((i) => (img.fly = i)),
     loadImage("assets/sprites/bober-splat.png").then((i) => (img.splat = i)),
+    loadImage("assets/sprites/bober-limp.png").then((i) => (img.limp = i)),
+    loadImage("assets/sprites/bober-kneel.png").then((i) => (img.kneel = i)),
+    loadImage("assets/sprites/story-jet.png").then((i) => (img.jet = i)),
+    loadImage("assets/sprites/story-lander.png").then((i) => (img.lander = i)),
+    loadImage("assets/sprites/story-probe.png").then((i) => (img.probe = i)),
+    loadImage("assets/sprites/story-drone.png").then((i) => (img.drone = i)),
+    loadImage("assets/sprites/story-torch.png").then((i) => (img.torch = i)),
     loadImage("assets/sprites/yeet-stick.png").then((i) => (img.stick = i)),
     loadImage("assets/sprites/snowball.png").then((i) => (img.snow = i)),
     loadImage("assets/sprites/dynamite.png").then((i) => (img.dynamite = i)),
