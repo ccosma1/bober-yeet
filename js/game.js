@@ -40,12 +40,12 @@
     bowl: {
       id: "bowl",
       name: "Lodge Bowl",
-      spawn: { lodge: [108, 236, 364], creek: [916, 1044, 1172] },
+      spawn: { lodge: [150, 250, 340], creek: [940, 1040, 1140] },
     },
     ledges: {
       id: "ledges",
       name: "Twin Ledges",
-      spawn: { lodge: [110, 210, 310], creek: [970, 1070, 1170] },
+      spawn: { lodge: [140, 230, 320], creek: [960, 1050, 1140] },
     },
   };
 
@@ -140,6 +140,7 @@
   let mapId = "bowl";
   let shopFrom = "splash";
   let howtoFrom = "splash";
+  let shopOpen = false;
 
   function $(id) {
     return document.getElementById(id);
@@ -256,97 +257,165 @@
     return x * x * (3 - 2 * x);
   }
 
-  function heightAtBowl(x) {
-    const cx = ((x / 5) | 0) * 5;
-    const u = cx / WORLD_W;
-    const left = 358 + 26 * Math.sin(cx * 0.02) + 12 * Math.sin(cx * 0.07);
-    const right = 350 + 30 * Math.sin(cx * 0.017 + 2) + 10 * Math.sin(cx * 0.053);
-    let y = WATER_Y + 24;
-    if (u < 0.44) {
-      const k = smooth(u, 0.015, 0.09) * (1 - smooth(u, 0.34, 0.45));
-      y = WATER_Y + 24 - k * (WATER_Y + 24 - left);
+  function hillPts(keys) {
+    const pts = [];
+    for (let i = 0; i < keys.length - 1; i++) {
+      const a = keys[i];
+      const b = keys[i + 1];
+      const steps = Math.max(4, ((b[0] - a[0]) / 8) | 0);
+      for (let s = 0; s < steps; s++) {
+        const t = s / steps;
+        const tt = t * t * (3 - 2 * t);
+        pts.push({ x: a[0] + (b[0] - a[0]) * tt, y: a[1] + (b[1] - a[1]) * tt });
+      }
     }
-    if (u > 0.56) {
-      const k = smooth(u, 0.55, 0.66) * (1 - smooth(u, 0.91, 0.985));
-      y = WATER_Y + 24 - k * (WATER_Y + 24 - right);
-    }
-    return (y / 4) * 4;
+    pts.push({ x: keys[keys.length - 1][0], y: keys[keys.length - 1][1] });
+    return pts;
   }
 
-  function paintColumn(d, x, y0, y1, snowTop) {
-    const SNOW = [244, 230, 195];
-    const SNOW2 = [255, 248, 230];
-    const ICE = [168, 196, 232];
-    const DIRT = [139, 90, 43];
-    const DIRT2 = [110, 68, 32];
-    const DIRT3 = [84, 52, 28];
-    x = x | 0;
-    y0 = y0 | 0;
-    y1 = y1 | 0;
-    for (let y = y0; y < y1 && y < WORLD_H; y++) {
-      const i = (y * WORLD_W + x) * 4;
-      const depth = y - y0;
-      let c;
-      if (snowTop && depth < 8) c = (x + y) % 7 === 0 ? SNOW2 : SNOW;
-      else if (snowTop && depth < 14) c = ICE;
-      else if (depth < 70) c = (Math.sin(x * 0.18) + Math.sin(y * 0.14) > 0.35) ? DIRT : DIRT2;
-      else c = DIRT3;
-      d[i] = c[0];
-      d[i + 1] = c[1];
-      d[i + 2] = c[2];
-      d[i + 3] = 255;
+  function fillMound(ctx, pts) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, WATER_Y + 24);
+    ctx.lineTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.lineTo(pts[pts.length - 1].x, WATER_Y + 24);
+    ctx.closePath();
+    const topY = pts.reduce((m, p) => Math.min(m, p.y), WORLD_H);
+    const g = ctx.createLinearGradient(0, topY, 0, WATER_Y);
+    g.addColorStop(0, "#d4b896");
+    g.addColorStop(0.08, "#c4a06a");
+    g.addColorStop(0.22, "#a56c38");
+    g.addColorStop(0.55, "#8B5A2B");
+    g.addColorStop(0.82, "#5c3818");
+    g.addColorStop(1, "#3a2410");
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+    for (let y = topY | 0; y < WATER_Y + 8; y += 14) {
+      ctx.fillStyle = ((y / 14) | 0) % 2 ? "rgba(62, 36, 16, 0.22)" : "rgba(212, 176, 120, 0.14)";
+      ctx.fillRect(0, y, WORLD_W, 7);
     }
+    ctx.restore();
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.strokeStyle = "#2a160c";
+    ctx.lineWidth = 5;
+    ctx.lineJoin = "round";
+    ctx.stroke();
   }
 
-  function paintIceSlab(d, x, y0, y1) {
-    const ICE = [168, 196, 232];
-    const ICE2 = [210, 230, 245];
-    const SNOW = [244, 230, 195];
-    x = x | 0;
-    y0 = y0 | 0;
-    y1 = y1 | 0;
-    for (let y = y0; y < y1 && y < WORLD_H; y++) {
-      const i = (y * WORLD_W + x) * 4;
-      const depth = y - y0;
-      let c = depth < 5 ? SNOW : depth % 7 === 0 ? ICE2 : ICE;
-      d[i] = c[0];
-      d[i + 1] = c[1];
-      d[i + 2] = c[2];
-      d[i + 3] = 255;
-    }
+  function snowCap(ctx, pts) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.strokeStyle = "#e8d4a8";
+    ctx.lineWidth = 26;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+    ctx.strokeStyle = "#fff6e0";
+    ctx.lineWidth = 12;
+    ctx.stroke();
+    ctx.strokeStyle = "#fffef8";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+  }
+
+  function drawIceBridge(ctx) {
+    const x0 = 508;
+    const x1 = 772;
+    const deck = 468;
+    const rise = 18;
+    const thick = 24;
+    ctx.beginPath();
+    ctx.moveTo(x0, deck);
+    ctx.quadraticCurveTo((x0 + x1) / 2, deck - rise, x1, deck);
+    ctx.lineTo(x1 + 6, deck + 6);
+    ctx.lineTo(x1, deck + thick);
+    ctx.quadraticCurveTo((x0 + x1) / 2, deck - rise + thick + 6, x0, deck + thick);
+    ctx.lineTo(x0 - 6, deck + 6);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, deck - rise, 0, deck + thick);
+    g.addColorStop(0, "#f7fcff");
+    g.addColorStop(0.35, "#c5e0f0");
+    g.addColorStop(1, "#6a9bb0");
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = "#2a160c";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x0 + 8, deck + 2);
+    ctx.quadraticCurveTo((x0 + x1) / 2, deck - rise + 4, x1 - 8, deck + 2);
+    ctx.strokeStyle = "#fffef8";
+    ctx.lineWidth = 6;
+    ctx.stroke();
   }
 
   function makeTerrain() {
     tctx.clearRect(0, 0, WORLD_W, WORLD_H);
-    const im = tctx.createImageData(WORLD_W, WORLD_H);
-    const d = im.data;
+    tctx.imageSmoothingEnabled = true;
+    tctx.imageSmoothingQuality = "high";
+    tctx.lineJoin = "round";
+    tctx.lineCap = "round";
+    let left;
+    let right;
     if (mapId === "ledges") {
-      for (let x = 0; x < WORLD_W; x++) {
-        const u = x / WORLD_W;
-        const leftH = 272 + 16 * Math.sin(x * 0.02) + 8 * Math.sin(x * 0.07);
-        const rightH = 268 + 18 * Math.sin(x * 0.018 + 1.4);
-        if (u < 0.36) {
-          const k = smooth(u, 0.01, 0.07) * (1 - smooth(u, 0.30, 0.37));
-          if (k > 0.05) paintColumn(d, x, leftH, WORLD_H, true);
-        } else if (u > 0.64) {
-          const k = smooth(u, 0.63, 0.70) * (1 - smooth(u, 0.93, 0.99));
-          if (k > 0.05) paintColumn(d, x, rightH, WORLD_H, true);
-        }
-        if (u > 0.34 && u < 0.66) {
-          const arch = 1 - Math.abs((u - 0.5) / 0.16);
-          if (arch > 0) {
-            const top = (318 - arch * 10) | 0;
-            const thick = 18 + (arch * 6) | 0;
-            paintIceSlab(d, x, top, top + thick);
-          }
-        }
-      }
+      left = hillPts([
+        [0, 560],
+        [36, 500],
+        [80, 448],
+        [140, 428],
+        [220, 422],
+        [310, 426],
+        [390, 438],
+        [460, 478],
+        [510, 530],
+        [548, WATER_Y + 4],
+      ]);
+      right = hillPts([
+        [732, WATER_Y + 4],
+        [770, 530],
+        [820, 478],
+        [890, 438],
+        [970, 426],
+        [1060, 422],
+        [1140, 428],
+        [1200, 448],
+        [1244, 500],
+        [1280, 560],
+      ]);
     } else {
-      for (let x = 0; x < WORLD_W; x++) {
-        paintColumn(d, x, heightAtBowl(x) | 0, WORLD_H, true);
-      }
+      left = hillPts([
+        [0, 580],
+        [40, 520],
+        [90, 470],
+        [160, 442],
+        [250, 432],
+        [340, 438],
+        [420, 470],
+        [490, 540],
+        [540, WATER_Y + 4],
+      ]);
+      right = hillPts([
+        [740, WATER_Y + 4],
+        [790, 540],
+        [860, 470],
+        [940, 438],
+        [1030, 432],
+        [1120, 442],
+        [1190, 470],
+        [1240, 520],
+        [1280, 580],
+      ]);
     }
-    tctx.putImageData(im, 0, 0);
+    fillMound(tctx, left);
+    fillMound(tctx, right);
+    snowCap(tctx, left);
+    snowCap(tctx, right);
+    if (mapId === "ledges") drawIceBridge(tctx);
     uctx.clearRect(0, 0, WORLD_W, WORLD_H);
     uctx.fillStyle = "#1a1028";
     uctx.fillRect(0, 0, WORLD_W, WORLD_H);
@@ -1100,6 +1169,7 @@
       if (toastT <= 0) toastEl.classList.remove("show");
     }
     waveT += dt;
+    if (shopOpen) return;
     if (phase === "cpu") stepCpu(dt);
     if (phase === "fly") stepShot();
     if (fuses.length && phase !== "ending" && phase !== "end") stepFuses(dt);
@@ -1188,32 +1258,7 @@
   }
 
   function fightSpan() {
-    const live = living();
-    let x0 = 70;
-    let x1 = WORLD_W - 70;
-    let y0 = 240;
-    let y1 = WORLD_H;
-    if (live.length) {
-      x0 = WORLD_W;
-      x1 = 0;
-      y0 = WORLD_H;
-      y1 = 0;
-      live.forEach((b) => {
-        x0 = Math.min(x0, b.x);
-        x1 = Math.max(x1, b.x);
-        y0 = Math.min(y0, b.y);
-        y1 = Math.max(y1, b.y);
-      });
-      if (living("lodge").length && living("creek").length) {
-        x0 = Math.min(x0, 90);
-        x1 = Math.max(x1, 1190);
-      }
-      x0 = Math.max(0, x0 - 80);
-      x1 = Math.min(WORLD_W, x1 + 80);
-      y0 = Math.max(0, Math.min(y0, 260) - 50);
-      y1 = WORLD_H;
-    }
-    return { x0, x1, y0, y1, w: Math.max(280, x1 - x0), h: Math.max(300, y1 - y0) };
+    return { x0: 0, x1: WORLD_W, y0: 0, y1: WORLD_H, w: WORLD_W, h: WORLD_H };
   }
 
   function layoutCam() {
@@ -1227,47 +1272,31 @@
       canvas.width = bw;
       canvas.height = bh;
     }
-    const span = fightSpan();
-    const sFit = Math.min(cssW / span.w, cssH / span.h);
-    const sContain = Math.min(cssW / WORLD_W, cssH / WORLD_H);
-    let s;
+    let s = cssW / WORLD_W;
     let tx = 0;
     let ty = 0;
-    let focusX = (span.x0 + span.x1) / 2;
-    let focusY = (span.y0 + span.y1) / 2;
-    const active = getActive();
-    if (shot) {
-      focusX = shot.x;
-      focusY = shot.y;
-    } else if (fuses.length) {
-      focusX = fuses[0].x;
-      focusY = fuses[0].y;
-    } else if (lastBlast && phase === "settle" && settleT < 0.55) {
-      focusX = lastBlast.x;
-      focusY = lastBlast.y;
-    } else if (active) {
-      focusY = active.y - 10;
-    }
-    if (sFit * DRAW_H >= 20) {
-      s = sFit;
-      tx = span.x0 - (cssW / s - span.w) / 2;
-      ty = span.y0 - (cssH / s - span.h) / 2;
+    const visH = cssH / s;
+    if (visH >= WORLD_H) {
+      ty = WORLD_H - visH;
     } else {
-      s = Math.max(sContain, 22 / DRAW_H);
+      s = Math.min(cssW / WORLD_W, cssH / WORLD_H);
       const visW = cssW / s;
-      const visH = cssH / s;
-      tx = visW >= WORLD_W ? (WORLD_W - visW) / 2 : clamp(focusX - visW / 2, 0, WORLD_W - visW);
-      ty = visH >= WORLD_H ? (WORLD_H - visH) / 2 : clamp(focusY - visH * 0.58, 0, WORLD_H - visH);
+      const visH2 = cssH / s;
+      tx = visW >= WORLD_W ? (WORLD_W - visW) / 2 : 0;
+      ty = visH2 >= WORLD_H ? WORLD_H - visH2 : Math.max(0, WORLD_H - visH2);
+    }
+    if (shot) {
+      const visH2 = cssH / s;
+      const want = shot.y - visH2 * 0.28;
+      if (visH2 < WORLD_H) ty = clamp(want, 0, WORLD_H - visH2);
     }
     tx += userPanX;
     const visW = cssW / s;
-    const visH = cssH / s;
+    const viewH = cssH / s;
     const minTx = visW >= WORLD_W ? (WORLD_W - visW) / 2 : 0;
     const maxTx = visW >= WORLD_W ? minTx : WORLD_W - visW;
-    const minTy = visH >= WORLD_H ? (WORLD_H - visH) / 2 : 0;
-    const maxTy = visH >= WORLD_H ? minTy : WORLD_H - visH;
     tx = clamp(tx, minTx, maxTx);
-    ty = clamp(ty, minTy, maxTy);
+    if (viewH < WORLD_H) ty = clamp(ty, 0, WORLD_H - viewH);
     if (!camInit) {
       camS = s;
       camX = tx;
@@ -1380,7 +1409,8 @@
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
-    ctx.clearRect(0, 0, view.cssW, view.cssH);
+    ctx.fillStyle = "#3A2A6A";
+    ctx.fillRect(0, 0, view.cssW, view.cssH);
     ctx.save();
     ctx.translate(-view.camX * view.s, -view.camY * view.s);
     ctx.scale(view.s, view.s);
@@ -1404,13 +1434,18 @@
       ctx.fillRect(w.x, w.y - 7, w.w * clamp(w.hp / 60, 0, 1), 5);
     });
 
-    ctx.fillStyle = "rgba(20, 70, 90, 0.72)";
-    ctx.fillRect(0, WATER_Y, WORLD_W, WORLD_H - WATER_Y);
-    ctx.strokeStyle = "rgba(200, 230, 255, 0.45)";
+    const wg = ctx.createLinearGradient(0, WATER_Y - 8, 0, WORLD_H);
+    wg.addColorStop(0, "rgba(120, 190, 210, 0.35)");
+    wg.addColorStop(0.12, "rgba(40, 110, 130, 0.72)");
+    wg.addColorStop(0.55, "rgba(18, 60, 82, 0.88)");
+    wg.addColorStop(1, "rgba(8, 28, 42, 0.96)");
+    ctx.fillStyle = wg;
+    ctx.fillRect(0, WATER_Y - 6, WORLD_W, WORLD_H - WATER_Y + 6);
+    ctx.strokeStyle = "rgba(220, 245, 255, 0.55)";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    for (let x = 0; x <= WORLD_W; x += 16) {
-      const yy = WATER_Y + Math.sin(x * 0.04 + waveT * 2.4) * 3.5;
+    for (let x = 0; x <= WORLD_W; x += 14) {
+      const yy = WATER_Y + Math.sin(x * 0.035 + waveT * 2.2) * 4;
       if (x === 0) ctx.moveTo(x, yy);
       else ctx.lineTo(x, yy);
     }
@@ -1560,14 +1595,31 @@
 
   function openShop(from) {
     shopFrom = from || "splash";
-    splash.classList.add("hidden");
-    endcard.classList.add("hidden");
+    if (from === "match") {
+      if (phase !== "aim" || turn !== "lodge") {
+        toast("WAIT YOUR TURN", true);
+        return;
+      }
+      shopOpen = true;
+    } else {
+      shopOpen = false;
+      splash.classList.add("hidden");
+      endcard.classList.add("hidden");
+    }
+    const play = $("shop-play");
+    if (play) play.textContent = from === "match" ? "BACK TO FIGHT" : "PLAY";
     hudShop();
     shopEl.classList.remove("hidden");
   }
 
   function closeShop() {
     shopEl.classList.add("hidden");
+    if (shopFrom === "match") {
+      shopOpen = false;
+      hud();
+      return;
+    }
+    shopOpen = false;
     if (shopFrom === "end") endcard.classList.remove("hidden");
     else splash.classList.remove("hidden");
   }
@@ -1601,6 +1653,7 @@
     crates = [];
     fuses = [];
     walls = [];
+    shopOpen = false;
     craterCount = 0;
     lastBlast = null;
     winner = null;
@@ -1777,6 +1830,8 @@
     if (howClose) howClose.addEventListener("click", closeHowTo);
     const btnGear = $("btn-gear");
     if (btnGear) btnGear.addEventListener("click", () => openShop("splash"));
+    const btnShop = $("btn-shop");
+    if (btnShop) btnShop.addEventListener("click", () => openShop("match"));
     $("w-mortar").addEventListener("click", () => {
       if (!setWeapon("mortar")) toast("BUY A CHARGE", true);
     });
@@ -1787,7 +1842,10 @@
     $("buy-sap").addEventListener("click", () => buy("sap"));
     $("buy-mortar").addEventListener("click", () => buy("mortar"));
     $("buy-ice").addEventListener("click", () => buy("ice"));
-    $("shop-play").addEventListener("click", startMatch);
+    $("shop-play").addEventListener("click", () => {
+      if (shopFrom === "match") closeShop();
+      else startMatch();
+    });
     $("shop-back").addEventListener("click", closeShop);
     document.querySelectorAll(".map-card").forEach((el) => {
       el.addEventListener("click", () => setMap(el.getAttribute("data-map")));

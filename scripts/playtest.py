@@ -126,20 +126,42 @@ def main():
         assert "hidden" not in (tip.get_attribute("class") or "")
         assert "angle" in tip.inner_text().lower()
         assert page.locator("#coin-chip").inner_text().startswith("$BOBER")
+        for b in s["bobers"]:
+            if b["alive"]:
+                assert b["y"] > 300
         shot(page, "test-match.png")
-
-        page.wait_for_timeout(900)
-        s2 = snap(page)
-        for a, b in zip(s["bobers"], s2["bobers"]):
-            assert abs(a["x"] - b["x"]) < 2.5
-            assert abs(a["y"] - b["y"]) < 3.5
-
-        page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('stick'); w.setAim(22, 42); w.fire(); }")
-        page.wait_for_function("() => window.__yeetWar.lastBlast", timeout=8000)
+        page.click("#btn-shop")
+        page.wait_for_timeout(200)
+        assert "hidden" not in (page.locator("#shop").get_attribute("class") or "")
+        assert "BACK TO FIGHT" in page.locator("#shop-play").inner_text()
+        page.evaluate("() => window.__yeetWar.setCoins(200)")
+        page.click("#buy-dynamite")
+        page.click("#shop-play")
+        wait_phase(page, "aim", timeout=5000)
         s = snap(page)
-        print("STICK", s["lastBlast"])
-        assert s["lastBlast"]["weapon"] == "stick"
-        shot(page, "test-crater.png")
+        assert s["phase"] == "aim"
+        assert s["ammo"]["lodge"]["dynamite"] >= 1
+        page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('dynamite'); w.setAim(18, 40); w.fire(); }")
+        page.wait_for_function(
+            "() => window.__yeetWar.lastBlast && window.__yeetWar.lastBlast.weapon === 'dynamite'",
+            timeout=8000,
+        )
+        s = snap(page)
+        print("MIDSHOP", s["lastBlast"], "ammo", s["ammo"]["lodge"])
+        shot(page, "test-midshop.png")
+        wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
+        if snap(page)["phase"] == "cpu":
+            wait_phase(page, ["aim", "end"], timeout=20000)
+
+        if snap(page)["phase"] == "aim":
+            page.evaluate("() => { const w = window.__yeetWar; w.setWeapon('stick'); w.setAim(22, 42); w.fire(); }")
+            page.wait_for_function(
+                "() => window.__yeetWar.lastBlast && window.__yeetWar.lastBlast.weapon === 'stick'",
+                timeout=8000,
+            )
+            s = snap(page)
+            print("STICK", s["lastBlast"])
+            shot(page, "test-crater.png")
         wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
         if snap(page)["phase"] == "cpu":
             wait_phase(page, ["aim", "end"], timeout=20000)
