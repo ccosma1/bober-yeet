@@ -134,10 +134,28 @@
       blurb: "Fourteen sting five times, blast 12 each. One charge, forty-eight $BOBER. Short burst, muzzle flash, tracers, recoil kick. Wind tugs each round.",
     },
     {
+      cat: "Gun",
+      title: "Arc Zap",
+      img: "assets/sprites/arc-zap.png",
+      blurb: "Twenty-eight sting, then lightning jumps to the nearest two enemies for fourteen each. One charge, fifty-five $BOBER. Bright bolt, afterglow.",
+    },
+    {
+      cat: "Gun",
+      title: "Ricochet Fang",
+      img: "assets/sprites/ricochet-fang.png",
+      blurb: "Twenty-two sting. Bounces up to three banks, then a spark to the closest Bober in eighty pixels. One charge, forty-two $BOBER.",
+    },
+    {
+      cat: "Gun",
+      title: "Ember Cascade",
+      img: "assets/sprites/ember-cascade.png",
+      blurb: "Eighteen sting, then fire orbs hop bank to bank, up to four hops. One charge, sixty $BOBER. Trail flames.",
+    },
+    {
       cat: "Gear",
       title: "Crates and shop",
       img: "assets/history/crate-gear.jpg",
-      blurb: "Every three turns a crate lands on solid ground. Tap SHOP mid-match to buy charges with $BOBER, including Corkscrew Rocket and Lodge Chaingun. Paid loadout is stronger; Bobers start at 85 HP. Short on coins? The shop says how many more you need.",
+      blurb: "Every three turns a crate lands on solid ground. Both sides start with the same $BOBER bag (about 180) and the same charges. Tap SHOP mid-match for Arc Zap, Ricochet Fang, Ember Cascade, and the rest. Paid loadout is stronger; Bobers start at 85 HP. Short on coins? The shop says how many more you need.",
     },
     {
       cat: "Gear",

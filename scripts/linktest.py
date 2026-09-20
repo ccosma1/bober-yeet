@@ -1,7 +1,7 @@
 """Optional two-page Link Battle smoke (needs PeerJS + network)."""
 from playwright.sync_api import sync_playwright
 
-URL = "http://127.0.0.1:8765/?v=war8"
+URL = "http://127.0.0.1:8765/?v=war9"
 
 
 def snap(page):

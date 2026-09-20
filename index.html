@@ -92,6 +92,18 @@
             <img src="assets/sprites/lodge-chaingun.png" alt="" />
             <span>Lodge Chaingun <small id="ammo-chain">0</small></span>
           </button>
+          <button type="button" class="wep" id="w-zap" data-w="zap">
+            <img src="assets/sprites/arc-zap.png" alt="" />
+            <span>Arc Zap <small id="ammo-zap">0</small></span>
+          </button>
+          <button type="button" class="wep" id="w-fang" data-w="fang">
+            <img src="assets/sprites/ricochet-fang.png" alt="" />
+            <span>Ricochet Fang <small id="ammo-fang">0</small></span>
+          </button>
+          <button type="button" class="wep" id="w-ember" data-w="ember">
+            <img src="assets/sprites/ember-cascade.png" alt="" />
+            <span>Ember Cascade <small id="ammo-ember">0</small></span>
+          </button>
         </div>
         <button type="button" class="tray-chev" id="tray-r" aria-label="Scroll weapons right">▶</button>
       </div>
@@ -209,8 +221,8 @@
         <p>Drag back to set <strong>angle</strong>. Charge <strong>power</strong> 0–100. Read the <strong>wind flag</strong>. Fire.</p>
         <p>Hits dig cover and hurt <strong>HP</strong> (Bobers start at 85). Falloff at the blast edge. Creek, dust, void, methane, or acid below = out. Last beaver standing wins.</p>
         <p><strong>Crates</strong> drop every 3 turns. Walk onto one for gear or $BOBER. Tap <strong>SHOP</strong> mid-match to buy charges. If you are short, the shop says how many more $BOBER you need.</p>
-        <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Each bank has its own scrap. Stick and Snowball stay infinite. Paid guns hit harder. Use the tray <strong>◀ ▶</strong> chevrons (or swipe) to reach Lodge Mortar, Pinecone Cluster, Woodchip Mine, Bark Buckler, Corkscrew Rocket, and Lodge Chaingun. You cannot buy a win.</p>
-        <p>Pick <strong>Easy</strong>, <strong>Normal</strong>, or <strong>Hard</strong>. After turn 12 — or when two Bobers remain — <strong>Sudden Death</strong> raises the hazard every 2 turns. The map reacts: the creek, acid, void, or dust climbs the banks with a rumble and a siren flash.</p>
+        <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Each bank has its own scrap. Stick and Snowball stay infinite. Paid guns hit harder. Use the tray <strong>◀ ▶</strong> chevrons (or swipe) to reach Lodge Mortar, Pinecone Cluster, Woodchip Mine, Bark Buckler, Corkscrew Rocket, Lodge Chaingun, Arc Zap, Ricochet Fang, and Ember Cascade. You cannot buy a win.</p>
+        <p>Pick <strong>Easy</strong>, <strong>Normal</strong>, or <strong>Hard</strong>. Both banks start even: same HP, same $BOBER, same charges. After turn 16 — and only when three or fewer Bobers remain, whichever is later — <strong>Sudden Death</strong> raises the hazard slowly. The map reacts: the creek, acid, void, or dust climbs the banks with a rumble and a siren flash.</p>
         <p><strong>Link Battle:</strong> Host gets a 4-letter room code. Friend taps Join and types it. Same Wi-Fi is best. Finding each other uses a short PeerJS internet hop (STUN, then TURN if needed) — no account, no lobby. Host is Lodge, Join is Creek. Two devices. If you see ICE FAIL, retry Host / Join on the same Wi-Fi.</p>
       </div>
       <button class="play" id="howto-close" type="button">GOT IT</button>
@@ -299,6 +311,33 @@
             <span class="shop-cost">48 $BOBER · owned <b id="shop-chain-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-chain">BUY</button>
+        </div>
+        <div class="shop-row">
+          <img src="assets/sprites/arc-zap.png" alt="" />
+          <div>
+            <strong>Arc Zap</strong>
+            <span>28 dmg · chain 14 × 2 nearest · lightning</span>
+            <span class="shop-cost">55 $BOBER · owned <b id="shop-zap-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-zap">BUY</button>
+        </div>
+        <div class="shop-row">
+          <img src="assets/sprites/ricochet-fang.png" alt="" />
+          <div>
+            <strong>Ricochet Fang</strong>
+            <span>22 dmg · bounce 3 · spark 80px</span>
+            <span class="shop-cost">42 $BOBER · owned <b id="shop-fang-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-fang">BUY</button>
+        </div>
+        <div class="shop-row">
+          <img src="assets/sprites/ember-cascade.png" alt="" />
+          <div>
+            <strong>Ember Cascade</strong>
+            <span>18 dmg · 4 fire hops bank-to-bank</span>
+            <span class="shop-cost">60 $BOBER · owned <b id="shop-ember-n">0</b></span>
+          </div>
+          <button type="button" class="play play-sm" id="buy-ember">BUY</button>
         </div>
       </div>
       <p class="shop-note">Charges only. You cannot buy a win. No wallet.</p>

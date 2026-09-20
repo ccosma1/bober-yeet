@@ -23,7 +23,10 @@
   const BUCK_COST = 26;
   const ROCKET_COST = 50;
   const CHAIN_COST = 48;
-  const START_COINS = 80;
+  const ZAP_COST = 55;
+  const FANG_COST = 42;
+  const EMBER_COST = 60;
+  const START_COINS = 180;
   const CRATE_EVERY = 3;
   const FUSE_SEC = 2;
   const SAP_DOT = 8;
@@ -31,14 +34,16 @@
   const MAP_KEY = "bober-yeet-war-map";
   const DIFF_KEY = "bober-yeet-war-diff";
   const GRANT_KEY = "bober-yeet-war-p2grant";
-  const SD_TURN = 12;
+  const GRANT9_KEY = "bober-yeet-war-p9grant";
+  const SD_TURN = 16;
+  const SD_RISE = 18;
   const DIFFS = {
-    easy: { ang: 0.58, pwr: 30, mortar: 0.05, dyn: 0.07, sap: 0.08, ice: 0.04, pine: 0.06, mine: 0.04, buck: 0.04, rocket: 0.04, chain: 0.04, buy: false, cover: 0.2, lowHp: false, coins: 0 },
-    normal: { ang: 0.22, pwr: 12, mortar: 0.28, dyn: 0.3, sap: 0.22, ice: 0.2, pine: 0.18, mine: 0.16, buck: 0.14, rocket: 0.22, chain: 0.2, buy: true, cover: 0.48, lowHp: false, coins: 60 },
-    hard: { ang: 0.07, pwr: 4, mortar: 0.52, dyn: 0.38, sap: 0.24, ice: 0.34, pine: 0.22, mine: 0.3, buck: 0.3, rocket: 0.4, chain: 0.36, buy: true, cover: 0.4, lowHp: true, coins: 110 },
+    easy: { ang: 0.58, pwr: 30, mortar: 0.05, dyn: 0.07, sap: 0.08, ice: 0.04, pine: 0.06, mine: 0.04, buck: 0.04, rocket: 0.04, chain: 0.04, zap: 0.03, fang: 0.04, ember: 0.03, buy: false, cover: 0.2, lowHp: false, coins: 180 },
+    normal: { ang: 0.22, pwr: 12, mortar: 0.28, dyn: 0.3, sap: 0.22, ice: 0.2, pine: 0.18, mine: 0.16, buck: 0.14, rocket: 0.22, chain: 0.2, zap: 0.2, fang: 0.22, ember: 0.18, buy: true, cover: 0.48, lowHp: false, coins: 180 },
+    hard: { ang: 0.07, pwr: 4, mortar: 0.52, dyn: 0.38, sap: 0.24, ice: 0.34, pine: 0.22, mine: 0.3, buck: 0.3, rocket: 0.4, chain: 0.36, zap: 0.34, fang: 0.32, ember: 0.3, buy: true, cover: 0.4, lowHp: true, coins: 180 },
   };
-  const PAID = ["dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler", "rocket", "chain"];
-  const WEP_IDS = ["stick", "snow", "dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler", "rocket", "chain"];
+  const PAID = ["dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler", "rocket", "chain", "zap", "fang", "ember"];
+  const WEP_IDS = ["stick", "snow", "dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler", "rocket", "chain", "zap", "fang", "ember"];
   const LEDGES_PAD = 140;
   const BOWL_PAD = 80;
 
@@ -54,6 +59,9 @@
     buckler: { id: "buckler", name: "Bark Buckler", dmg: 0, blast: 0, r: 6, cost: BUCK_COST, shield: 35 },
     rocket: { id: "rocket", name: "Corkscrew Rocket", dmg: 55, blast: 46, r: 10, cost: ROCKET_COST, twist: true },
     chain: { id: "chain", name: "Lodge Chaingun", dmg: 14, blast: 12, r: 5, cost: CHAIN_COST, burst: 5 },
+    zap: { id: "zap", name: "Arc Zap", dmg: 28, blast: 26, r: 8, cost: ZAP_COST, zap: 2, zapDmg: 14, zapRange: 160 },
+    fang: { id: "fang", name: "Ricochet Fang", dmg: 22, blast: 20, r: 7, cost: FANG_COST, bounce: 3, spark: 80, sparkDmg: 12 },
+    ember: { id: "ember", name: "Ember Cascade", dmg: 18, blast: 22, r: 8, cost: EMBER_COST, hops: 4 },
   };
 
   const MAPS = {
@@ -121,7 +129,7 @@
     methane: {
       id: "methane",
       name: "Methane Shelf",
-      spawn: { lodge: [140, 230, 320], creek: [980, 1080, 1180] },
+      spawn: { lodge: [140, 230, 320], creek: [960, 1050, 1140] },
       pad: 130,
       plate: "methane",
       sky: "skyUranus",
@@ -136,7 +144,7 @@
     acid: {
       id: "acid",
       name: "Acid Vents",
-      spawn: { lodge: [120, 200, 320], creek: [960, 1100, 1200] },
+      spawn: { lodge: [120, 200, 320], creek: [960, 1080, 1160] },
       pad: 80,
       plate: "acid",
       sky: "skyVenus",
@@ -151,7 +159,7 @@
     ring: {
       id: "ring",
       name: "Ring Span",
-      spawn: { lodge: [80, 160, 240], creek: [1000, 1100, 1180] },
+      spawn: { lodge: [100, 180, 260], creek: [1020, 1100, 1180] },
       pad: 70,
       plate: "ring",
       sky: "skySaturn",
@@ -166,7 +174,7 @@
     pack: {
       id: "pack",
       name: "Deep Pack",
-      spawn: { lodge: [80, 160, 280], creek: [960, 1100, 1200] },
+      spawn: { lodge: [100, 180, 280], creek: [1000, 1100, 1180] },
       pad: 90,
       plate: "pack",
       sky: "skyNeptune",
@@ -181,7 +189,7 @@
     frost: {
       id: "frost",
       name: "Frost Pit",
-      spawn: { lodge: [80, 160, 240], creek: [1000, 1100, 1200] },
+      spawn: { lodge: [100, 180, 260], creek: [1020, 1100, 1180] },
       pad: 40,
       plate: "frost",
       sky: "skyPluto",
@@ -196,7 +204,7 @@
     dock: {
       id: "dock",
       name: "Dock Notch",
-      spawn: { lodge: [160, 220, 280], creek: [980, 1080, 1160] },
+      spawn: { lodge: [160, 220, 280], creek: [1000, 1060, 1120] },
       pad: 40,
       plate: "dock",
       sky: "skyAsteroid",
@@ -301,8 +309,8 @@
   let coins = 0;
   let matchCoins = 0;
   let ammo = {
-    lodge: { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0, rocket: 0, chain: 0 },
-    creek: { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0, rocket: 0, chain: 0 },
+    lodge: { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0, rocket: 0, chain: 0, zap: 0, fang: 0, ember: 0 },
+    creek: { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0, rocket: 0, chain: 0, zap: 0, fang: 0, ember: 0 },
   };
   let crates = [];
   let fuses = [];
@@ -331,6 +339,7 @@
   let flashes = [];
   let trails = [];
   let gunBurst = null;
+  let bolts = [];
   let sdFlash = 0;
   let storyT = 0;
 
@@ -371,7 +380,15 @@
   }
 
   function emptyAmmo() {
-    return { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0, rocket: 0, chain: 0 };
+    return { dynamite: 0, sap: 0, mortar: 0, ice: 0, pine: 0, mine: 0, buckler: 0, rocket: 0, chain: 0, zap: 0, fang: 0, ember: 0 };
+  }
+
+  function copyAmmo(src) {
+    const out = emptyAmmo();
+    PAID.forEach((id) => {
+      out[id] = Math.max(0, (src && src[id]) | 0);
+    });
+    return out;
   }
 
   function loadCoins() {
@@ -380,6 +397,10 @@
     if (!localStorage.getItem(GRANT_KEY)) {
       coins = Math.max(coins, START_COINS);
       localStorage.setItem(GRANT_KEY, "1");
+    }
+    if (!localStorage.getItem(GRANT9_KEY)) {
+      coins = Math.max(coins, START_COINS);
+      localStorage.setItem(GRANT9_KEY, "1");
     }
     try {
       const raw = JSON.parse(localStorage.getItem(AMMO_KEY) || "{}");
@@ -406,6 +427,9 @@
       buckler: ammo.lodge.buckler,
       rocket: ammo.lodge.rocket,
       chain: ammo.lodge.chain,
+      zap: ammo.lodge.zap,
+      fang: ammo.lodge.fang,
+      ember: ammo.lodge.ember,
     }));
     localStorage.setItem(MAP_KEY, mapId);
     localStorage.setItem(DIFF_KEY, diff);
@@ -727,6 +751,48 @@
     uctx.drawImage(terrain, 0, 0);
     uctx.globalCompositeOperation = "source-over";
     rebuildMask();
+    fairPads();
+  }
+
+  function stampPad(x, topY) {
+    const hw = 54;
+    const bot = Math.min(WORLD_H - 2, (spec().hazardY || WATER_Y) + 8);
+    tctx.save();
+    tctx.fillStyle = spec().under || "#8B5A2B";
+    tctx.beginPath();
+    tctx.moveTo(x - hw, bot);
+    tctx.lineTo(x - hw + 8, topY);
+    tctx.lineTo(x + hw - 8, topY);
+    tctx.lineTo(x + hw, bot);
+    tctx.closePath();
+    tctx.fill();
+    if (spec().sky === "skyEarth" || spec().id === "frost") {
+      tctx.fillStyle = spec().id === "frost" ? "#e8f0ff" : "#fff6e0";
+      tctx.fillRect(x - hw + 8, topY - 4, (hw - 8) * 2, 7);
+    }
+    tctx.restore();
+  }
+
+  function fairPads() {
+    const s = spec();
+    const lx = s.spawn.lodge;
+    const rx = s.spawn.creek;
+    for (let i = 0; i < Math.min(lx.length, rx.length); i++) {
+      const yL = surfaceY(lx[i]);
+      const yC = surfaceY(rx[i]);
+      const cap = (s.hazardY == null ? WATER_Y : s.hazardY) - 180;
+      let fair = Math.min(yL, yC);
+      if (fair > cap) fair = cap;
+      stampPad(lx[i], fair);
+      stampPad(rx[i], fair);
+    }
+    rebuildMask();
+    uctx.clearRect(0, 0, WORLD_W, WORLD_H);
+    uctx.fillStyle = spec().under || "#4a2810";
+    uctx.fillRect(0, 0, WORLD_W, WORLD_H);
+    uctx.globalCompositeOperation = "destination-in";
+    uctx.drawImage(terrain, 0, 0);
+    uctx.globalCompositeOperation = "source-over";
   }
 
   function surfaceY(x) {
@@ -958,6 +1024,9 @@
       ["shop-buck-n", "buckler", "buy-buckler", BUCK_COST],
       ["shop-rocket-n", "rocket", "buy-rocket", ROCKET_COST],
       ["shop-chain-n", "chain", "buy-chain", CHAIN_COST],
+      ["shop-zap-n", "zap", "buy-zap", ZAP_COST],
+      ["shop-fang-n", "fang", "buy-fang", FANG_COST],
+      ["shop-ember-n", "ember", "buy-ember", EMBER_COST],
     ];
     ids.forEach((row) => {
       const nEl = $(row[0]);
@@ -1031,12 +1100,12 @@
   }
 
   function rollCrateKind() {
-    const bag = ["dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler", "rocket", "chain", "coin", "dynamite", "ice"];
+    const bag = ["dynamite", "sap", "mortar", "ice", "pine", "mine", "buckler", "rocket", "chain", "zap", "fang", "ember", "coin", "dynamite", "ice"];
     return bag[(Math.random() * bag.length) | 0];
   }
 
   function spawnCrate(kind, x) {
-    const kinds = ["dynamite", "sap", "coin", "mortar", "ice", "pine", "mine", "buckler", "rocket", "chain"];
+    const kinds = ["dynamite", "sap", "coin", "mortar", "ice", "pine", "mine", "buckler", "rocket", "chain", "zap", "fang", "ember"];
     const k = kind && kinds.indexOf(kind) >= 0 ? kind : rollCrateKind();
     let cx = x;
     if (cx == null) {
@@ -1087,6 +1156,9 @@
           buckler: "BUCKLER +1",
           rocket: "ROCKET +1",
           chain: "CHAIN +1",
+          zap: "ZAP +1",
+          fang: "FANG +1",
+          ember: "EMBER +1",
         };
         pop(c.x, c.y, tag[c.kind] || "+1", "#ffe566");
       }
@@ -1131,9 +1203,9 @@
     netPush(true);
   }
 
-  function tickSuddenDeath() {
-    const twoLeft = living().length <= 2;
-    if (!sudden && (turnN >= SD_TURN || twoLeft)) {
+  function tickSuddenDeath(force) {
+    const few = living().length <= 3;
+    if (!sudden && (force || (turnN >= SD_TURN && few))) {
       sudden = true;
       sdTickAt = turnN;
       toast("SUDDEN DEATH");
@@ -1149,9 +1221,9 @@
   }
 
   function riseSudden() {
-    sdRise += 32;
+    sdRise += SD_RISE;
     sdFlash = 1;
-    boomShake(48);
+    boomShake(36);
     shrinkMidTerrain();
     const hy = hazardY();
     burst(WORLD_W / 2, hy - 20, spec().hazard === "acid" || spec().hazard === "dust" ? "fire" : "dirt");
@@ -1170,7 +1242,7 @@
 
   function shrinkMidTerrain() {
     const hy = hazardY();
-    const r = 48 + Math.min(56, sdRise * 0.28);
+    const r = 28 + Math.min(36, sdRise * 0.16);
     carve(WORLD_W / 2, hy - 36, r);
   }
 
@@ -1351,7 +1423,7 @@
     maybeEnd();
   }
 
-  function explode(x, y, wpnId, fromTeam) {
+  function explode(x, y, wpnId, fromTeam, src) {
     const wpn = WEAPONS[wpnId] || WEAPONS.stick;
     const r = wpn.blast;
     const dmgMax = wpn.dmg;
@@ -1361,11 +1433,22 @@
         ? "snow"
         : wpn.id === "sap"
           ? "sap"
-          : wpn.id === "mine" || wpn.id === "dynamite" || wpn.id === "rocket"
+          : wpn.id === "mine" || wpn.id === "dynamite" || wpn.id === "rocket" || wpn.id === "ember"
             ? "fire"
-            : "dirt";
+            : wpn.id === "zap"
+              ? "snow"
+              : "dirt";
     burst(x, y, fx);
-    flash(x, y, r * 1.15, wpn.id === "mine" || wpn.id === "rocket" || wpn.id === "dynamite" ? "#ff9a3a" : "#ffe566");
+    flash(
+      x,
+      y,
+      r * 1.15,
+      wpn.id === "zap"
+        ? "#9ae8ff"
+        : wpn.id === "ember" || wpn.id === "mine" || wpn.id === "rocket" || wpn.id === "dynamite"
+          ? "#ff9a3a"
+          : "#ffe566"
+    );
     boomShake(r);
     BoberSfx.boom();
     const hits = [];
@@ -1405,6 +1488,13 @@
       }
     });
     lastBlast = { x, y, r, dmg: dmgMax, weapon: wpn.id, hits };
+    const seen = ((src && src.seen) || []).concat(hits.map((h) => h.id));
+    if (wpn.id === "zap") zapJump(x, y, fromTeam, seen);
+    if (wpn.id === "fang") fangSpark(x, y, fromTeam, seen);
+    if (wpn.id === "ember") {
+      const hopsLeft = src && src.hop != null ? src.hop : wpn.hops;
+      emberHop(x, y, fromTeam, hopsLeft, seen);
+    }
     if (shot && Math.hypot(shot.x - x, shot.y - y) < 22) shot = null;
     const bursting = gunBurst && gunBurst.n > 0;
     if (!shot && pellets.length === 0 && !bursting) {
@@ -1415,6 +1505,93 @@
     }
     hud();
     maybeEnd();
+  }
+
+  function applyDirectDmg(b, dmg, fromTeam, popColor) {
+    if (!b || !b.alive || dmg <= 0) return 0;
+    if (b.shield > 0) {
+      const abs = Math.min(b.shield, dmg);
+      b.shield -= abs;
+      dmg -= abs;
+      pop(b.x, b.y - 40, "SHIELD -" + abs, "#c8a060");
+    }
+    if (dmg <= 0) return 0;
+    b.hp -= dmg;
+    pop(b.x, b.y - 28, "-" + dmg, popColor || "#9ae8ff");
+    BoberSfx.hurt();
+    b.flinch = Math.max(b.flinch || 0, 0.35);
+    if (fromTeam === "lodge") addCoins(Math.max(1, Math.floor(dmg / 5)));
+    if (b.hp <= 0) {
+      if (fromTeam === "lodge") addCoins(8);
+      kill(b);
+    }
+    return dmg;
+  }
+
+  function addBolt(x0, y0, x1, y1, color) {
+    const pts = [{ x: x0, y: y0 }];
+    const n = 7;
+    for (let i = 1; i < n; i++) {
+      const t = i / n;
+      pts.push({
+        x: x0 + (x1 - x0) * t + (Math.random() - 0.5) * 22,
+        y: y0 + (y1 - y0) * t + (Math.random() - 0.5) * 22,
+      });
+    }
+    pts.push({ x: x1, y: y1 });
+    bolts.push({ pts, color: color || "#9ae8ff", t: 0.45 });
+  }
+
+  function zapJump(x, y, team, already) {
+    const seen = already || [];
+    const foes = living().filter((b) => b.team !== team && seen.indexOf(b.id) < 0);
+    foes.sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
+    foes.slice(0, 2).forEach((b) => {
+      if (Math.hypot(b.x - x, b.y - y) > 160) return;
+      addBolt(x, y, b.x, b.y, "#9ae8ff");
+      flash(b.x, b.y, 22, "#c8f6ff");
+      applyDirectDmg(b, 14, team, "#9ae8ff");
+    });
+  }
+
+  function fangSpark(x, y, team, already) {
+    const seen = already || [];
+    const foes = living().filter((b) => seen.indexOf(b.id) < 0);
+    foes.sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
+    const b = foes[0];
+    if (!b || Math.hypot(b.x - x, b.y - y) > 80) return;
+    addBolt(x, y, b.x, b.y, "#ffe566");
+    flash(b.x, b.y, 16, "#ffe566");
+    applyDirectDmg(b, 12, team, "#ffe566");
+  }
+
+  function emberHop(x, y, team, hops, seen) {
+    if (!hops) return;
+    const used = seen || [];
+    const next = living()
+      .filter((b) => used.indexOf(b.id) < 0)
+      .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
+    if (!next || Math.hypot(next.x - x, next.y - y) > 340) return;
+    const dx = next.x - x;
+    const dy = next.y - y;
+    const d = Math.hypot(dx, dy) || 1;
+    pellets.push({
+      x,
+      y,
+      vx: (dx / d) * 7.5,
+      vy: (dy / d) * 7.5,
+      grav: 0,
+      r: 8,
+      weapon: "ember",
+      owner: -1,
+      team,
+      age: 8,
+      hop: hops - 1,
+      seen: used.slice(),
+      target: next.id,
+      homing: true,
+    });
+    phase = "fly";
   }
 
   function plantFuse(x, y, wpnId, team) {
@@ -1456,12 +1633,23 @@
       phase = "settle";
       settleT = 0.2;
       hud();
-    } else explode(x, y, s.weapon, s.team);
+    } else explode(x, y, s.weapon, s.team, s);
     if (s !== shot && pellets.indexOf(s) >= 0) pellets.splice(pellets.indexOf(s), 1);
   }
 
   function flyOne(s, isMain) {
-    s.vx += wind * WIND_K;
+    if (s.homing && s.target != null) {
+      const tgt = bobers.find((b) => b.id === s.target && b.alive);
+      if (tgt) {
+        const dx = tgt.x - s.x;
+        const dy = tgt.y - s.y;
+        const d = Math.hypot(dx, dy) || 1;
+        s.vx = (dx / d) * 8;
+        s.vy = (dy / d) * 8;
+        s.grav = 0;
+      }
+    }
+    s.vx += wind * WIND_K * (s.homing ? 0.25 : 1);
     s.vy += s.grav || GRAV;
     const steps = Math.max(1, Math.ceil(Math.hypot(s.vx, s.vy) / 4));
     for (let i = 0; i < steps; i++) {
@@ -1480,8 +1668,17 @@
       const hx = s.x + (s.ox || 0);
       const hy = s.y + (s.oy || 0);
       if (i === 0) {
-        trailAt(hx, hy, s.weapon === "rocket" ? "smoke" : s.weapon === "chain" ? "tracer" : "puff");
+        trailAt(
+          hx,
+          hy,
+          s.weapon === "rocket" || s.weapon === "ember"
+            ? "smoke"
+            : s.weapon === "chain" || s.weapon === "zap" || s.weapon === "fang"
+              ? "tracer"
+              : "puff"
+        );
         if (s.weapon === "rocket") trailAt(s.x, s.y, "smoke");
+        if (s.weapon === "ember") trailAt(hx, hy - 6, "smoke");
       }
       if (s.weapon === "pine" && !s.split && s.vy > 0 && s.age > 10) {
         splitPine(s);
@@ -1501,6 +1698,22 @@
         return "dead";
       }
       if (solid(hx, hy)) {
+        if (s.weapon === "fang" && (s.bounces || 0) < 3) {
+          s.bounces = (s.bounces || 0) + 1;
+          const hitX = solid(hx + Math.sign(s.vx) * 4, hy);
+          const hitY = solid(hx, hy + Math.sign(s.vy) * 4);
+          if (hitX) s.vx *= -0.94;
+          if (hitY) s.vy *= -0.94;
+          if (!hitX && !hitY) {
+            s.vx *= -0.9;
+            s.vy *= -0.9;
+          }
+          s.x += s.vx * 0.55;
+          s.y += s.vy * 0.55;
+          flash(hx, hy, 14, "#ffe566");
+          trailAt(hx, hy, "tracer");
+          continue;
+        }
         onShotHit(hx, hy, s);
         return "hit";
       }
@@ -1766,7 +1979,7 @@
     if (phase === "end" || phase === "splash" || phase === "ending") return false;
     const who = checkWin();
     if (!who) {
-      if (!sudden && living().length <= 2) tickSuddenDeath();
+      if (!sudden && living().length <= 3 && turnN >= SD_TURN) tickSuddenDeath();
       return false;
     }
     phase = "ending";
@@ -1864,6 +2077,9 @@
     if (has("ice") && Math.random() < d.ice) return "ice";
     if (has("rocket") && Math.random() < (d.rocket || 0)) return "rocket";
     if (has("chain") && Math.random() < (d.chain || 0)) return "chain";
+    if (has("zap") && Math.random() < (d.zap || 0)) return "zap";
+    if (has("fang") && Math.random() < (d.fang || 0)) return "fang";
+    if (has("ember") && Math.random() < (d.ember || 0)) return "ember";
     if (has("mortar") && Math.random() < d.mortar) return "mortar";
     if (has("dynamite") && Math.random() < d.dyn) return "dynamite";
     if (has("sap") && Math.random() < d.sap) return "sap";
@@ -1877,8 +2093,8 @@
     const d = diffSpec();
     if (!d.buy) return;
     const order = d.lowHp
-      ? ["rocket", "chain", "mortar", "ice", "mine", "buckler", "dynamite", "pine", "sap"]
-      : ["dynamite", "rocket", "chain", "mortar", "sap", "ice", "pine", "mine", "buckler"];
+      ? ["zap", "ember", "rocket", "chain", "fang", "mortar", "ice", "mine", "buckler", "dynamite", "pine", "sap"]
+      : ["dynamite", "zap", "fang", "ember", "rocket", "chain", "mortar", "sap", "ice", "pine", "mine", "buckler"];
     order.forEach((id) => {
       const wpn = WEAPONS[id];
       if (!wpn || !wpn.cost) return;
@@ -1953,6 +2169,10 @@
     for (let i = flashes.length - 1; i >= 0; i--) {
       flashes[i].t -= dt;
       if (flashes[i].t <= 0) flashes.splice(i, 1);
+    }
+    for (let i = bolts.length - 1; i >= 0; i--) {
+      bolts[i].t -= dt;
+      if (bolts[i].t <= 0) bolts.splice(i, 1);
     }
     for (let i = bits.length - 1; i >= 0; i--) {
       const p = bits[i];
@@ -2484,6 +2704,9 @@
     if (id === "buckler") return img.buckler;
     if (id === "rocket") return img.rocket;
     if (id === "chain") return img.chain;
+    if (id === "zap") return img.zap;
+    if (id === "fang") return img.fang;
+    if (id === "ember") return img.ember;
     return img.stick;
   }
 
@@ -2701,7 +2924,7 @@
       ctx.save();
       ctx.translate(px, py);
       ctx.rotate(rot);
-      const sz = p.weapon === "rocket" ? 26 : p.weapon === "chain" ? 12 : 16;
+      const sz = p.weapon === "rocket" ? 26 : p.weapon === "ember" ? 18 : p.weapon === "zap" || p.weapon === "fang" ? 18 : p.weapon === "chain" ? 12 : 16;
       if (spr) ctx.drawImage(spr, -sz, -sz, sz * 2, sz * 2);
       else {
         ctx.fillStyle = p.weapon === "chain" ? "#ffe566" : "#F4E6C3";
@@ -2713,6 +2936,27 @@
     }
     if (shot) drawProj(shot);
     pellets.forEach(drawProj);
+    bolts.forEach((b) => {
+      ctx.save();
+      ctx.globalAlpha = clamp(b.t * 3, 0, 1);
+      ctx.strokeStyle = b.color || "#9ae8ff";
+      ctx.lineWidth = 7;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.shadowColor = b.color || "#9ae8ff";
+      ctx.shadowBlur = 18;
+      ctx.beginPath();
+      (b.pts || []).forEach((p, i) => {
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.stroke();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#fffef8";
+      ctx.shadowBlur = 0;
+      ctx.stroke();
+      ctx.restore();
+    });
 
     bits.forEach((p) => {
       ctx.save();
@@ -2877,6 +3121,7 @@
     pops.length = 0;
     flashes.length = 0;
     trails.length = 0;
+    bolts.length = 0;
     gunBurst = null;
     shake = 0;
     shot = null;
@@ -2894,13 +3139,23 @@
     sdFlash = 0;
     storyT = 2.6;
     syncStoryLine();
+    coins = Math.max(coins, START_COINS);
     if (isLink() && guestBag) {
-      cpuCoins = guestBag.coins | 0;
-      ammo.creek = guestBag.ammo || emptyAmmo();
+      const purse = Math.max(START_COINS, coins, guestBag.coins | 0);
+      coins = purse;
+      cpuCoins = purse;
+      ammo.lodge = copyAmmo(ammo.lodge);
+      ammo.creek = copyAmmo(guestBag.ammo || ammo.lodge);
+      PAID.forEach((id) => {
+        const n = Math.max(ammo.lodge[id] | 0, ammo.creek[id] | 0);
+        ammo.lodge[id] = n;
+        ammo.creek[id] = n;
+      });
     } else {
-      cpuCoins = diffSpec().coins;
-      ammo.creek = emptyAmmo();
+      cpuCoins = coins;
+      ammo.creek = copyAmmo(ammo.lodge);
     }
+    saveCoins();
     weapon = "stick";
     setWeapon("stick");
     hudTop.classList.add("live");
@@ -3096,6 +3351,7 @@
       mines: mines.map((m) => ({ x: m.x, y: m.y, armed: m.armed, bornTurn: m.bornTurn, team: m.team })),
       shot: shot ? { ...shot } : null,
       pellets: pellets.map((p) => ({ ...p })),
+      bolts: bolts.map((b) => ({ pts: (b.pts || []).map((p) => ({ x: p.x, y: p.y })), color: b.color, t: b.t })),
       gunBurst: gunBurst ? { ...gunBurst } : null,
       carveN,
       lastCarve: carveLog.length ? carveLog[carveLog.length - 1] : null,
@@ -3145,6 +3401,7 @@
     mines = (s.mines || []).map((m) => ({ ...m }));
     shot = s.shot ? { ...s.shot } : null;
     pellets = (s.pellets || []).map((p) => ({ ...p }));
+    if (s.bolts) bolts = s.bolts.map((b) => ({ pts: (b.pts || []).map((p) => ({ x: p.x, y: p.y })), color: b.color, t: b.t }));
     gunBurst = s.gunBurst ? { ...s.gunBurst } : null;
     if (s.lastCarve && s.carveN > carveN) {
       const lc = s.lastCarve;
@@ -3432,6 +3689,15 @@
     $("w-chain").addEventListener("click", () => {
       if (!setWeapon("chain")) toast("BUY A CHARGE", true);
     });
+    $("w-zap").addEventListener("click", () => {
+      if (!setWeapon("zap")) toast("BUY A CHARGE", true);
+    });
+    $("w-fang").addEventListener("click", () => {
+      if (!setWeapon("fang")) toast("BUY A CHARGE", true);
+    });
+    $("w-ember").addEventListener("click", () => {
+      if (!setWeapon("ember")) toast("BUY A CHARGE", true);
+    });
     $("buy-dynamite").addEventListener("click", () => buy("dynamite"));
     $("buy-sap").addEventListener("click", () => buy("sap"));
     $("buy-mortar").addEventListener("click", () => buy("mortar"));
@@ -3441,6 +3707,9 @@
     $("buy-buckler").addEventListener("click", () => buy("buckler"));
     $("buy-rocket").addEventListener("click", () => buy("rocket"));
     $("buy-chain").addEventListener("click", () => buy("chain"));
+    $("buy-zap").addEventListener("click", () => buy("zap"));
+    $("buy-fang").addEventListener("click", () => buy("fang"));
+    $("buy-ember").addEventListener("click", () => buy("ember"));
     $("shop-play").addEventListener("click", () => {
       if (shopFrom === "match") closeShop();
       else startMatch();
@@ -3571,6 +3840,9 @@
       if (ev.key === "9") setWeapon("buckler");
       if (ev.key === "0") setWeapon("rocket");
       if (ev.key === "-" || ev.key === "c" || ev.key === "C") setWeapon("chain");
+      if (ev.key === "z" || ev.key === "Z") setWeapon("zap");
+      if (ev.key === "f" || ev.key === "F") setWeapon("fang");
+      if (ev.key === "e" || ev.key === "E") setWeapon("ember");
       if (ev.key === " " || ev.key === "Enter") {
         ev.preventDefault();
         tryFire();
@@ -3677,7 +3949,7 @@
     hazardY,
     forceSudden() {
       turnN = Math.max(turnN, SD_TURN);
-      tickSuddenDeath();
+      tickSuddenDeath(true);
       hud();
     },
     setTurnN(n) {
@@ -3733,6 +4005,9 @@
     loadImage("assets/sprites/bark-buckler.png").then((i) => (img.buckler = i)),
     loadImage("assets/sprites/corkscrew-rocket.png").then((i) => (img.rocket = i)),
     loadImage("assets/sprites/lodge-chaingun.png").then((i) => (img.chain = i)),
+    loadImage("assets/sprites/arc-zap.png").then((i) => (img.zap = i)),
+    loadImage("assets/sprites/ricochet-fang.png").then((i) => (img.fang = i)),
+    loadImage("assets/sprites/ember-cascade.png").then((i) => (img.ember = i)),
     loadImage("assets/sprites/crate.png").then((i) => (img.crate = i)),
     loadImage("assets/sprites/stage-sky.jpg").then((i) => (img.skyEarth = i)),
     loadImage("assets/sprites/sky-mars.jpg").then((i) => (img.skyMars = i)),

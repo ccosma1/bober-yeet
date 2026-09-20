@@ -59,6 +59,13 @@ def main() -> int:
     must(html, "Bark Buckler", "index.html")
     must(html, "Corkscrew Rocket", "index.html")
     must(html, "Lodge Chaingun", "index.html")
+    must(html, "Arc Zap", "index.html")
+    must(html, "Ricochet Fang", "index.html")
+    must(html, "Ember Cascade", "index.html")
+    must(html, "55 $BOBER", "index.html")
+    must(html, "42 $BOBER", "index.html")
+    must(html, "60 $BOBER", "index.html")
+    must(html, "turn 16", "index.html")
     must(html, 'id="w-rocket"', "index.html")
     must(html, 'id="w-chain"', "index.html")
     must(html, 'id="buy-rocket"', "index.html")
@@ -151,7 +158,7 @@ def main() -> int:
     must(game, "const PINE_COST = 40", "game.js")
     must(game, "const MINE_COST = 32", "game.js")
     must(game, "const BUCK_COST = 26", "game.js")
-    must(game, "const START_COINS = 80", "game.js")
+    must(game, "const START_COINS = 180", "game.js")
     must(game, 'id: "ledges"', "game.js")
     must(game, 'id: "mesa"', "game.js")
     must(game, 'id: "crater"', "game.js")
@@ -167,7 +174,15 @@ def main() -> int:
     must(game, "lodge: [140, 230, 320]", "game.js")
     must(game, 'openShop("match")', "game.js")
     must(game, "function shopAllowed(", "game.js")
-    must(game, "const SD_TURN = 12", "game.js")
+    must(game, "const SD_TURN = 16", "game.js")
+    must(game, "const SD_RISE = 18", "game.js")
+    must(game, "function fairPads(", "game.js")
+    must(game, "function zapJump(", "game.js")
+    must(game, "function fangSpark(", "game.js")
+    must(game, "function emberHop(", "game.js")
+    must(game, 'name: "Arc Zap"', "game.js")
+    must(game, 'name: "Ricochet Fang"', "game.js")
+    must(game, 'name: "Ember Cascade"', "game.js")
     must(game, "function tickSuddenDeath(", "game.js")
     must(game, "function drawStory(", "game.js")
     must(game, "function drawSdScreen(", "game.js")
@@ -260,6 +275,9 @@ def main() -> int:
     must(lore, "Bark Buckler", "lore.js")
     must(lore, "Corkscrew Rocket", "lore.js")
     must(lore, "Lodge Chaingun", "lore.js")
+    must(lore, "Arc Zap", "lore.js")
+    must(lore, "Ricochet Fang", "lore.js")
+    must(lore, "Ember Cascade", "lore.js")
     must(lore, "Link Battle", "lore.js")
     must(lore, "room code", "lore.js")
     must(lore, "assets/history/twin-ledges.jpg", "lore.js")
@@ -271,6 +289,9 @@ def main() -> int:
     must(readme, "Link Battle", "README.md")
     must(readme, "Corkscrew Rocket", "README.md")
     must(readme, "Lodge Chaingun", "README.md")
+    must(readme, "Arc Zap", "README.md")
+    must(readme, "Ricochet Fang", "README.md")
+    must(readme, "Ember Cascade", "README.md")
     must(readme, "own scrap", "README.md")
     must(html, "js/net.js", "index.html")
 
@@ -305,6 +326,9 @@ def main() -> int:
         "assets/sprites/bark-buckler.png",
         "assets/sprites/corkscrew-rocket.png",
         "assets/sprites/lodge-chaingun.png",
+        "assets/sprites/arc-zap.png",
+        "assets/sprites/ricochet-fang.png",
+        "assets/sprites/ember-cascade.png",
         "assets/sprites/crate.png",
         "assets/sprites/splash-hero.png",
         "assets/sprites/bober-idle.png",
