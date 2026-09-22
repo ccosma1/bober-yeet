@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "ref"
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:8765/?v=war11"
+URL = "http://127.0.0.1:8765/?v=war12"
 
 
 def shot(page, name):
@@ -244,7 +244,10 @@ def main():
         assert "Ricochet Fang" in how
         assert "Ember Cascade" in how
         assert "turn 16" in how
-        assert "85" in how
+        assert "turn 14" in how
+        assert "80" in how
+        assert "Walk left" in how
+        assert "same Wi-Fi not required" in how
         assert "Red Mesa" in how
         assert "Sudden Death" in how
         assert "own scrap" in how
@@ -273,6 +276,23 @@ def main():
         page.click("#museum-close")
 
         page.evaluate("() => localStorage.setItem('bober-yeet-war-tut', '1')")
+        sd_rows = page.evaluate(
+            """() => {
+              const w = window.__yeetWar;
+              return Object.keys(w.MAPS).map((id) => {
+                w.setMap(id);
+                return Object.assign({ id: id }, w.mapSd());
+              });
+            }"""
+        )
+        print("SD MAPS", sd_rows)
+        by_sd = {r["id"]: r for r in sd_rows}
+        for row in sd_rows:
+            assert row["turn"] >= 14, row
+            assert row["late"] > row["turn"], row
+        assert by_sd["bowl"]["rise"] < by_sd["ledges"]["rise"]
+        assert by_sd["methane"]["rise"] < by_sd["mesa"]["rise"]
+        assert by_sd["bowl"]["turn"] > by_sd["mesa"]["turn"]
         page.evaluate("() => window.__yeetWar.setMap('ledges')")
         page.click("#btn-play")
         wait_phase(page, "aim", timeout=10000)
@@ -283,11 +303,11 @@ def main():
         assert s["phase"] == "aim"
         assert s["mapId"] == "ledges"
         assert "Jet duel" in (s.get("story") or "")
-        page.evaluate("() => window.__yeetWar.setHp(0, 28)")
+        page.evaluate("() => window.__yeetWar.setHp(0, 20)")
         assert snap(page)["bobers"][0]["hurt"] == "low"
         page.evaluate("() => window.__yeetWar.setHp(0, 8)")
         assert snap(page)["bobers"][0]["hurt"] == "kneel"
-        page.evaluate("() => window.__yeetWar.setHp(0, 85)")
+        page.evaluate("() => window.__yeetWar.setHp(0, 80)")
         assert snap(page)["bobers"][0]["hurt"] == "high"
         page.evaluate("() => window.__yeetWar.forceSudden()")
         s = snap(page)
@@ -314,10 +334,19 @@ def main():
         assert "hidden" not in (tip.get_attribute("class") or "")
         assert "angle" in tip.inner_text().lower()
         assert page.locator("#coin-chip").inner_text().startswith("$BOBER")
-        assert page.evaluate("() => window.__yeetWar.HP_MAX") == 85
+        assert page.locator("#walk-chip").inner_text().startswith("Walk left")
+        walk0 = snap(page)["bobers"][0]
+        page.evaluate("() => window.__yeetWar.walk(-1)")
+        page.wait_for_timeout(450)
+        walk1 = snap(page)["bobers"][0]
+        print("WALK STEP", walk0["x"], walk1["x"], walk1.get("walkLeft"))
+        assert walk1["x"] < walk0["x"]
+        assert walk0["x"] - walk1["x"] < 80
+        assert walk1["walkLeft"] < page.evaluate("() => window.__yeetWar.WALK_MAX")
+        assert page.evaluate("() => window.__yeetWar.HP_MAX") == 80
         for b in s["bobers"]:
             if b["alive"]:
-                assert b["hp"] == 85
+                assert b["hp"] == 80
                 assert b["y"] > 300
         shot(page, "test-match.png")
         assert page.locator("#btn-shop").inner_text() == "SHOP"
@@ -349,7 +378,7 @@ def main():
         )
         s = snap(page)
         print("MIDSHOP MORTAR", s["lastBlast"], "ammo", s["ammo"]["lodge"])
-        assert s["lastBlast"]["dmg"] == 50
+        assert s["lastBlast"]["dmg"] == 75
         wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
         if snap(page)["phase"] == "cpu":
             wait_phase(page, ["aim", "end"], timeout=20000)
@@ -390,8 +419,8 @@ def main():
             )
             s = snap(page)
             print("DYN BLAST", s["lastBlast"])
-            assert s["lastBlast"]["r"] == 58
-            assert s["lastBlast"]["dmg"] == 58
+            assert s["lastBlast"]["r"] == 87
+            assert s["lastBlast"]["dmg"] == 87
             wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
             if snap(page)["phase"] == "cpu":
                 wait_phase(page, ["aim", "end"], timeout=20000)
@@ -412,7 +441,7 @@ def main():
             )
             s = snap(page)
             print("SAP", s["lastBlast"])
-            assert s["lastBlast"]["r"] == 52
+            assert s["lastBlast"]["r"] == 78
             shot(page, "test-sap.png")
             wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
 
@@ -519,7 +548,7 @@ def main():
         s = snap(page)
         print("SNARE", s.get("snares"), s.get("lastBlast"))
         assert s["lastBlast"]["weapon"] == "snare"
-        assert s["lastBlast"]["dmg"] == 8
+        assert s["lastBlast"]["dmg"] == 12
         shot(page, "test-snare.png")
         diffs = page.evaluate("() => window.__yeetWar.DIFFS")
         assert diffs["easy"]["ang"] > diffs["hard"]["ang"] * 4
@@ -567,8 +596,8 @@ def main():
         )
         s = snap(page)
         print("ROCKET", s["lastBlast"])
-        assert s["lastBlast"]["dmg"] == 55
-        assert s["lastBlast"]["r"] == 46
+        assert s["lastBlast"]["dmg"] == 83
+        assert s["lastBlast"]["r"] == 69
         shot(page, "test-rocket.png")
         wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
         if snap(page)["phase"] == "cpu":
@@ -590,8 +619,8 @@ def main():
             )
             s = snap(page)
             print("CHAIN", s["lastBlast"])
-            assert s["lastBlast"]["dmg"] == 14
-            assert s["lastBlast"]["r"] == 12
+            assert s["lastBlast"]["dmg"] == 21
+            assert s["lastBlast"]["r"] == 18
             shot(page, "test-chain.png")
             wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
 
@@ -613,9 +642,33 @@ def main():
             )
             s = snap(page)
             print("ZAP", s["lastBlast"])
-            assert s["lastBlast"]["dmg"] == 28
+            assert s["lastBlast"]["dmg"] == 42
             shot(page, "test-zap.png")
             wait_phase(page, ["aim", "cpu", "end"], timeout=15000)
+
+        page.evaluate("() => window.__yeetWar.startMatch()")
+        wait_phase(page, "aim", timeout=8000)
+        cap = page.evaluate(
+            """async () => {
+              const w = window.__yeetWar;
+              const b0 = w.snapshot().bobers.find((b) => b.team === 'lodge' && b.alive);
+              w.setWalkLeft(b0.id, 36);
+              const x0 = b0.x;
+              for (let i = 0; i < 30; i++) {
+                w.walk(-1);
+                await new Promise((r) => setTimeout(r, 40));
+              }
+              await new Promise((r) => setTimeout(r, 400));
+              const b = w.snapshot().bobers.find((x) => x.id === b0.id);
+              return { dx: x0 - b.x, left: b.walkLeft, alive: b.alive, max: w.WALK_MAX };
+            }"""
+        )
+        print("WALK CAP", cap)
+        assert cap["max"] >= 230 and cap["max"] <= 320
+        assert cap["alive"] is True
+        assert cap["dx"] <= 44
+        assert cap["dx"] >= 20
+        assert cap["left"] <= 2
 
         for mid, fname in (
             ("bowl", "test-map-bowl.png"),
@@ -797,7 +850,7 @@ def main():
             s = snap(page)
             print("LAND MORTAR", map_id, s.get("lastBlast"), s.get("phase"))
             assert s["lastBlast"]["weapon"] == "mortar"
-            assert s["lastBlast"]["dmg"] == 50
+            assert s["lastBlast"]["dmg"] == 75
 
         page = browser.new_page(viewport={"width": 844, "height": 390}, is_mobile=True, has_touch=True)
         page.goto(URL, wait_until="networkidle", timeout=30000)

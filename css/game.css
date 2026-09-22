@@ -117,6 +117,7 @@ html, body {
   gap: 6px;
   color: #ffe566;
 }
+.walk-chip { color: #ffe566; }
 #wind-flag {
   display: inline-block;
   font-size: 16px;

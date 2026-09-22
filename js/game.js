@@ -6,7 +6,7 @@
   const WIND_K = 0.014;
   const BOBER_R = 24;
   const DRAW_H = 72;
-  const HP_MAX = 85;
+  const HP_MAX = 80;
   const MAX_PULL = 140;
   const TUT_KEY = "bober-yeet-war-tut";
   const COIN_KEY = "bober-yeet-war-coins";
@@ -30,14 +30,18 @@
   const START_COINS = 180;
   const CRATE_EVERY = 3;
   const FUSE_SEC = 2;
-  const SAP_DOT = 8;
+  const SAP_DOT = 12;
   const SAP_TICKS = 2;
   const MAP_KEY = "bober-yeet-war-map";
   const DIFF_KEY = "bober-yeet-war-diff";
   const GRANT_KEY = "bober-yeet-war-p2grant";
   const GRANT9_KEY = "bober-yeet-war-p9grant";
+  const SD_FLOOR = 14;
   const SD_TURN = 16;
   const SD_RISE = 18;
+  const SD_LATE = 28;
+  const WALK_FRAC = 0.22;
+  const WALK_MAX = Math.round(WORLD_W * WALK_FRAC);
   const DIFFS = {
     easy: { ang: 0.58, pwr: 30, mortar: 0.05, dyn: 0.07, sap: 0.08, pine: 0.06, mine: 0.04, rocket: 0.04, chain: 0.04, zap: 0.03, fang: 0.04, ember: 0.03, snare: 0.06, stun: 0.05, lure: 0.04, buy: false, cover: 0.2, lowHp: false, coins: 180 },
     normal: { ang: 0.22, pwr: 12, mortar: 0.28, dyn: 0.3, sap: 0.22, pine: 0.18, mine: 0.16, rocket: 0.22, chain: 0.2, zap: 0.18, fang: 0.2, ember: 0.14, snare: 0.2, stun: 0.18, lure: 0.16, buy: true, cover: 0.48, lowHp: false, coins: 180 },
@@ -50,19 +54,19 @@
 
   const WEAPONS = {
     stick: { id: "stick", name: "Yeet Stick", dmg: 25, blast: 28, r: 7, inf: true },
-    dynamite: { id: "dynamite", name: "Dynamite", dmg: 58, blast: 58, r: 10, fuse: FUSE_SEC, cost: DYN_COST },
-    sap: { id: "sap", name: "Sap Bomb", dmg: 40, blast: 52, r: 9, dot: SAP_DOT, ticks: SAP_TICKS, cost: SAP_COST },
-    mortar: { id: "mortar", name: "Lodge Mortar", dmg: 50, blast: 54, r: 9, cost: MORTAR_COST, lob: true },
-    pine: { id: "pine", name: "Pinecone Cluster", dmg: 16, blast: 28, r: 7, cost: PINE_COST, cluster: 3 },
-    mine: { id: "mine", name: "Woodchip Mine", dmg: 52, blast: 42, r: 8, cost: MINE_COST, mine: true },
-    rocket: { id: "rocket", name: "Corkscrew Rocket", dmg: 55, blast: 46, r: 10, cost: ROCKET_COST, twist: true },
-    chain: { id: "chain", name: "Lodge Chaingun", dmg: 14, blast: 12, r: 5, cost: CHAIN_COST, burst: 5 },
-    zap: { id: "zap", name: "Arc Zap", dmg: 28, blast: 26, r: 8, cost: ZAP_COST, zap: 2, zapDmg: 14, zapRange: 160 },
-    fang: { id: "fang", name: "Ricochet Fang", dmg: 22, blast: 20, r: 7, cost: FANG_COST, bounce: 3, spark: 80, sparkDmg: 12 },
-    ember: { id: "ember", name: "Ember Cascade", dmg: 18, blast: 22, r: 8, cost: EMBER_COST, hops: 2 },
-    snare: { id: "snare", name: "Sap Snare", dmg: 8, blast: 28, r: 8, cost: SNARE_COST, snare: 2 },
-    stun: { id: "stun", name: "Stun Cone", dmg: 12, blast: 32, r: 8, cost: STUN_COST, stun: 1 },
-    lure: { id: "lure", name: "Grav Lure", dmg: 10, blast: 24, r: 8, cost: LURE_COST, pull: 2, pullRange: 220 },
+    dynamite: { id: "dynamite", name: "Dynamite", dmg: 87, blast: 87, r: 10, fuse: FUSE_SEC, cost: DYN_COST },
+    sap: { id: "sap", name: "Sap Bomb", dmg: 60, blast: 78, r: 9, dot: SAP_DOT, ticks: SAP_TICKS, cost: SAP_COST },
+    mortar: { id: "mortar", name: "Lodge Mortar", dmg: 75, blast: 81, r: 9, cost: MORTAR_COST, lob: true },
+    pine: { id: "pine", name: "Pinecone Cluster", dmg: 24, blast: 42, r: 7, cost: PINE_COST, cluster: 3 },
+    mine: { id: "mine", name: "Woodchip Mine", dmg: 78, blast: 63, r: 8, cost: MINE_COST, mine: true },
+    rocket: { id: "rocket", name: "Corkscrew Rocket", dmg: 83, blast: 69, r: 10, cost: ROCKET_COST, twist: true },
+    chain: { id: "chain", name: "Lodge Chaingun", dmg: 21, blast: 18, r: 5, cost: CHAIN_COST, burst: 5 },
+    zap: { id: "zap", name: "Arc Zap", dmg: 42, blast: 39, r: 8, cost: ZAP_COST, zap: 2, zapDmg: 21, zapRange: 160 },
+    fang: { id: "fang", name: "Ricochet Fang", dmg: 33, blast: 30, r: 7, cost: FANG_COST, bounce: 3, spark: 80, sparkDmg: 18 },
+    ember: { id: "ember", name: "Ember Cascade", dmg: 27, blast: 33, r: 8, cost: EMBER_COST, hops: 2 },
+    snare: { id: "snare", name: "Sap Snare", dmg: 12, blast: 42, r: 8, cost: SNARE_COST, snare: 2 },
+    stun: { id: "stun", name: "Stun Cone", dmg: 18, blast: 48, r: 8, cost: STUN_COST, stun: 1 },
+    lure: { id: "lure", name: "Grav Lure", dmg: 15, blast: 36, r: 8, cost: LURE_COST, pull: 2, pullRange: 220 },
   };
 
   const WEP_SRC = {
@@ -96,6 +100,9 @@
       hazardColor: "#8ad4ff",
       under: "#4a2810",
       washFrom: 430,
+      sdTurn: 22,
+      sdRise: 8,
+      sdLate: 34,
       story: "Starfall over the Green Home bowl.",
     },
     ledges: {
@@ -111,6 +118,9 @@
       hazardColor: "#8ad4ff",
       under: "#4a2810",
       washFrom: 500,
+      sdTurn: 16,
+      sdRise: 18,
+      sdLate: 28,
       story: "Jet duel over the ice bridge.",
     },
     mesa: {
@@ -126,6 +136,9 @@
       hazardColor: "#e8a060",
       under: "#6a3010",
       washFrom: 620,
+      sdTurn: 15,
+      sdRise: 18,
+      sdLate: 26,
       story: "Mars colony. Dust takes the unsheltered.",
     },
     crater: {
@@ -142,6 +155,9 @@
       under: "#2a2a32",
       washFrom: 520,
       pit: { x: 640, y: 470, r: 118 },
+      sdTurn: 16,
+      sdRise: 16,
+      sdLate: 28,
       story: "Moon landing. Miss the rim and you void.",
     },
     methane: {
@@ -157,6 +173,9 @@
       hazardColor: "#6ad4c8",
       under: "#0a2830",
       washFrom: 470,
+      sdTurn: 22,
+      sdRise: 8,
+      sdLate: 34,
       story: "Ice quake on the methane shelf.",
     },
     acid: {
@@ -172,6 +191,9 @@
       hazardColor: "#c8e040",
       under: "#5a4010",
       washFrom: 520,
+      sdTurn: 20,
+      sdRise: 10,
+      sdLate: 32,
       story: "Venus vents. Not a flamethrower.",
     },
     ring: {
@@ -187,6 +209,9 @@
       hazardColor: "#c8c0e0",
       under: "#3a3018",
       washFrom: 500,
+      sdTurn: 20,
+      sdRise: 10,
+      sdLate: 32,
       story: "Ring debris. The span chips.",
     },
     pack: {
@@ -202,6 +227,9 @@
       hazardColor: "#8ad4ff",
       under: "#1a3048",
       washFrom: 560,
+      sdTurn: 16,
+      sdRise: 16,
+      sdLate: 28,
       story: "Deep current. The pack surges.",
     },
     frost: {
@@ -217,6 +245,9 @@
       hazardColor: "#a8c4e8",
       under: "#2a3040",
       washFrom: 520,
+      sdTurn: 18,
+      sdRise: 12,
+      sdLate: 30,
       story: "Heart frost. A probe blinks in the dark.",
     },
     dock: {
@@ -232,12 +263,23 @@
       hazardColor: "#c8c0e0",
       under: "#1a1a1e",
       washFrom: 480,
+      sdTurn: 20,
+      sdRise: 10,
+      sdLate: 32,
       story: "Asteroid mining. The notch sways.",
     },
   };
 
   function spec() {
     return MAPS[mapId] || MAPS.bowl;
+  }
+
+  function mapSd() {
+    const s = spec();
+    const turn = Math.max(SD_FLOOR, s.sdTurn || SD_TURN);
+    const late = Math.max(turn + 6, s.sdLate || SD_LATE);
+    const rise = s.sdRise || SD_RISE;
+    return { turn, late, rise };
   }
 
   function hazardY() {
@@ -476,7 +518,7 @@
 
   function burst(x, y, kind) {
     const fire = kind === "fire" || kind === "ember" || kind === "mine" || kind === "rocket";
-    const n = kind === "snow" ? 24 : fire ? 38 : kind === "sap" ? 20 : 26;
+    const n = kind === "snow" ? 32 : fire ? 56 : kind === "sap" ? 28 : 40;
     for (let i = 0; i < n; i++) {
       const k = fire
         ? i % 3 === 0
@@ -492,69 +534,73 @@
               ? "dirt"
               : "snow";
       bits.push({
-        x: x + (Math.random() - 0.5) * 22,
-        y: y + (Math.random() - 0.5) * 14,
-        vx: (Math.random() - 0.5) * (fire ? 16 : 12),
-        vy: (Math.random() - 0.85) * (fire ? 16 : 11),
-        w: (fire ? 10 : 7) + Math.random() * (fire ? 16 : 11),
-        h: (fire ? 8 : 6) + Math.random() * (fire ? 14 : 9),
+        x: x + (Math.random() - 0.5) * 36,
+        y: y + (Math.random() - 0.5) * 22,
+        vx: (Math.random() - 0.5) * (fire ? 22 : 16),
+        vy: (Math.random() - 0.9) * (fire ? 20 : 14),
+        w: (fire ? 14 : 10) + Math.random() * (fire ? 22 : 16),
+        h: (fire ? 12 : 8) + Math.random() * (fire ? 20 : 14),
         rot: Math.random() * 6,
-        vr: (Math.random() - 0.5) * 0.5,
-        life: 0.55 + Math.random() * 0.7,
+        vr: (Math.random() - 0.5) * 0.55,
+        life: 0.62 + Math.random() * 0.75,
         kind: k,
       });
     }
     if (fire) {
-      for (let j = 0; j < 12; j++) {
+      const tongues = kind === "mine" ? 22 : 16;
+      for (let j = 0; j < tongues; j++) {
         bits.push({
-          x: x + (Math.random() - 0.5) * 10,
-          y: y - Math.random() * 8,
-          vx: (Math.random() - 0.5) * 5,
-          vy: -5 - Math.random() * 9,
-          w: 14 + Math.random() * 16,
-          h: 18 + Math.random() * 22,
+          x: x + (Math.random() - 0.5) * 18,
+          y: y - Math.random() * 10,
+          vx: (Math.random() - 0.5) * 7,
+          vy: -7 - Math.random() * 12,
+          w: 16 + Math.random() * 18,
+          h: 26 + Math.random() * 30,
           rot: Math.random() * 6,
-          vr: (Math.random() - 0.5) * 0.4,
-          life: 0.55 + Math.random() * 0.65,
-          kind: j % 2 ? "fire" : "smoke",
+          vr: (Math.random() - 0.5) * 0.35,
+          life: 0.6 + Math.random() * 0.7,
+          kind: j % 3 === 0 ? "ember" : j % 3 === 1 ? "fire" : "smoke",
         });
       }
     }
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 18; i++) {
       bits.push({
-        x: x + (Math.random() - 0.5) * 16,
-        y: y + (Math.random() - 0.5) * 8,
-        vx: (Math.random() - 0.5) * 14,
-        vy: -3 - Math.random() * 8,
-        w: 8 + Math.random() * 12,
-        h: 7 + Math.random() * 10,
+        x: x + (Math.random() - 0.5) * 28,
+        y: y + (Math.random() - 0.5) * 12,
+        vx: (Math.random() - 0.5) * 18,
+        vy: -4 - Math.random() * 10,
+        w: 12 + Math.random() * 18,
+        h: 10 + Math.random() * 14,
         rot: Math.random() * 6,
-        vr: (Math.random() - 0.5) * 0.6,
-        life: 0.45 + Math.random() * 0.5,
+        vr: (Math.random() - 0.5) * 0.7,
+        life: 0.5 + Math.random() * 0.55,
         kind: i % 2 ? "dirt" : "snow",
       });
     }
+    if (bits.length > 260) bits.splice(0, bits.length - 260);
   }
 
   function boomShake(r) {
-    shake = Math.max(shake, Math.min(22, 5 + r * 0.22));
+    shake = Math.max(shake, Math.min(28, 8 + r * 0.32));
   }
 
   function flash(x, y, r, color) {
-    flashes.push({ x, y, r: r || 28, color: color || "#ffe566", t: 0.22 });
+    flashes.push({ x, y, r: r || 36, color: color || "#ffe566", t: 0.34 });
   }
 
-  function trailAt(x, y, kind) {
+  function trailAt(x, y, kind, vx, vy) {
     const smoke = kind === "smoke";
     const tracer = kind === "tracer";
     trails.push({
       x,
       y,
+      dx: vx || 0,
+      dy: vy || 0,
       kind: kind || "smoke",
-      t: smoke ? 0.52 : tracer ? 0.22 : 0.36,
-      w: smoke ? 14 + Math.random() * 14 : tracer ? 6 + Math.random() * 6 : 9 + Math.random() * 10,
+      t: smoke ? 0.72 : tracer ? 0.4 : 0.52,
+      w: smoke ? 22 + Math.random() * 18 : tracer ? 11 + Math.random() * 8 : 14 + Math.random() * 12,
     });
-    if (trails.length > 110) trails.splice(0, trails.length - 110);
+    if (trails.length > 160) trails.splice(0, trails.length - 160);
   }
 
   function wallAt(x, y) {
@@ -876,6 +922,7 @@
           airborne: false,
           walkT: 0,
           walkDir: 0,
+          walkLeft: WALK_MAX,
           sapTicks: 0,
           sapT: 0,
           shield: 0,
@@ -958,6 +1005,16 @@
     phaseChip.textContent = labels[phase] || phase.toUpperCase();
     const sdChip = $("sd-chip");
     if (sdChip) sdChip.classList.toggle("hidden", !sudden);
+    const walkChip = $("walk-chip");
+    if (walkChip) {
+      const wb = getActive();
+      const showWalk = !!(wb && wb.alive && (phase === "aim" || phase === "cpu"));
+      walkChip.classList.toggle("hidden", !showWalk);
+      if (showWalk) {
+        const left = wb.walkLeft == null ? WALK_MAX : wb.walkLeft;
+        walkChip.textContent = "Walk left " + Math.max(0, Math.round(left));
+      }
+    }
     if (coinChip) coinChip.textContent = "$BOBER " + (myTeam() === "creek" ? cpuCoins : coins);
     const mapChip = $("map-chip");
     if (mapChip) mapChip.textContent = (MAPS[mapId] || MAPS.bowl).name.toUpperCase();
@@ -1149,9 +1206,16 @@
     }
   }
 
+  function refreshWalk(team) {
+    living(team).forEach((b) => {
+      b.walkLeft = WALK_MAX;
+    });
+  }
+
   function beginTurn(team) {
     turn = team;
     turnN += 1;
+    refreshWalk(team);
     wind = randWind();
     shot = null;
     dragging = false;
@@ -1218,8 +1282,11 @@
   }
 
   function tickSuddenDeath(force) {
+    const sd = mapSd();
     const few = living().length <= 3;
-    if (!sudden && (force || (turnN >= SD_TURN && few))) {
+    const due = turnN >= sd.turn && few;
+    const late = turnN >= sd.late;
+    if (!sudden && (force || due || late)) {
       sudden = true;
       sdTickAt = turnN;
       toast("SUDDEN DEATH");
@@ -1235,7 +1302,9 @@
   }
 
   function riseSudden() {
-    sdRise += SD_RISE;
+    const sd = mapSd();
+    const stepRise = turnN >= sd.late ? Math.max(sd.rise, SD_RISE) : sd.rise;
+    sdRise += stepRise;
     sdFlash = 1;
     boomShake(36);
     shrinkMidTerrain();
@@ -1399,7 +1468,8 @@
       age: 0,
       tracer: true,
     });
-    flash(b.x + Math.cos(ang) * 30, b.y + Math.sin(ang) * 30, 18, "#ffd36a");
+    flash(b.x + Math.cos(ang) * 30, b.y + Math.sin(ang) * 30, 28, "#ffd36a");
+    trailAt(b.x + Math.cos(ang) * 36, b.y + Math.sin(ang) * 36, "tracer", Math.cos(ang) * 18, Math.sin(ang) * 18);
     b.x -= Math.cos(ang) * 3.2;
     b.vx -= Math.cos(ang) * 1.4;
     if (BoberSfx.chip) BoberSfx.chip();
@@ -1440,16 +1510,18 @@
         ? "snow"
         : wpn.id === "sap"
           ? "sap"
-          : wpn.id === "mine" || wpn.id === "dynamite" || wpn.id === "rocket" || wpn.id === "ember"
-            ? "fire"
-            : wpn.id === "zap"
-              ? "snow"
-              : "dirt";
+          : wpn.id === "mine"
+            ? "mine"
+            : wpn.id === "dynamite" || wpn.id === "rocket" || wpn.id === "ember"
+              ? "fire"
+              : wpn.id === "zap"
+                ? "snow"
+                : "dirt";
     burst(x, y, fx);
     flash(
       x,
       y,
-      r * 1.15,
+      r * 1.45,
       wpn.id === "zap"
         ? "#9ae8ff"
         : wpn.id === "ember" || wpn.id === "mine" || wpn.id === "rocket" || wpn.id === "dynamite"
@@ -1540,27 +1612,28 @@
 
   function addBolt(x0, y0, x1, y1, color) {
     const pts = [{ x: x0, y: y0 }];
-    const n = 7;
+    const n = 10;
     for (let i = 1; i < n; i++) {
       const t = i / n;
       pts.push({
-        x: x0 + (x1 - x0) * t + (Math.random() - 0.5) * 22,
-        y: y0 + (y1 - y0) * t + (Math.random() - 0.5) * 22,
+        x: x0 + (x1 - x0) * t + (Math.random() - 0.5) * 32,
+        y: y0 + (y1 - y0) * t + (Math.random() - 0.5) * 32,
       });
     }
     pts.push({ x: x1, y: y1 });
-    bolts.push({ pts, color: color || "#9ae8ff", t: 0.45 });
+    bolts.push({ pts, color: color || "#9ae8ff", t: 0.68 });
   }
 
   function zapJump(x, y, team, already) {
     const seen = already || [];
+    const wpn = WEAPONS.zap;
     const foes = living().filter((b) => b.team !== team && seen.indexOf(b.id) < 0);
     foes.sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
-    foes.slice(0, 2).forEach((b) => {
-      if (Math.hypot(b.x - x, b.y - y) > 160) return;
+    foes.slice(0, wpn.zap || 2).forEach((b) => {
+      if (Math.hypot(b.x - x, b.y - y) > (wpn.zapRange || 160)) return;
       addBolt(x, y, b.x, b.y, "#9ae8ff");
-      flash(b.x, b.y, 22, "#c8f6ff");
-      applyDirectDmg(b, 14, team, "#9ae8ff");
+      flash(b.x, b.y, 34, "#c8f6ff");
+      applyDirectDmg(b, wpn.zapDmg || 21, team, "#9ae8ff");
     });
   }
 
@@ -1569,10 +1642,11 @@
     const foes = living().filter((b) => b.team !== team && seen.indexOf(b.id) < 0);
     foes.sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
     const b = foes[0];
-    if (!b || Math.hypot(b.x - x, b.y - y) > 80) return;
+    const wpn = WEAPONS.fang;
+    if (!b || Math.hypot(b.x - x, b.y - y) > (wpn.spark || 80)) return;
     addBolt(x, y, b.x, b.y, "#ffe566");
-    flash(b.x, b.y, 16, "#ffe566");
-    applyDirectDmg(b, 12, team, "#ffe566");
+    flash(b.x, b.y, 26, "#ffe566");
+    applyDirectDmg(b, wpn.sparkDmg || 18, team, "#ffe566");
   }
 
   function emberHop(x, y, team, hops, seen) {
@@ -1626,8 +1700,9 @@
     const foes = living()
       .filter((b) => b.team !== team)
       .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
-    foes.slice(0, 2).forEach((b) => {
-      if (Math.hypot(b.x - x, b.y - y) > 220) return;
+    const wpn = WEAPONS.lure;
+    foes.slice(0, wpn.pull || 2).forEach((b) => {
+      if (Math.hypot(b.x - x, b.y - y) > (wpn.pullRange || 220)) return;
       addBolt(b.x, b.y, x, y, "#c8a0ff");
       const dx = x - b.x;
       const dy = y - b.y;
@@ -1637,7 +1712,8 @@
       b.vy += dy * 0.04 - 0.8;
       b.standing = false;
       b.airborne = true;
-      if ((seen || []).indexOf(b.id) < 0) applyDirectDmg(b, 10, team, "#c8a0ff");
+      b.walkT = 0;
+      if ((seen || []).indexOf(b.id) < 0) applyDirectDmg(b, wpn.dmg, team, "#c8a0ff");
       pop(b.x, b.y - 36, "PULL", "#c8a0ff");
     });
   }
@@ -1709,7 +1785,8 @@
       }
       const hx = s.x + (s.ox || 0);
       const hy = s.y + (s.oy || 0);
-      if (i === 0) {
+      const flashy = s.weapon === "rocket" || s.weapon === "ember" || s.weapon === "chain" || s.weapon === "zap" || s.weapon === "fang";
+      if (i === 0 || (flashy && i % 2 === 0)) {
         trailAt(
           hx,
           hy,
@@ -1717,10 +1794,12 @@
             ? "smoke"
             : s.weapon === "chain" || s.weapon === "zap" || s.weapon === "fang"
               ? "tracer"
-              : "puff"
+              : "puff",
+          s.vx,
+          s.vy
         );
-        if (s.weapon === "rocket") trailAt(s.x, s.y, "smoke");
-        if (s.weapon === "ember") trailAt(hx, hy - 6, "smoke");
+        if (s.weapon === "rocket") trailAt(s.x, s.y, "smoke", -s.vx, -s.vy);
+        if (s.weapon === "ember") trailAt(hx, hy - 6, "smoke", s.vx * 0.4, -4);
       }
       if (s.weapon === "pine" && !s.split && s.vy > 0 && s.age > 10) {
         splitPine(s);
@@ -1933,11 +2012,37 @@
     }
     if (b.walkT > 0) {
       b.walkT -= 1 / 60;
+      const left = b.walkLeft == null ? WALK_MAX : b.walkLeft;
+      if (left <= 0) {
+        b.walkT = 0;
+        b.walkLeft = 0;
+        return;
+      }
       const band = hurtBand(b);
       let spd = band === "kneel" ? 0.7 : band === "low" ? 0.95 : 1.55;
       if (inSnare(b)) spd *= 0.28;
-      b.x = clamp(b.x + b.walkDir * spd, 18, WORLD_W - 18);
+      const step = Math.min(spd, left);
+      const nx = clamp(b.x + b.walkDir * step, 18, WORLD_W - 18);
+      const gy = surfaceY(nx);
+      const feet = b.y + BOBER_R;
+      if (gy >= hazardY() - 2 || gy > feet + 46) {
+        b.walkLeft = Math.max(0, left - Math.abs(nx - b.x));
+        b.x = nx;
+        b.walkT = 0;
+        b.airborne = true;
+        b.standing = false;
+        b.vx = b.walkDir * 1.6;
+        b.vy = 0.4;
+        pop(b.x, b.y - 24, "SLIP", "#ffe566");
+        return;
+      }
+      b.walkLeft = Math.max(0, left - Math.abs(nx - b.x));
+      b.x = nx;
       if (!snapStand(b)) return;
+      if (b.walkLeft <= 0) {
+        b.walkT = 0;
+        toast("WALK LIMIT", true);
+      }
       pickupCrates(b);
       return;
     }
@@ -1992,6 +2097,11 @@
   function walkActive(dir, fromNet) {
     if (isGuest() && !fromNet) {
       if (!canControl()) return;
+      const mine = getActive();
+      if (mine && (mine.walkLeft == null ? WALK_MAX : mine.walkLeft) <= 0) {
+        toast("WALK LIMIT", true);
+        return;
+      }
       netSend({ t: "in", k: "walk", dir: dir < 0 ? -1 : 1 });
       return;
     }
@@ -2001,6 +2111,10 @@
     if (b.airborne) return;
     if ((b.stunTurns || 0) > 0) {
       toast("STUNNED", true);
+      return;
+    }
+    if ((b.walkLeft == null ? WALK_MAX : b.walkLeft) <= 0) {
+      toast("WALK LIMIT", true);
       return;
     }
     b.walkDir = dir < 0 ? -1 : 1;
@@ -2026,7 +2140,10 @@
     if (phase === "end" || phase === "splash" || phase === "ending") return false;
     const who = checkWin();
     if (!who) {
-      if (!sudden && living().length <= 3 && turnN >= SD_TURN) tickSuddenDeath();
+      if (!sudden) {
+        const sd = mapSd();
+        if ((living().length <= 3 && turnN >= sd.turn) || turnN >= sd.late) tickSuddenDeath();
+      }
       return false;
     }
     phase = "ending";
@@ -2165,7 +2282,7 @@
         return;
       }
       const near = crates.find((c) => Math.abs(c.x - shooter.x) < 90 && Math.abs(c.y - shooter.y) < 50);
-      if (near && !shooter.airborne) {
+      if (near && !shooter.airborne && (shooter.walkLeft == null ? WALK_MAX : shooter.walkLeft) > 8) {
         shooter.walkDir = near.x < shooter.x ? -1 : 1;
         shooter.walkT = 0.3;
         shooter.facing = shooter.walkDir;
@@ -2933,11 +3050,28 @@
     }
 
     trails.forEach((tr) => {
-      ctx.globalAlpha = clamp(tr.t * 3, 0, 0.7);
-      ctx.fillStyle = tr.kind === "tracer" ? "#ffe566" : tr.kind === "smoke" ? "rgba(80,70,90,0.9)" : "#f4e6c3";
-      ctx.beginPath();
-      ctx.arc(tr.x, tr.y, tr.w * 0.45, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.globalAlpha = clamp(tr.t * 2.4, 0, 0.88);
+      if (tr.kind === "tracer") {
+        const spd = Math.hypot(tr.dx || 0, tr.dy || 0) || 1;
+        const ux = (tr.dx || 8) / spd;
+        const uy = (tr.dy || 0) / spd;
+        ctx.strokeStyle = "#ffe566";
+        ctx.lineWidth = Math.max(4, tr.w * 0.45);
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(tr.x - ux * 28, tr.y - uy * 28);
+        ctx.lineTo(tr.x, tr.y);
+        ctx.stroke();
+        ctx.fillStyle = "#fffef2";
+        ctx.beginPath();
+        ctx.arc(tr.x, tr.y, Math.max(3.5, tr.w * 0.28), 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = tr.kind === "smoke" ? "rgba(90,70,80,0.9)" : "#f4e6c3";
+        ctx.beginPath();
+        ctx.arc(tr.x, tr.y, tr.w * 0.72, 0, Math.PI * 2);
+        ctx.fill();
+      }
     });
     ctx.globalAlpha = 1;
     flashes.forEach((f) => {
@@ -2984,11 +3118,15 @@
         ctx.restore();
       }
       if (p.tracer || p.weapon === "chain") {
-        ctx.strokeStyle = "#ffe566";
-        ctx.lineWidth = 5;
+        ctx.strokeStyle = "rgba(255, 214, 80, 0.45)";
+        ctx.lineWidth = 10;
+        ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.moveTo(px - Math.cos(rot) * 26, py - Math.sin(rot) * 26);
+        ctx.moveTo(px - Math.cos(rot) * 46, py - Math.sin(rot) * 46);
         ctx.lineTo(px, py);
+        ctx.stroke();
+        ctx.strokeStyle = "#fff6c4";
+        ctx.lineWidth = 4;
         ctx.stroke();
       }
       ctx.save();
@@ -3008,20 +3146,20 @@
     pellets.forEach(drawProj);
     bolts.forEach((b) => {
       ctx.save();
-      ctx.globalAlpha = clamp(b.t * 3, 0, 1);
+      ctx.globalAlpha = clamp(b.t * 2.2, 0, 1);
       ctx.strokeStyle = b.color || "#9ae8ff";
-      ctx.lineWidth = 7;
+      ctx.lineWidth = 12;
       ctx.lineJoin = "round";
       ctx.lineCap = "round";
       ctx.shadowColor = b.color || "#9ae8ff";
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = 16;
       ctx.beginPath();
       (b.pts || []).forEach((p, i) => {
         if (i === 0) ctx.moveTo(p.x, p.y);
         else ctx.lineTo(p.x, p.y);
       });
       ctx.stroke();
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 4;
       ctx.strokeStyle = "#fffef8";
       ctx.shadowBlur = 0;
       ctx.stroke();
@@ -3402,6 +3540,9 @@
         shieldTurns: b.shieldTurns || 0,
         stunTurns: b.stunTurns || 0,
         flinch: b.flinch || 0,
+        walkLeft: b.walkLeft == null ? WALK_MAX : b.walkLeft,
+        walkT: b.walkT || 0,
+        walkDir: b.walkDir || 0,
       })),
       crates: crates.map((c) => ({ x: c.x, y: c.y, kind: c.kind })),
       fuses: fuses.map((f) => ({ x: f.x, y: f.y, t: f.t, weapon: f.weapon, team: f.team })),
@@ -3841,7 +3982,7 @@
           toast(/ICE/i.test(msg) ? "ICE FAIL" : "LINK FAIL", true);
           $("join-status").textContent = /ICE/i.test(msg)
             ? msg
-            : "Could not connect. Check the code. If ICE FAIL, retry on the same Wi-Fi.";
+            : "Could not connect. Check the code. ICE FAIL means both sides need internet — same Wi-Fi not required.";
         });
       });
     }
@@ -3993,6 +4134,7 @@
         shield: b.shield || 0,
         hurt: hurtBand(b),
         flinch: b.flinch || 0,
+        walkLeft: b.walkLeft == null ? WALK_MAX : b.walkLeft,
       })),
     };
   }
@@ -4035,6 +4177,9 @@
       return sdRise;
     },
     hazardY,
+    mapSd,
+    WALK_MAX,
+    SD_FLOOR,
     forceSudden() {
       turnN = Math.max(turnN, SD_TURN);
       tickSuddenDeath(true);
@@ -4059,6 +4204,12 @@
       const b = bobers.find((x) => x.id === id);
       if (!b) return;
       b.hp = clamp(n, 0, HP_MAX);
+      hud();
+    },
+    setWalkLeft(id, n) {
+      const b = bobers.find((x) => x.id === id);
+      if (!b) return;
+      b.walkLeft = Math.max(0, n);
       hud();
     },
     get craterCount() {

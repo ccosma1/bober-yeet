@@ -29,6 +29,7 @@
           <button type="button" class="chip coin-chip" id="coin-chip" title="$BOBER">$BOBER 0</button>
           <div class="chip" id="wep-chip">YEET STICK</div>
           <button class="btn shop-hud" id="btn-shop" title="Shop" aria-label="Shop">SHOP</button>
+          <div class="chip walk-chip" id="walk-chip">Walk left</div>
         </div>
         <div class="btns">
           <button class="btn" id="btn-help" title="How to play" aria-label="How to play">?</button>
@@ -40,7 +41,7 @@
       <div id="story-strip" class="story-strip hidden"></div>
       <div id="toast"></div>
       <div id="aim-tut" class="aim-tut hidden">
-        <p>Drag back to aim. Tap a Lodge Bober to switch. Tap the bank to take a short step. Fire when ready.</p>
+        <p>Drag back to aim. Tap a Lodge Bober to switch. Tap the bank for a short step — Walk left is capped. Fire when ready.</p>
         <button type="button" id="aim-tut-ok">GOT IT</button>
       </div>
     </div>
@@ -195,7 +196,7 @@
           <p class="link-label">Room code</p>
           <div id="room-code">————</div>
           <p id="host-status">Waiting for friend…</p>
-          <p class="link-note">Same Wi-Fi works best. A short internet hop (PeerJS) finds the other phone. No account.</p>
+          <p class="link-note">Needs internet — same Wi-Fi not required. A room code on PeerJS finds the other player (STUN, then TURN). No account.</p>
           <button class="play play-ghost play-sm" id="btn-host-cancel" type="button">BACK</button>
         </div>
         <div id="join-box" class="hidden">
@@ -206,6 +207,7 @@
             <button class="play play-ghost" id="btn-join-cancel" type="button">BACK</button>
           </div>
           <p class="link-note" id="join-status"></p>
+          <p class="link-note">Needs internet — same Wi-Fi not required.</p>
         </div>
       </div>
       <div class="end-actions">
@@ -225,11 +227,12 @@
       <h2>HOW TO PLAY</h2>
       <div class="howto-body">
         <p>Drag back to set <strong>angle</strong>. Charge <strong>power</strong> 0–100. Read the <strong>wind flag</strong>. Fire.</p>
-        <p>Hits dig cover and hurt <strong>HP</strong> (Bobers start at 85). Falloff at the blast edge. Creek, dust, void, methane, or acid below = out. Last beaver standing wins.</p>
+        <p>Hits dig cover and hurt <strong>HP</strong> (Bobers start at 80). Falloff at the blast edge. Creek, dust, void, methane, or acid below = out. Last beaver standing wins.</p>
+        <p>Each turn the HUD shows <strong>Walk left</strong>. You can step about a fifth of the map, then you stop. Step off open ground and you slip. Blasts can still knock you. You cannot stroll from one bank to the other in one turn.</p>
         <p><strong>Crates</strong> drop every 3 turns. Walk onto one for gear or $BOBER. Tap <strong>SHOP</strong> mid-match to buy charges. If you are short, the shop says how many more $BOBER you need.</p>
         <p>Ten maps: Lodge Bowl, Twin Ledges, Red Mesa, Crater Rim, Methane Shelf, Acid Vents, Ring Span, Deep Pack, Frost Pit, Dock Notch. Each bank has its own scrap. Yeet Stick stays infinite. Paid guns hit harder. Crowd control: Sap Snare, Stun Cone, Grav Lure. Tap <strong>WEAPONS</strong> to pick Lodge Mortar, Pinecone Cluster, Woodchip Mine, Corkscrew Rocket, Lodge Chaingun, Arc Zap, Ricochet Fang, Ember Cascade, or a crowd-control charge. You cannot buy a win.</p>
-        <p>Pick <strong>Easy</strong>, <strong>Normal</strong>, or <strong>Hard</strong>. Both banks start even: same HP, same $BOBER, same charges. After turn 16 — and only when three or fewer Bobers remain, whichever is later — <strong>Sudden Death</strong> raises the hazard slowly. The map reacts: the creek, acid, void, or dust climbs the banks with a rumble and a siren flash.</p>
-        <p><strong>Link Battle:</strong> Host gets a 4-letter room code. Friend taps Join and types it. Same Wi-Fi is best. Finding each other uses a short PeerJS internet hop (STUN, then TURN if needed) — no account, no lobby. Host is Lodge, Join is Creek. Two devices. If you see ICE FAIL, retry Host / Join on the same Wi-Fi.</p>
+        <p>Pick <strong>Easy</strong>, <strong>Normal</strong>, or <strong>Hard</strong>. Both banks start even: same HP, same $BOBER, same charges. <strong>Sudden Death</strong> never starts before turn 14. Wide maps begin at turn 16 when three or fewer Bobers remain. Cramped maps wait longer and the hazard climbs slower. A later turn forces the climb so the match still ends. The map reacts: the creek, acid, void, or dust climbs the banks with a rumble and a siren flash.</p>
+        <p><strong>Link Battle:</strong> Host gets a 4-letter room code. Friend taps Join and types it. Needs internet — same Wi-Fi not required. Finding each other uses PeerJS (public STUN, then TURN if the direct path fails) — no account, no lobby. Host is Lodge, Join is Creek. Two devices. Vs AI stays offline. If you see ICE FAIL, both sides need internet. Retry Host / Join.</p>
       </div>
       <button class="play" id="howto-close" type="button">GOT IT</button>
     </div>
@@ -241,7 +244,7 @@
           <img src="assets/sprites/dynamite.png" alt="" />
           <div>
             <strong>Dynamite</strong>
-            <span>58 dmg · blast 58 · fuse ~2s</span>
+            <span>87 dmg · blast 87 · fuse ~2s · hits harder</span>
             <span class="shop-cost">35 $BOBER · owned <b id="shop-dyn-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-dynamite">BUY</button>
@@ -250,7 +253,7 @@
           <img src="assets/sprites/sap-bomb.png" alt="" />
           <div>
             <strong>Sap Bomb</strong>
-            <span>40 dmg · blast 52 · sticky 2 ticks</span>
+            <span>60 dmg · blast 78 · sticky 2 ticks · hits harder</span>
             <span class="shop-cost">30 $BOBER · owned <b id="shop-sap-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-sap">BUY</button>
@@ -259,7 +262,7 @@
           <img src="assets/sprites/mortar.png" alt="" />
           <div>
             <strong>Lodge Mortar</strong>
-            <span>50 dmg · blast 54 · high lob</span>
+            <span>75 dmg · blast 81 · high lob · hits harder</span>
             <span class="shop-cost">45 $BOBER · owned <b id="shop-mortar-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-mortar">BUY</button>
@@ -268,7 +271,7 @@
           <img src="assets/sprites/pinecone.png" alt="" />
           <div>
             <strong>Pinecone Cluster</strong>
-            <span>16 dmg × 3 · blast 28 each · splits after apex</span>
+            <span>24 dmg × 3 · blast 42 each · splits after apex · hits harder</span>
             <span class="shop-cost">40 $BOBER · owned <b id="shop-pine-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-pine">BUY</button>
@@ -277,7 +280,7 @@
           <img src="assets/sprites/woodchip-mine.png" alt="" />
           <div>
             <strong>Woodchip Mine</strong>
-            <span>52 dmg · blast 42 · arms next turn · flame burst</span>
+            <span>78 dmg · blast 63 · arms next turn · flame burst · hits harder</span>
             <span class="shop-cost">32 $BOBER · owned <b id="shop-mine-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-mine">BUY</button>
@@ -286,7 +289,7 @@
           <img src="assets/sprites/corkscrew-rocket.png" alt="" />
           <div>
             <strong>Corkscrew Rocket</strong>
-            <span>55 dmg · blast 46 · twist trail · whoosh</span>
+            <span>83 dmg · blast 69 · twist trail · whoosh · hits harder</span>
             <span class="shop-cost">50 $BOBER · owned <b id="shop-rocket-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-rocket">BUY</button>
@@ -295,7 +298,7 @@
           <img src="assets/sprites/lodge-chaingun.png" alt="" />
           <div>
             <strong>Lodge Chaingun</strong>
-            <span>14 dmg × 5 · blast 12 · tracers · recoil</span>
+            <span>21 dmg × 5 · blast 18 · tracers · recoil · hits harder</span>
             <span class="shop-cost">48 $BOBER · owned <b id="shop-chain-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-chain">BUY</button>
@@ -304,7 +307,7 @@
           <img src="assets/sprites/arc-zap.png" alt="" />
           <div>
             <strong>Arc Zap</strong>
-            <span>28 dmg · chain 14 × 2 nearest · lightning</span>
+            <span>42 dmg · chain 21 × 2 nearest · lightning · hits harder</span>
             <span class="shop-cost">55 $BOBER · owned <b id="shop-zap-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-zap">BUY</button>
@@ -313,7 +316,7 @@
           <img src="assets/sprites/ricochet-fang.png" alt="" />
           <div>
             <strong>Ricochet Fang</strong>
-            <span>22 dmg · bounce 3 · spark 80px</span>
+            <span>33 dmg · bounce 3 · spark 80px · hits harder</span>
             <span class="shop-cost">42 $BOBER · owned <b id="shop-fang-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-fang">BUY</button>
@@ -322,7 +325,7 @@
           <img src="assets/sprites/ember-cascade.png" alt="" />
           <div>
             <strong>Ember Cascade</strong>
-            <span>18 dmg · 4 fire hops bank-to-bank</span>
+            <span>27 dmg · 2 fire hops · hits harder</span>
             <span class="shop-cost">60 $BOBER · owned <b id="shop-ember-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-ember">BUY</button>
@@ -331,7 +334,7 @@
           <img src="assets/sprites/sap-snare.png" alt="" />
           <div>
             <strong>Sap Snare</strong>
-            <span>8 dmg · sticky zone 2 turns · slow walk</span>
+            <span>12 dmg · sticky zone 2 turns · slow walk · hits harder</span>
             <span class="shop-cost">30 $BOBER · owned <b id="shop-snare-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-snare">BUY</button>
@@ -340,7 +343,7 @@
           <img src="assets/sprites/stun-cone.png" alt="" />
           <div>
             <strong>Stun Cone</strong>
-            <span>12 dmg · stun next turn</span>
+            <span>18 dmg · stun next turn · hits harder</span>
             <span class="shop-cost">38 $BOBER · owned <b id="shop-stun-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-stun">BUY</button>
@@ -349,7 +352,7 @@
           <img src="assets/sprites/grav-lure.png" alt="" />
           <div>
             <strong>Grav Lure</strong>
-            <span>10 dmg · pull 1–2 foes · tether</span>
+            <span>15 dmg · pull 1–2 foes · tether · hits harder</span>
             <span class="shop-cost">45 $BOBER · owned <b id="shop-lure-n">0</b></span>
           </div>
           <button type="button" class="play play-sm" id="buy-lure">BUY</button>

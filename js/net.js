@@ -1,43 +1,39 @@
-/* Link Battle: PeerJS datachannel. Loaded only when someone hosts or joins. */
+/* Link Battle: PeerJS datachannel over the internet. Vs AI never calls this. */
 (function (global) {
   const PREFIX = "byw-";
   const ALPH = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const ICE = {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
-      { urls: "stun:stun.cloudflare.com:3478" },
-      {
-        urls: [
-          "turn:eu-0.turn.peerjs.com:3478",
-          "turn:us-0.turn.peerjs.com:3478",
-          "turn:eu-0.turn.peerjs.com:3478?transport=tcp",
-          "turn:us-0.turn.peerjs.com:3478?transport=tcp",
-        ],
-        username: "peerjs",
-        credential: "peerjsp",
-      },
-    ],
-    iceCandidatePoolSize: 8,
-    sdpSemantics: "unified-plan",
-  };
-  const CLOUD = {
-    host: "0.peerjs.com",
-    port: 443,
-    path: "/",
-    secure: true,
-    key: "peerjs",
-    config: ICE,
-    debug: 0,
-  };
+  const ICE_MSG = "ICE FAIL. Needs internet — same Wi-Fi not required. Retry Host / Join.";
+  const RELAY = /(?:\?|&)relay=1(?:&|$)/.test(location.search);
   let peer = null;
   let conn = null;
   let role = null;
   let code = "";
   let onEvent = null;
+  let beat = null;
+  let iceInfo = { state: "", relay: false, srflx: false, host: false };
 
   function emit(e) {
     if (onEvent) onEvent(e);
+  }
+
+  function turn(urls) {
+    return { urls: urls, username: "guest", credential: "password" };
+  }
+
+  function iceConfig() {
+    const cfg = {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun.cloudflare.com:3478" },
+        turn("turn:turn.evan-brass.net:3478?transport=udp"),
+        turn("turn:turn.evan-brass.net:3478?transport=tcp"),
+        turn("turns:turn.evan-brass.net:443?transport=tcp"),
+      ],
+      iceCandidatePoolSize: 4,
+    };
+    if (RELAY) cfg.iceTransportPolicy = "relay";
+    return cfg;
   }
 
   function randCode() {
@@ -67,28 +63,115 @@
   function iceMsg(err) {
     const t = (err && err.type) || "";
     const m = String((err && err.message) || err || "");
-    if (t === "peer-unavailable") return "NO HOST for that code.";
+    if (t === "peer-unavailable") return "NO HOST for that code. Both players need internet.";
     if (t === "unavailable-id") return "CODE TAKEN. Retry Host.";
-    if (t === "network" || t === "socket-error" || t === "socket-closed") return "LINK FAIL — network.";
-    if (/ice/i.test(m) || t === "webrtc") return "ICE FAIL. Same Wi-Fi is best. Retry Host / Join.";
+    if (t === "network" || t === "socket-error" || t === "socket-closed") return "LINK FAIL — no internet to the room server.";
+    if (/ice/i.test(m) || t === "webrtc") return ICE_MSG;
     return m || "LINK FAIL";
+  }
+
+  function noteCandidate(cand) {
+    const line = (cand && cand.candidate) || "";
+    if (line.indexOf("typ relay") >= 0) iceInfo.relay = true;
+    if (line.indexOf("typ srflx") >= 0) iceInfo.srflx = true;
+    if (line.indexOf("typ host") >= 0) iceInfo.host = true;
+  }
+
+  function stopBeat() {
+    if (beat) clearInterval(beat);
+    beat = null;
+  }
+
+  function startBeat() {
+    stopBeat();
+    beat = setInterval(() => {
+      send({ t: "ping" });
+    }, 4000);
+  }
+
+  function refreshIce() {
+    const pc = conn && conn.peerConnection;
+    if (!pc || !pc.getStats) return Promise.resolve(iceInfo);
+    return pc.getStats().then((stats) => {
+      const byId = {};
+      stats.forEach((row) => {
+        byId[row.id] = row;
+        if (row.type === "local-candidate" || row.type === "remote-candidate") {
+          if (row.candidateType === "relay") iceInfo.relay = true;
+          if (row.candidateType === "srflx") iceInfo.srflx = true;
+          if (row.candidateType === "host") iceInfo.host = true;
+        }
+      });
+      stats.forEach((row) => {
+        if (row.type === "candidate-pair" && row.nominated && row.state === "succeeded") {
+          const local = byId[row.localCandidateId];
+          const remote = byId[row.remoteCandidateId];
+          iceInfo.pair = (local && local.candidateType) + "->" + (remote && remote.candidateType);
+        }
+      });
+      iceInfo.state = pc.iceConnectionState || iceInfo.state;
+      return iceInfo;
+    });
+  }
+
+  function armIce(c) {
+    if (!c || c.__yeetIce) return;
+    c.__yeetIce = true;
+    const tryPc = () => {
+      if (c.peerConnection) {
+        watchIce(c);
+        return true;
+      }
+      return false;
+    };
+    if (tryPc()) return;
+    const timer = setInterval(() => {
+      if (tryPc() || !peer) clearInterval(timer);
+    }, 40);
   }
 
   function watchIce(c) {
     const pc = c && c.peerConnection;
-    if (!pc) return;
+    if (!pc || pc.__yeetWatch) return;
+    pc.__yeetWatch = true;
+    let grace = null;
+    const clearGrace = () => {
+      if (grace) clearTimeout(grace);
+      grace = null;
+    };
+    pc.addEventListener("icecandidate", (ev) => {
+      if (ev.candidate) noteCandidate(ev.candidate);
+    });
+    const fail = () => {
+      iceInfo.state = pc.iceConnectionState || "failed";
+      emit({ type: "error", msg: ICE_MSG });
+      emit({ type: "drop" });
+    };
     pc.addEventListener("iceconnectionstatechange", () => {
       const st = pc.iceConnectionState;
-      if (st === "failed") {
-        emit({ type: "error", msg: "ICE FAIL. Same Wi-Fi is best. Retry Host / Join." });
-        emit({ type: "drop" });
+      iceInfo.state = st;
+      if (st === "connected" || st === "completed") {
+        clearGrace();
+        emit({ type: "ice", state: st, relay: iceInfo.relay });
+        return;
       }
+      if (st === "disconnected") {
+        clearGrace();
+        grace = setTimeout(() => {
+          const now = pc.iceConnectionState;
+          if (now !== "connected" && now !== "completed") fail();
+        }, 5000);
+        return;
+      }
+      if (st === "failed") fail();
     });
   }
 
   function wireConn(c) {
     conn = c;
-    watchIce(c);
+    armIce(c);
+    refreshIce();
+    startBeat();
     c.on("data", (raw) => {
       let msg = raw;
       if (typeof raw === "string") {
@@ -112,13 +195,23 @@
   }
 
   function makePeer(id) {
-    return id ? new global.Peer(id, CLOUD) : new global.Peer(CLOUD);
+    const opt = {
+      host: "0.peerjs.com",
+      port: 443,
+      path: "/",
+      secure: true,
+      key: "peerjs",
+      config: iceConfig(),
+      debug: 0,
+    };
+    return id ? new global.Peer(id, opt) : new global.Peer(opt);
   }
 
   function host(cb) {
     close();
     onEvent = cb;
     role = "host";
+    iceInfo = { state: "", relay: false, srflx: false, host: false };
     return load().then(
       () =>
         new Promise((resolve, reject) => {
@@ -147,6 +240,7 @@
               resolve({ code });
             });
             peer.on("connection", (c) => {
+              armIce(c);
               if (c.open) wireConn(c);
               else c.on("open", () => wireConn(c));
             });
@@ -167,6 +261,7 @@
     close();
     onEvent = cb;
     role = "guest";
+    iceInfo = { state: "", relay: false, srflx: false, host: false };
     code = String(raw || "")
       .toUpperCase()
       .replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "")
@@ -183,12 +278,17 @@
           };
           peer.on("error", (err) => {
             const typ = err && err.type;
-            if (typ === "peer-unavailable") boom(err);
+            if (typ === "peer-unavailable" || typ === "network" || typ === "socket-error") boom(err);
             else emit({ type: "error", msg: iceMsg(err) });
           });
-          const timer = setTimeout(() => boom(new Error("ICE FAIL. Same Wi-Fi is best. Retry Host / Join.")), 20000);
+          const timer = setTimeout(() => boom(new Error(ICE_MSG)), 32000);
           peer.on("open", () => {
-            const c = peer.connect(PREFIX + code.toLowerCase(), { reliable: true, serialization: "json" });
+            const c = peer.connect(PREFIX + code.toLowerCase(), {
+              reliable: true,
+              serialization: "json",
+              config: iceConfig(),
+            });
+            armIce(c);
             c.on("open", () => {
               clearTimeout(timer);
               wireConn(c);
@@ -211,6 +311,7 @@
   }
 
   function close() {
+    stopBeat();
     try {
       if (conn) conn.close();
     } catch (_) {}
@@ -239,5 +340,9 @@
     get connected() {
       return !!(conn && conn.open);
     },
+    get ice() {
+      return iceInfo;
+    },
+    refreshIce,
   };
 })(window);
